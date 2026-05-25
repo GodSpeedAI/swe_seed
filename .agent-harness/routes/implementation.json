@@ -1,0 +1,49 @@
+{
+  "id": "implementation",
+  "job_type": "implementation",
+  "purpose": "Build or change behavior from a stated requirement.",
+  "semantic_triggers": [
+    "implement",
+    "build",
+    "scaffold",
+    "add behavior",
+    "create feature"
+  ],
+  "positive_examples": [
+    "implement the payment retry feature",
+    "scaffold the project harness"
+  ],
+  "negative_examples": ["review this diff", "explain how this works"],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/10-frame-outcome.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    "HARNESS_SPEC.md",
+    ".agent-harness/memory/repo-map.md",
+    ".agent-harness/memory/constraints.md"
+  ],
+  "required_skills": ["debug-discipline"],
+  "work_loop": [
+    "identify the governing requirement",
+    "write or update failing validation before behavior changes",
+    "make the smallest implementation change that satisfies the requirement",
+    "update docs or specs when the contract changes",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "changed files summary",
+    "traceability note",
+    "verification evidence"
+  ],
+  "proof": ["python scripts/harness.py validate", "just ci"],
+  "done_when": [
+    "requirement is mapped to changed files",
+    "proof commands pass",
+    "unresolved risks are disclosed"
+  ],
+  "failure_modes": [
+    "requirement is ambiguous",
+    "validation cannot express the desired behavior"
+  ],
+  "fallback_policy": "Ask for clarification only when the implementation target or acceptance criteria materially changes the work."
+}

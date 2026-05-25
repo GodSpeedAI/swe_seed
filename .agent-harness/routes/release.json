@@ -1,0 +1,40 @@
+{
+  "id": "release",
+  "job_type": "release",
+  "purpose": "Prepare or publish a versioned release.",
+  "semantic_triggers": ["release", "publish", "version", "changelog"],
+  "positive_examples": ["prepare a release", "update changelog for publishing"],
+  "negative_examples": [
+    "build an unreleased feature",
+    "review a diff without publishing intent"
+  ],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    ".agent-harness/memory/constraints.md"
+  ],
+  "required_skills": [],
+  "work_loop": [
+    "confirm release scope and release target",
+    "check whether version or changelog files exist",
+    "run proof commands before release edits",
+    "update release notes or version files when present",
+    "state remaining manual steps and read proof output"
+  ],
+  "required_artifacts": [
+    "release summary",
+    "release scope note",
+    "verification evidence"
+  ],
+  "proof": ["just ci"],
+  "done_when": [
+    "release scope is clear",
+    "proof commands pass",
+    "manual risks are disclosed"
+  ],
+  "failure_modes": [
+    "release includes unverified changes",
+    "release policy or destination is missing"
+  ],
+  "fallback_policy": "If release policy is missing, document the gap before publishing."
+}

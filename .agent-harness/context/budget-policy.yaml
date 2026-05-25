@@ -1,0 +1,39 @@
+version: 1
+
+defaults:
+  route_required_context_first: true
+  summarize_before_context: true
+  script_bulk_analysis: true
+  trace_durable_decisions: true
+
+raw_output_policy:
+  max_default_lines: 200
+  prefer:
+    - counts
+    - path lists
+    - focused excerpts
+    - structured JSON summaries
+    - command result summaries
+  avoid:
+    - full logs in conversation
+    - full directory dumps without filtering
+    - raw environment dumps
+    - secret-bearing output
+
+tool_output_containment:
+  high_volume_tools:
+    - search
+    - file read
+    - shell command
+    - web fetch
+    - test logs
+  containment_action: summarize_before_context
+  durable_storage:
+    traces: .agent-harness/traces
+    generated_records_gitignored: true
+
+session_continuity:
+  route_decisions: .agent-harness/traces/route-decisions
+  trace_records: .agent-harness/traces/records
+  memory: .agent-harness/memory
+  restart_rule: read route decision, trace record, changed specs, and unresolved risks before new exploration

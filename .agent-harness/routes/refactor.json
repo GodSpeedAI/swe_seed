@@ -1,0 +1,39 @@
+{
+  "id": "refactor",
+  "job_type": "refactor",
+  "purpose": "Improve structure without changing intended behavior.",
+  "semantic_triggers": ["refactor", "cleanup", "restructure", "simplify"],
+  "positive_examples": ["refactor the validator", "simplify route loading"],
+  "negative_examples": ["add a new feature", "change the spec contract"],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    ".agent-harness/playbooks/40-review-for-risk.md",
+    ".agent-harness/memory/repo-map.md",
+    ".agent-harness/memory/constraints.md"
+  ],
+  "required_skills": ["debug-discipline"],
+  "work_loop": [
+    "identify preserved behavior and the reason structure should change",
+    "ensure tests or validation cover the preserved behavior",
+    "make one small structural change at a time",
+    "review the actual path for unintended behavior changes",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "changed files summary",
+    "preserved behavior note",
+    "verification evidence"
+  ],
+  "proof": ["just ci"],
+  "done_when": [
+    "behavior is preserved",
+    "structural change is smaller or clearer than status quo",
+    "proof commands pass"
+  ],
+  "failure_modes": [
+    "refactor changes behavior without spec update",
+    "refactor expands scope beyond structural improvement"
+  ],
+  "fallback_policy": "If desired behavior changes, switch to implementation or spec route."
+}

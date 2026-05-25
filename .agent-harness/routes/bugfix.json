@@ -1,0 +1,56 @@
+{
+  "id": "bugfix",
+  "job_type": "bugfix",
+  "purpose": "Diagnose and fix a defect without guessing.",
+  "semantic_triggers": [
+    "bug",
+    "fix",
+    "failing test",
+    "regression",
+    "error",
+    "unexpected behavior"
+  ],
+  "positive_examples": [
+    "fix the failing login test",
+    "debug why CI errors on checkout"
+  ],
+  "negative_examples": ["implement a new feature", "write a design spec"],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/30-debug-from-symptom.md",
+    ".agent-harness/memory/repo-map.md",
+    ".agent-harness/memory/failure-patterns.md",
+    ".agent-harness/memory/constraints.md"
+  ],
+  "required_skills": ["debug-discipline"],
+  "work_loop": [
+    "establish reliable reproduction or document the missing artifact or access",
+    "trace the fail path end-to-end before proposing a fix",
+    "create a breadcrumb ledger for experiments and observations",
+    "form ranked hypotheses and try to disprove the leading hypothesis",
+    "implement the smallest fix that explains the failure",
+    "add regression protection when appropriate",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "reliable reproduction",
+    "observed failure",
+    "fail path trace",
+    "breadcrumb ledger",
+    "hypothesis disproof result",
+    "root cause note",
+    "changed files summary",
+    "validation evidence"
+  ],
+  "proof": ["just ci"],
+  "done_when": [
+    "original failure no longer reproduces",
+    "root cause is connected to the fix",
+    "proof commands pass or skipped checks are justified"
+  ],
+  "failure_modes": [
+    "failure cannot be reproduced",
+    "fix would require unrelated rewrite"
+  ],
+  "fallback_policy": "Ask for the failing command or symptom if it changes the diagnosis path."
+}

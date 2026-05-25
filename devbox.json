@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
+  "packages": [
+    "age@latest",
+    "direnv@latest",
+    "git@latest",
+    "just@latest",
+    "nodejs@22",
+    "pnpm@latest",
+    "python@3.12",
+    "sops@latest",
+    "uv@latest"
+  ],
+  "shell": {
+    "init_hook": ["echo 'SWE_SEED development shell ready. Run: just doctor'"],
+    "scripts": {
+      "ci": "just ci",
+      "doctor": "just doctor"
+    }
+  }
+}

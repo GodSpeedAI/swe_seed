@@ -1,0 +1,17 @@
+{
+  "name": "swe-seed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SWE_SEED CI/CD development harness",
+  "scripts": {
+    "ci": "just ci",
+    "doctor": "just doctor",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "lint": "prettier --check .",
+    "test": "bash tests/validate-harness.sh"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  }
+}

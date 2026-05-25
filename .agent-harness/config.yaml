@@ -1,0 +1,82 @@
+version: 1
+
+entrypoints:
+  primary_router: AGENTS.md
+  copilot: .github/copilot-instructions.md
+
+job_types:
+  id_style: snake_case
+  definitions:
+    - research
+    - spec
+    - implementation
+    - bugfix
+    - refactor
+    - test
+    - review
+    - release
+    - documentation
+    - harness_improvement
+    - skill_authoring
+
+routes:
+  registry: .agent-harness/routes
+  semantic_fallback: deterministic_token_overlap
+
+skills:
+  registry: .agent-harness/skills
+  required_active:
+    - debug-discipline
+  render_targets:
+    - claude_skill
+    - copilot_instruction
+    - hook_prompt
+    - checklist
+
+render_targets:
+  root: .agent-harness/render-targets
+
+hooks:
+  router: .agent-harness/hooks/hook-router.sh
+  events:
+    - session.start
+    - prompt.submit
+    - tool.pre
+    - tool.post
+    - turn.stop
+    - session.end
+
+memory:
+  root: .agent-harness/memory
+  required:
+    - repo-map.md
+    - decisions.md
+    - open-questions.md
+    - failure-patterns.md
+    - successful-patterns.md
+    - glossary.md
+    - constraints.md
+
+verification:
+  require_traceability_for:
+    - implementation
+    - bugfix
+    - refactor
+  proof_command: just ci
+
+learning:
+  auto_apply: false
+  proposal_path: .agent-harness/reflections/harness-improvement-proposals.md
+
+observability:
+  trace_template: .agent-harness/traces/traceability-template.yaml
+  trace_records: .agent-harness/traces/records
+  route_decisions: .agent-harness/traces/route-decisions
+  generated_records_gitignored: true
+
+context:
+  policy: .agent-harness/context/budget-policy.yaml
+  route_required_context_first: true
+  tool_output_containment: true
+  session_continuity_store: .agent-harness/traces
+  dependency_on_context_mode: false

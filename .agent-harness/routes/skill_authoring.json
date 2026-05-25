@@ -1,0 +1,54 @@
+{
+  "id": "skill_authoring",
+  "job_type": "skill_authoring",
+  "purpose": "Create or revise a reusable behavioral skill.",
+  "semantic_triggers": [
+    "skill author",
+    "create skill",
+    "write skill",
+    "skill ir"
+  ],
+  "positive_examples": [
+    "author a verification skill",
+    "convert a playbook to Skill IR"
+  ],
+  "negative_examples": [
+    "use an existing skill only",
+    "write one-off instructions that are not reusable"
+  ],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/10-frame-outcome.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    "docs/specs/skill-ir.md",
+    ".agent-harness/imports/README.md"
+  ],
+  "required_skills": [],
+  "work_loop": [
+    "define the JTBD and trigger conditions",
+    "write required Skill IR fields",
+    "render targets",
+    "validate behavior-preserving outputs",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "Skill IR file",
+    "rendered artifacts",
+    "validation evidence"
+  ],
+  "proof": [
+    "python scripts/harness.py render-skills",
+    "python scripts/harness.py validate",
+    "just ci"
+  ],
+  "done_when": [
+    "skill has required fields",
+    "rendered artifacts preserve behavior",
+    "proof commands pass"
+  ],
+  "failure_modes": [
+    "skill lacks evidence requirements",
+    "rendering loses forbidden behaviors"
+  ],
+  "fallback_policy": "If the behavior is not reusable, keep it as a playbook instead."
+}

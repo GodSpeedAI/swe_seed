@@ -1,0 +1,44 @@
+{
+  "id": "test",
+  "job_type": "test",
+  "purpose": "Add or repair verification for existing behavior.",
+  "semantic_triggers": ["test", "coverage", "validation", "proof"],
+  "positive_examples": [
+    "add validation for route cards",
+    "increase coverage for bugfix"
+  ],
+  "negative_examples": [
+    "implement feature behavior without tests",
+    "review a change without adding verification"
+  ],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    ".agent-harness/playbooks/30-debug-from-symptom.md",
+    "docs/specs/verification-system.md"
+  ],
+  "required_skills": [],
+  "work_loop": [
+    "identify behavior under test",
+    "write a failing or contract-revealing check",
+    "run the check and confirm the expected signal",
+    "make the check pass without unrelated behavior changes",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "test or validation change",
+    "red/green evidence when applicable",
+    "verification evidence"
+  ],
+  "proof": ["just ci"],
+  "done_when": [
+    "verification catches the intended behavior",
+    "the proof command includes the new check",
+    "proof commands pass"
+  ],
+  "failure_modes": [
+    "test checks mocks instead of behavior",
+    "test passes before it can fail"
+  ],
+  "fallback_policy": "If production behavior must change, switch to implementation or bugfix route."
+}

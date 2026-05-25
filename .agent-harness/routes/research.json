@@ -1,0 +1,44 @@
+{
+  "id": "research",
+  "job_type": "research",
+  "purpose": "Gather information before selecting a change.",
+  "semantic_triggers": ["research", "investigate", "compare", "find out"],
+  "positive_examples": [
+    "research available route patterns",
+    "investigate CI options"
+  ],
+  "negative_examples": [
+    "implement the selected option",
+    "fix a known failing command"
+  ],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/00-orient-and-route.md",
+    ".agent-harness/playbooks/10-frame-outcome.md",
+    ".agent-harness/memory/open-questions.md"
+  ],
+  "required_skills": [],
+  "work_loop": [
+    "define the decision or question research must support",
+    "inspect authoritative local context first",
+    "gather external sources only when needed",
+    "compare options against the desired outcome",
+    "summarize recommendation, then run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "research summary",
+    "recommendation or next question",
+    "source or local evidence notes"
+  ],
+  "proof": ["python scripts/harness.py validate"],
+  "done_when": [
+    "the decision-maker has enough evidence for the next step",
+    "recommendation names tradeoffs",
+    "next action is explicit"
+  ],
+  "failure_modes": [
+    "research lacks decision relevance",
+    "sources are stale or not authoritative for the claim"
+  ],
+  "fallback_policy": "If a clear implementation is requested, switch to implementation route."
+}

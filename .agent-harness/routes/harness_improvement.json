@@ -1,0 +1,69 @@
+{
+  "id": "harness_improvement",
+  "job_type": "harness_improvement",
+  "purpose": "Improve the harness based on observed friction or missing process mechanics.",
+  "semantic_triggers": [
+    "harness",
+    "router",
+    "semantic router",
+    "agent",
+    "route card",
+    "skill ir",
+    "hook",
+    "context mode",
+    "context budget",
+    "tool-output containment",
+    "session continuity",
+    "process drift"
+  ],
+  "positive_examples": [
+    "make AGENTS.md actually route work",
+    "add a semantic router",
+    "improve harness validation",
+    "incorporate context-mode mechanisms without adding a dependency",
+    "add context budget discipline to the agent harness"
+  ],
+  "negative_examples": [
+    "implement unrelated product behavior",
+    "fix a runtime bug in app code"
+  ],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/10-frame-outcome.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    "HARNESS_SPEC.md",
+    ".agent-harness/config.yaml",
+    ".agent-harness/memory/failure-patterns.md",
+    ".agent-harness/memory/successful-patterns.md"
+  ],
+  "required_skills": ["debug-discipline"],
+  "work_loop": [
+    "identify the harness gap and desired behavior",
+    "update the governing spec before implementation when the contract changes",
+    "add failing validation for the missing harness behavior",
+    "implement the smallest harness change that makes the agent move toward outcomes",
+    "update docs and memory when the lesson is reusable",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "spec update when contract changes",
+    "validation update",
+    "changed files summary",
+    "verification evidence"
+  ],
+  "proof": [
+    "python scripts/harness.py validate",
+    "bash tests/validate-harness.sh",
+    "just ci"
+  ],
+  "done_when": [
+    "harness behavior is executable, not merely descriptive",
+    "validation enforces the new contract",
+    "proof commands pass"
+  ],
+  "failure_modes": [
+    "change adds concepts without action",
+    "validation only checks file existence"
+  ],
+  "fallback_policy": "When in doubt, choose the change that makes the next agent action explicit and verifiable."
+}

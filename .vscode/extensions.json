@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "EditorConfig.EditorConfig",
+    "GitHub.vscode-github-actions",
+    "mkhl.direnv",
+    "nefrob.vscode-just-syntax",
+    "tamasfe.even-better-toml"
+  ]
+}

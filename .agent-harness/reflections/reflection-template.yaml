@@ -1,0 +1,51 @@
+# Use this when a session produced reusable learning, exposed process friction,
+# changed a harness contract, or revealed a repeated failure pattern.
+#
+# Do not use this for routine successful edits, command transcripts, personal
+# preference, or notes that do not change future routing, proof, memory, docs,
+# skills, hooks, or developer experience.
+#
+# Evidence required: cite a command, route result, changed file, validation
+# failure, user correction, or repeated friction. If evidence is missing, write
+# a short final-session note instead of durable reflection.
+
+session_id: ""
+date: ""
+job_type: ""
+route_card: ""
+summary: ""
+
+trigger:
+  why_reflect: ""
+  evidence:
+    - type: ""
+      value: ""
+
+outcome:
+  requested: ""
+  delivered: ""
+  proof:
+    - command: ""
+      result: ""
+
+learning:
+  what_worked:
+    - ""
+  what_failed:
+    - ""
+  friction_points:
+    - ""
+  missed_context:
+    - ""
+
+next_change:
+  target: "none" # none | memory | route | skill | hook | spec | docs | validation | playbook
+  recommendation: ""
+  rationale: ""
+  risk: ""
+  validation: ""
+
+promotion_rule:
+  write_to_memory_when: "The lesson is durable, concise, and likely to change future behavior."
+  create_proposal_when: "The lesson would materially change routing, skills, hooks, specs, or validation."
+  leave_as_reflection_when: "The lesson is useful context but not yet stable enough to promote."

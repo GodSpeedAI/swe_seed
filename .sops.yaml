@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: secrets/.*\.(yaml|yml|json|env)$
+    age: "age1replacewithprojectrecipient0000000000000000000000000000000000000"
+    encrypted_regex: "^(data|stringData|values|env|secrets)$"

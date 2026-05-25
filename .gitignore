@@ -1,0 +1,21 @@
+.DS_Store
+.direnv/
+.env
+.env.*
+!.env.example
+.pnpm-store/
+.pytest_cache/
+.ruff_cache/
+.secrets/
+.venv/
+__pycache__/
+node_modules/
+
+# generated harness traces
+.agent-harness/traces/records/*.json
+.agent-harness/traces/route-decisions/*.json
+
+# sops plaintext and local age keys
+*.dec.*
+*.plain.*
+secrets/*.decrypted.*

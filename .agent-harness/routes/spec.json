@@ -1,0 +1,48 @@
+{
+  "id": "spec",
+  "job_type": "spec",
+  "purpose": "Define or revise the source-of-truth contract before implementation.",
+  "semantic_triggers": [
+    "spec",
+    "requirements",
+    "contract",
+    "acceptance criteria",
+    "define"
+  ],
+  "positive_examples": [
+    "update the harness spec",
+    "write acceptance criteria for routing"
+  ],
+  "negative_examples": ["apply the implementation delta", "debug CI"],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/10-frame-outcome.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    "HARNESS_SPEC.md",
+    "docs/specs/"
+  ],
+  "required_skills": [],
+  "work_loop": [
+    "identify the desired outcome",
+    "separate normative requirements from examples",
+    "define validation or acceptance criteria",
+    "record implementation implications",
+    "run formatting and validation and read the output"
+  ],
+  "required_artifacts": [
+    "spec change",
+    "acceptance criteria or validation notes",
+    "implementation implication note"
+  ],
+  "proof": ["just ci"],
+  "done_when": [
+    "the spec can drive implementation",
+    "acceptance criteria are concrete",
+    "proof commands pass"
+  ],
+  "failure_modes": [
+    "spec describes concepts without executable acceptance criteria",
+    "spec duplicates implementation details without defining contract"
+  ],
+  "fallback_policy": "If implementation is also requested, update the spec first, then execute the implementation route."
+}
