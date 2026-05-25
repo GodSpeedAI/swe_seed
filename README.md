@@ -15,11 +15,14 @@ Use it when you want a project where:
 - every job type has a clear route,
 - completion claims depend on proof commands,
 - failures leave enough evidence for the next person or agent to recover,
-- useful lessons improve the harness without turning it into a pile of prompts.
+- useful lessons improve the harness without turning it into a pile of prompts,
+- the system can grow from files to indexes only when the project actually needs that power.
 
 The result is a calmer development loop. Contributors know where to start, agents know what procedure to follow, and reviewers can ask for evidence instead of reconstructing intent from a transcript.
 
 SWE_SEED is designed to feel powerful without feeling heavy. Hooks can respond to the agent lifecycle, route new prompts, check risky tool use before it happens, capture proof after commands run, and block premature completion language at turn end. The harness does the routine steering, so humans can focus on intent, judgment, and review.
+
+It also solves a concrete team problem: process gets better only when someone notices friction, writes it down, and turns it into a safer default. SWE_SEED makes that part of the loop. Sessions can produce reflections and improvement proposals with evidence, risk, rollback, and validation plans. The harness can recommend better routes, skills, checks, memory, or hook behavior as the project teaches it what actually fails.
 
 ## What This Repository Provides
 
@@ -32,6 +35,7 @@ SWE_SEED is both a reference implementation and a portable specification.
 - `.agent-harness/memory/` captures durable project context, decisions, constraints, and patterns.
 - `.agent-harness/traces/` records route decisions and recoverable work history.
 - `.agent-harness/hooks/` connects agent lifecycle events to routing, safety checks, trace capture, verification, and reflection.
+- `.agent-harness/reflections/` keeps learning review packets and improvement proposals separate from active instructions.
 - `scripts/harness.py` exposes routing, validation, context planning, skill rendering, and trace commands.
 - `justfile` gives humans, agents, and CI one command surface.
 - `HARNESS_SPEC.md` and `docs/specs/` define the contract for rebuilding or adapting the harness.
@@ -51,6 +55,10 @@ This keeps attention on the work that changes the outcome. The harness uses smal
 
 The hook layer is what makes the harness low touch. A prompt can trigger routing. A tool call can trigger a safety check. A command result can trigger evidence capture. A final response can trigger proof review. Instead of asking every contributor to memorize the operating model, SWE_SEED puts the right reminder at the moment it matters.
 
+The learning layer is how it improves without becoming reckless. SWE_SEED does not silently rewrite its own rules because one session felt awkward. It captures evidence, proposes the change, names the risk, defines rollback, and asks for validation. That gives teams the benefit of a self-improving harness while keeping humans in control of material changes.
+
+The storage model follows the same discipline. The baseline is files because files are easy to inspect, review, back up, and rebuild. As the project grows, the harness can propose a rusql index when recent failures, sessions, hooks, or trace lookups become too slow for simple tools. It can propose vector search later, only when exact and structured search stop answering real recovery questions. The project gets stronger memory when it earns the weight.
+
 ## When It Helps
 
 Use SWE_SEED when your team asks an agent to:
@@ -61,6 +69,8 @@ Use SWE_SEED when your team asks an agent to:
 - write documentation that helps a reader act,
 - prepare a release with explicit checks,
 - keep agent sessions on track through lifecycle hooks,
+- turn repeated friction into reviewed improvement proposals,
+- decide when trace search has outgrown files and needs rusql or vector retrieval,
 - improve the harness only when evidence shows the change is useful.
 
 The reader should not need to translate "process" into value. The value is fewer hidden assumptions, fewer missed checks, and a shorter path from request to verified result.
@@ -154,6 +164,8 @@ SWE_SEED is intentionally small.
 - It does not auto-apply material harness changes without an explicit policy.
 
 The harness governs process, context, evidence, and recovery. Native agents still do the reasoning, editing, command execution, and tool use.
+
+That is the core tradeoff: SWE_SEED stays ridiculously lightweight at the start, then proposes heavier capabilities only when they solve an observed job.
 
 ## Project Status
 
