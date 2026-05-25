@@ -1,82 +1,90 @@
 {
-  "id": "verify-before-completion",
-  "version": 1,
-  "category": "completion",
-  "jtbd": "block premature completion claims until the stated proof obligations have been run and read",
-  "description": "A completion gate that compares the current claim against required proof, unresolved risks, and observed validation output before allowing the work to be called done.",
-  "triggers": ["complete", "done", "finish", "ready", "ship"],
-  "trigger_contexts": [
-    "the agent is about to make a completion claim",
-    "release or finishing work that depends on proof output",
-    "turn-stop checks that need to block completion theater"
-  ],
-  "inputs": {
-    "required": ["claim_and_required_proof"]
-  },
-  "procedure": [
-    "List the proof commands or evidence required by the current route or contract.",
-    "Check whether each required proof surface has fresh observed output.",
-    "Compare unresolved risks against the intended completion claim.",
-    "If evidence is missing, report the gap instead of claiming completion.",
-    "Only allow completion language once the required proof has been run and read."
-  ],
-  "evidence_required": [
-    "required-proof list",
-    "fresh proof output",
-    "unresolved risk note",
-    "completion gate decision"
-  ],
-  "forbidden_behaviors": [
-    "claiming completion from effort or intent",
-    "using stale proof output",
-    "ignoring unresolved risks that contradict the claim",
-    "substituting summary language for observed verification"
-  ],
-  "outputs": [
-    "completion gate result",
-    "missing-proof note when applicable",
-    "proof evidence"
-  ],
-  "bundled_resources": [
-    {
-      "kind": "reference",
-      "path": "docs/specs/verification-system.md",
-      "purpose": "tie completion decisions to the repository proof model rather than to conversational confidence",
-      "when": "the operator needs to confirm what proof is required for the current claim"
+    "id": "verify-before-completion",
+    "version": 1,
+    "category": "completion",
+    "jtbd": "block premature completion claims until the stated proof obligations have been run and read",
+    "description": "A completion gate that compares the current claim against required proof, unresolved risks, and observed validation output before allowing the work to be called done.",
+    "triggers": [
+        "complete",
+        "done",
+        "finish",
+        "ready",
+        "ship"
+    ],
+    "trigger_contexts": [
+        "the agent is about to make a completion claim",
+        "release or finishing work that depends on proof output",
+        "turn-stop checks that need to block completion theater"
+    ],
+    "inputs": {
+        "required": [
+            "claim_and_required_proof"
+        ]
     },
-    {
-      "kind": "reference",
-      "path": ".agent-harness/routes/release.json",
-      "purpose": "reuse the release route's explicit proof-before-release discipline for other high-stakes completion claims",
-      "when": "the current work is release-adjacent or otherwise sensitive to false completion"
-    }
-  ],
-  "evaluation_prompts": [
-    {
-      "id": "block-false-completion",
-      "prompt": "The agent is about to say the work is done, but proof output is missing. Apply a completion gate and return the correct next action.",
-      "checks": [
-        "names the missing proof surface",
-        "blocks premature completion language",
-        "uses observed evidence instead of confidence"
-      ]
-    }
-  ],
-  "success_criteria": [
-    "completion claims are tied to fresh proof",
-    "missing proof is surfaced as a gap, not hidden by summary",
-    "unresolved risks are either cleared or disclosed"
-  ],
-  "failure_modes": [
-    "proof command was not actually run",
-    "proof output is ambiguous",
-    "the route has a missing or weak proof contract"
-  ],
-  "status": "active",
-  "render_targets": [
-    "claude_skill",
-    "copilot_instruction",
-    "hook_prompt",
-    "checklist"
-  ]
+    "procedure": [
+        "List the proof commands or evidence required by the current route or contract.",
+        "Check whether each required proof surface has fresh observed output.",
+        "Compare unresolved risks against the intended completion claim.",
+        "If evidence is missing, report the gap instead of claiming completion.",
+        "Only allow completion language once the required proof has been run and read."
+    ],
+    "evidence_required": [
+        "required-proof list",
+        "fresh proof output",
+        "unresolved risk note",
+        "completion gate decision"
+    ],
+    "forbidden_behaviors": [
+        "claiming completion from effort or intent",
+        "using stale proof output",
+        "ignoring unresolved risks that contradict the claim",
+        "substituting summary language for observed verification"
+    ],
+    "outputs": [
+        "completion gate result",
+        "missing-proof note when applicable",
+        "proof evidence"
+    ],
+    "bundled_resources": [
+        {
+            "kind": "reference",
+            "path": "docs/specs/verification-system.md",
+            "purpose": "tie completion decisions to the repository proof model rather than to conversational confidence",
+            "when": "the operator needs to confirm what proof is required for the current claim"
+        },
+        {
+            "kind": "reference",
+            "path": ".agent-harness/routes/release.json",
+            "purpose": "reuse the release route's explicit proof-before-release discipline for other high-stakes completion claims",
+            "when": "the current work is release-adjacent or otherwise sensitive to false completion"
+        }
+    ],
+    "evaluation_prompts": [
+        {
+            "id": "block-false-completion",
+            "prompt": "The agent is about to say the work is done, but proof output is missing. Apply a completion gate and return the correct next action.",
+            "checks": [
+                "names the missing proof surface",
+                "blocks premature completion language",
+                "uses observed evidence instead of confidence"
+            ]
+        }
+    ],
+    "success_criteria": [
+        "completion claims are tied to fresh proof",
+        "missing proof is surfaced as a gap, not hidden by summary",
+        "unresolved risks are either cleared or disclosed"
+    ],
+    "failure_modes": [
+        "proof command was not actually run",
+        "proof output is ambiguous",
+        "the route has a missing or weak proof contract"
+    ],
+    "status": "active",
+    "render_targets": [
+        "claude_skill",
+        "copilot_instruction",
+        "hook_prompt",
+        "checklist"
+    ]
 }

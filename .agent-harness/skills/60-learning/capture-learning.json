@@ -1,89 +1,91 @@
 {
-  "id": "capture-learning",
-  "version": 1,
-  "category": "learning",
-  "jtbd": "record only durable, evidence-backed lessons that improve future agent decisions without creating memory bloat",
-  "description": "A proposal-oriented learning procedure that captures durable lessons, chooses one destination, and updates memory or harness artifacts only when the note changes future behavior.",
-  "triggers": [
-    "learning",
-    "lesson",
-    "postmortem",
-    "memory update",
-    "reflection"
-  ],
-  "trigger_contexts": [
-    "the end of meaningful work that revealed a reusable lesson",
-    "sessions that exposed a route defect or repeated friction",
-    "trace distillation and proposal-oriented memory updates"
-  ],
-  "inputs": {
-    "required": ["lesson_or_reusable_pattern"]
-  },
-  "procedure": [
-    "Identify whether the lesson is durable and likely to recur.",
-    "If it is a fixed bug, check the post-mortem gate: reproduction, root cause, fix, and validation coverage.",
-    "Choose exactly one destination for the lesson.",
-    "Write the smallest note that changes future behavior.",
-    "Include supporting evidence when useful and state validation coverage honestly.",
-    "Run validation when a harness artifact changed."
-  ],
-  "evidence_required": [
-    "durability decision",
-    "chosen destination",
-    "small evidence-backed note",
-    "validation coverage statement"
-  ],
-  "forbidden_behaviors": [
-    "copying transcripts into memory",
-    "recording one-off preferences as durable cognition",
-    "changing stable instructions without evidence or explicit direction",
-    "writing a note that does not change future behavior"
-  ],
-  "outputs": [
-    "learning note",
-    "destination choice",
-    "validation coverage note"
-  ],
-  "bundled_resources": [
-    {
-      "kind": "reference",
-      "path": ".agent-harness/playbooks/50-capture-learning.md",
-      "purpose": "extend the compact learning procedure with the full post-mortem gate and destination rules",
-      "when": "a session reveals a reusable lesson, route defect, or durable pattern"
+    "id": "capture-learning",
+    "version": 1,
+    "category": "learning",
+    "jtbd": "record only durable, evidence-backed lessons that improve future agent decisions without creating memory bloat",
+    "description": "A proposal-oriented learning procedure that captures durable lessons, chooses one destination, and updates memory or harness artifacts only when the note changes future behavior.",
+    "triggers": [
+        "learning",
+        "lesson",
+        "postmortem",
+        "memory update",
+        "reflection"
+    ],
+    "trigger_contexts": [
+        "the end of meaningful work that revealed a reusable lesson",
+        "sessions that exposed a route defect or repeated friction",
+        "trace distillation and proposal-oriented memory updates"
+    ],
+    "inputs": {
+        "required": [
+            "lesson_or_reusable_pattern"
+        ]
     },
-    {
-      "kind": "asset",
-      "path": ".agent-harness/reflections/learning-review-template.yaml",
-      "purpose": "shape proposal-oriented memory, skill, and harness updates from finished traces",
-      "when": "learning needs to be carried forward as a structured packet rather than a direct memory edit"
-    }
-  ],
-  "evaluation_prompts": [
-    {
-      "id": "durable-lesson-only",
-      "prompt": "A session revealed a recurring harness failure pattern. Capture only the smallest evidence-backed lesson that improves future behavior.",
-      "checks": [
-        "chooses one destination",
-        "avoids transcript-style memory",
-        "states validation coverage honestly"
-      ]
-    }
-  ],
-  "success_criteria": [
-    "the next agent would make a better decision because of the note",
-    "the note is durable and concise",
-    "validation is rerun when stable harness artifacts changed"
-  ],
-  "failure_modes": [
-    "the lesson is still too session-specific",
-    "evidence is missing for a durable claim",
-    "memory bloat hides the actual lesson"
-  ],
-  "status": "active",
-  "render_targets": [
-    "claude_skill",
-    "copilot_instruction",
-    "hook_prompt",
-    "checklist"
-  ]
+    "procedure": [
+        "Identify whether the lesson is durable and likely to recur.",
+        "If it is a fixed bug, check the post-mortem gate: reproduction, root cause, fix, and validation coverage.",
+        "Choose exactly one destination for the lesson.",
+        "Write the smallest note that changes future behavior.",
+        "Include supporting evidence when useful and state validation coverage honestly.",
+        "Run validation when a harness artifact changed."
+    ],
+    "evidence_required": [
+        "durability decision",
+        "chosen destination",
+        "small evidence-backed note",
+        "validation coverage statement"
+    ],
+    "forbidden_behaviors": [
+        "copying transcripts into memory",
+        "recording one-off preferences as durable cognition",
+        "changing stable instructions without evidence or explicit direction",
+        "writing a note that does not change future behavior"
+    ],
+    "outputs": [
+        "learning note",
+        "destination choice",
+        "validation coverage note"
+    ],
+    "bundled_resources": [
+        {
+            "kind": "reference",
+            "path": ".agent-harness/playbooks/50-capture-learning.md",
+            "purpose": "extend the compact learning procedure with the full post-mortem gate and destination rules",
+            "when": "a session reveals a reusable lesson, route defect, or durable pattern"
+        },
+        {
+            "kind": "asset",
+            "path": ".agent-harness/reflections/learning-review-template.yaml",
+            "purpose": "shape proposal-oriented memory, skill, and harness updates from finished traces",
+            "when": "learning needs to be carried forward as a structured packet rather than a direct memory edit"
+        }
+    ],
+    "evaluation_prompts": [
+        {
+            "id": "durable-lesson-only",
+            "prompt": "A session revealed a recurring harness failure pattern. Capture only the smallest evidence-backed lesson that improves future behavior.",
+            "checks": [
+                "chooses one destination",
+                "avoids transcript-style memory",
+                "states validation coverage honestly"
+            ]
+        }
+    ],
+    "success_criteria": [
+        "the next agent would make a better decision because of the note",
+        "the note is durable and concise",
+        "validation is rerun when stable harness artifacts changed"
+    ],
+    "failure_modes": [
+        "the lesson is still too session-specific",
+        "evidence is missing for a durable claim",
+        "memory bloat hides the actual lesson"
+    ],
+    "status": "active",
+    "render_targets": [
+        "claude_skill",
+        "copilot_instruction",
+        "hook_prompt",
+        "checklist"
+    ]
 }

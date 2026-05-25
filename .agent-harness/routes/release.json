@@ -2,8 +2,16 @@
   "id": "release",
   "job_type": "release",
   "purpose": "Prepare or publish a versioned release.",
-  "semantic_triggers": ["release", "publish", "version", "changelog"],
-  "positive_examples": ["prepare a release", "update changelog for publishing"],
+  "semantic_triggers": [
+    "release",
+    "publish",
+    "version",
+    "changelog"
+  ],
+  "positive_examples": [
+    "prepare a release",
+    "update changelog for publishing"
+  ],
   "negative_examples": [
     "build an unreleased feature",
     "review a diff without publishing intent"
@@ -13,7 +21,9 @@
     ".agent-harness/playbooks/20-change-with-proof.md",
     ".agent-harness/memory/constraints.md"
   ],
-  "required_skills": ["verify-before-completion"],
+  "required_skills": [
+    "verify-before-completion"
+  ],
   "work_loop": [
     "confirm release scope and release target",
     "check whether version or changelog files exist",
@@ -26,7 +36,9 @@
     "release scope note",
     "verification evidence"
   ],
-  "proof": ["just ci"],
+  "proof": [
+    "just ci"
+  ],
   "done_when": [
     "release scope is clear",
     "proof commands pass",

@@ -2,7 +2,12 @@
   "id": "review",
   "job_type": "review",
   "purpose": "Evaluate changes for bugs, regressions, missing tests, and contract violations.",
-  "semantic_triggers": ["review", "audit", "inspect", "critique"],
+  "semantic_triggers": [
+    "review",
+    "audit",
+    "inspect",
+    "critique"
+  ],
   "positive_examples": [
     "review this harness change",
     "audit AGENTS.md routing"
@@ -17,7 +22,9 @@
     ".agent-harness/memory/failure-patterns.md",
     ".agent-harness/memory/constraints.md"
   ],
-  "required_skills": ["review-for-risk"],
+  "required_skills": [
+    "review-for-risk"
+  ],
   "work_loop": [
     "identify the changed contract or intended outcome",
     "check for a simpler alternative before line-level review",
@@ -31,7 +38,9 @@
     "actual path traced",
     "residual risk or test gap note"
   ],
-  "proof": ["python scripts/harness.py validate"],
+  "proof": [
+    "python scripts/harness.py validate"
+  ],
   "done_when": [
     "findings are actionable and evidence-backed",
     "actual path reviewed is named",

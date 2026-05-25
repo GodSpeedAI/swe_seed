@@ -1,89 +1,91 @@
 {
-  "id": "implement-with-proof",
-  "version": 1,
-  "category": "implementation",
-  "jtbd": "change behavior with the smallest implementation delta that is tied to failing and passing proof",
-  "description": "A change-with-proof procedure that adds a falsifiable check, makes the smallest implementation change, and reads the proof output before claiming completion.",
-  "triggers": [
-    "implement",
-    "build",
-    "add behavior",
-    "feature",
-    "change behavior"
-  ],
-  "trigger_contexts": [
-    "implementation tasks that need code, docs, or harness behavior changes",
-    "route cards that require a proof-bearing work loop",
-    "follow-up work after the outcome has already been framed"
-  ],
-  "inputs": {
-    "required": ["requirement_or_contract"]
-  },
-  "procedure": [
-    "Add or update the narrowest validation that should fail for the missing behavior.",
-    "Run the check and confirm the expected failure signal.",
-    "Make the smallest implementation change that satisfies the requirement.",
-    "Update docs or specs only when the behavior contract changed.",
-    "Run the proof commands and read the output before reporting completion."
-  ],
-  "evidence_required": [
-    "failing or contract-revealing check",
-    "implementation delta tied to the requirement",
-    "proof-command output",
-    "changed-artifact summary"
-  ],
-  "forbidden_behaviors": [
-    "editing before there is a falsifiable check when one is available",
-    "broad rewrites that are not justified by the requirement",
-    "claiming completion from intent instead of proof output",
-    "updating unrelated surfaces while the touched slice is still unverified"
-  ],
-  "outputs": [
-    "implementation summary",
-    "proof evidence",
-    "changed files summary",
-    "remaining risk note when applicable"
-  ],
-  "bundled_resources": [
-    {
-      "kind": "reference",
-      "path": ".agent-harness/playbooks/20-change-with-proof.md",
-      "purpose": "extend the compact implementation procedure with the full red-green-proof loop",
-      "when": "the task changes behavior and needs a disciplined validation sequence"
+    "id": "implement-with-proof",
+    "version": 1,
+    "category": "implementation",
+    "jtbd": "change behavior with the smallest implementation delta that is tied to failing and passing proof",
+    "description": "A change-with-proof procedure that adds a falsifiable check, makes the smallest implementation change, and reads the proof output before claiming completion.",
+    "triggers": [
+        "implement",
+        "build",
+        "add behavior",
+        "feature",
+        "change behavior"
+    ],
+    "trigger_contexts": [
+        "implementation tasks that need code, docs, or harness behavior changes",
+        "route cards that require a proof-bearing work loop",
+        "follow-up work after the outcome has already been framed"
+    ],
+    "inputs": {
+        "required": [
+            "requirement_or_contract"
+        ]
     },
-    {
-      "kind": "asset",
-      "path": ".agent-harness/traces/traceability-template.yaml",
-      "purpose": "capture changed artifacts, validation, and next actions when the implementation spans multiple steps",
-      "when": "the work needs durable traceability or handoff"
-    }
-  ],
-  "evaluation_prompts": [
-    {
-      "id": "small-feature-proof",
-      "prompt": "Implement a small harness behavior change and prove it with the narrowest available failing and passing check.",
-      "checks": [
-        "adds or updates a falsifiable check first",
-        "keeps the implementation delta focused",
-        "reads the proof output before claiming completion"
-      ]
-    }
-  ],
-  "success_criteria": [
-    "the implementation delta is traceable to the requirement",
-    "proof commands pass and are read",
-    "unresolved risks are either absent or explicitly stated"
-  ],
-  "failure_modes": [
-    "the requirement cannot be expressed by a check",
-    "proof fails because the implementation slice is incomplete",
-    "the change drifts into unrelated cleanup"
-  ],
-  "status": "active",
-  "render_targets": [
-    "claude_skill",
-    "copilot_instruction",
-    "hook_prompt",
-    "checklist"
-  ]
+    "procedure": [
+        "Add or update the narrowest validation that should fail for the missing behavior.",
+        "Run the check and confirm the expected failure signal.",
+        "Make the smallest implementation change that satisfies the requirement.",
+        "Update docs or specs only when the behavior contract changed.",
+        "Run the proof commands and read the output before reporting completion."
+    ],
+    "evidence_required": [
+        "failing or contract-revealing check",
+        "implementation delta tied to the requirement",
+        "proof-command output",
+        "changed-artifact summary"
+    ],
+    "forbidden_behaviors": [
+        "editing before there is a falsifiable check when one is available",
+        "broad rewrites that are not justified by the requirement",
+        "claiming completion from intent instead of proof output",
+        "updating unrelated surfaces while the touched slice is still unverified"
+    ],
+    "outputs": [
+        "implementation summary",
+        "proof evidence",
+        "changed files summary",
+        "remaining risk note when applicable"
+    ],
+    "bundled_resources": [
+        {
+            "kind": "reference",
+            "path": ".agent-harness/playbooks/20-change-with-proof.md",
+            "purpose": "extend the compact implementation procedure with the full red-green-proof loop",
+            "when": "the task changes behavior and needs a disciplined validation sequence"
+        },
+        {
+            "kind": "asset",
+            "path": ".agent-harness/traces/traceability-template.yaml",
+            "purpose": "capture changed artifacts, validation, and next actions when the implementation spans multiple steps",
+            "when": "the work needs durable traceability or handoff"
+        }
+    ],
+    "evaluation_prompts": [
+        {
+            "id": "small-feature-proof",
+            "prompt": "Implement a small harness behavior change and prove it with the narrowest available failing and passing check.",
+            "checks": [
+                "adds or updates a falsifiable check first",
+                "keeps the implementation delta focused",
+                "reads the proof output before claiming completion"
+            ]
+        }
+    ],
+    "success_criteria": [
+        "the implementation delta is traceable to the requirement",
+        "proof commands pass and are read",
+        "unresolved risks are either absent or explicitly stated"
+    ],
+    "failure_modes": [
+        "the requirement cannot be expressed by a check",
+        "proof fails because the implementation slice is incomplete",
+        "the change drifts into unrelated cleanup"
+    ],
+    "status": "active",
+    "render_targets": [
+        "claude_skill",
+        "copilot_instruction",
+        "hook_prompt",
+        "checklist"
+    ]
 }
