@@ -10,17 +10,17 @@ just ci
 
 ## Eval Case 1: Harness Contract Validates
 
-**Command**
+### Eval 11 Command
 
 ```bash
 python scripts/harness.py validate
 ```
 
-**Expected**
+### Eval 11 Expected
 
 `Harness validation passed`
 
-**Why it matters**
+### Eval 11 Why it matters
 
 This proves the scaffold has required files, route cards, Skill IR, render targets, memory, hooks, playbooks, reflections, and eval structure.
 
@@ -159,3 +159,86 @@ Validation passes without duplicate render-target content errors.
 **Why it matters**
 
 This enforces the canonical-file rule: identical files should be symlinked, while different target surfaces should be generated from Skill IR.
+
+## Eval Case 9: Trace Checkpoint Resume Packet Is Recoverable
+
+**Command**
+
+```bash
+trace_json=$(python scripts/harness.py trace start "checkpoint smoke" | python -c 'import json,sys; print(json.load(sys.stdin)["trace_id"])')
+python scripts/harness.py trace checkpoint "$trace_json" --stage change --summary "spec delta captured" --next-action "run targeted validation" --artifact HARNESS_SPEC.md --risk "proof not run"
+python scripts/harness.py trace resume "$trace_json"
+```
+
+**Expected**
+
+Output includes:
+
+- `"latest_checkpoint"`
+- `"stage": "change"`
+- `"next_action": "run targeted validation"`
+- `"unresolved_risks"`
+
+**Why it matters**
+
+This proves the harness can emit a compact handoff packet for restart or agent turnover without depending on transcript replay.
+
+## Eval Case 10: Canonical Build Prompt Bootstraps To Spec
+
+**Command**
+
+```bash
+python scripts/harness.py route "Let's make a react todo list"
+```
+
+**Expected**
+
+Output includes:
+
+- `"job_type": "spec"`
+- `"route_card": ".agent-harness/routes/spec.json"`
+- `"next_action"`
+
+**Why it matters**
+
+This proves the harness does real first-step routing on a fresh build prompt instead of defaulting to an unrelated maintenance route when semantic evidence is weak.
+
+## Eval Case 11: Broad Bug Prompt Bootstraps To Bugfix
+
+### Eval 12 Command
+
+```bash
+python scripts/harness.py route "the login form is broken"
+```
+
+### Eval 12 Expected
+
+Output includes:
+
+- `"job_type": "bugfix"`
+- `"route_card": ".agent-harness/routes/bugfix.json"`
+- `"next_action"`
+
+### Eval 12 Why it matters
+
+This proves a broad user-reported failure enters the debugging workflow instead of stalling in a generic route.
+
+## Eval Case 12: Broad Review Prompt Bootstraps To Review
+
+### Command
+
+```bash
+python scripts/harness.py route "review my recent auth changes for risk"
+```
+
+### Expected
+
+Output includes:
+
+- `"job_type": "review"`
+- `"route_card": ".agent-harness/routes/review.json"`
+- `"next_action"`
+
+### Why it matters
+
+This proves risk-focused review requests enter the review workflow directly instead of being mistaken for implementation work.

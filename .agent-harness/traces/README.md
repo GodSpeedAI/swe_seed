@@ -28,6 +28,26 @@ Append notes when the task crosses a meaningful boundary:
 python scripts/harness.py trace append TRACE_ID "validation failed because the required doc is missing"
 ```
 
+Checkpoint when the task reaches a stage boundary or needs a clean handoff:
+
+```bash
+python scripts/harness.py trace checkpoint TRACE_ID \
+  --stage change \
+  --summary "spec updated; validation delta still pending" \
+  --next-action "update conformance checks" \
+  --artifact HARNESS_SPEC.md \
+  --artifact .agent-harness/evals/core-conformance.md \
+  --risk "proof command not rerun yet"
+```
+
+Resume from the latest handoff packet:
+
+```bash
+python scripts/harness.py trace resume TRACE_ID
+```
+
+The resume output should be enough for a later agent to continue without rereading the transcript.
+
 Finish it only after proof has been read:
 
 ```bash
@@ -38,4 +58,4 @@ Do not store secrets, credentials, customer data, or private tokens in trace fil
 
 ## Done when
 
-A useful trace lets a later agent answer four questions without rereading the whole session: what route governed the work, what evidence changed the plan, what proof was run, and what risk remains.
+A useful trace lets a later agent answer four questions without rereading the whole session: what route governed the work, what evidence changed the plan, what proof was run, and what risk remains. A useful checkpoint adds the current stage and next action in one compact packet.

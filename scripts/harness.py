@@ -738,15 +738,59 @@ def score_route(task: str, route_card: dict) -> int:
         score += len(task_tokens & tokenize(phrase)) * 2
 
     for example in route_card["positive_examples"]:
-        score += len(task_tokens & tokenize(example))
+        overlap = task_tokens & tokenize(example)
+        if example.lower() in task_text:
+            score += 3
+        elif len(overlap) >= 2:
+            score += len(overlap)
 
     for example in route_card["negative_examples"]:
-        score -= len(task_tokens & tokenize(example)) * 2
+        overlap = task_tokens & tokenize(example)
+        if example.lower() in task_text:
+            score -= 4
+        elif len(overlap) >= 2:
+            score -= len(overlap) * 2
 
     if route_card["job_type"] in task_text:
         score += 5
 
     return score
+
+
+def infer_bootstrap_route(task: str, cards: list[dict]) -> dict | None:
+    task_text = task.lower()
+    task_tokens = tokenize(task)
+    build_verbs = {"build", "create", "make", "add", "start", "scaffold"}
+    clarification_nouns = {"spec", "requirements", "contract", "acceptance", "criteria", "plan"}
+    direct_change_terms = {
+        "fix",
+        "debug",
+        "review",
+        "audit",
+        "refactor",
+        "release",
+        "document",
+        "docs",
+        "test",
+        "tests",
+        "harness",
+        "router",
+        "skill",
+    }
+
+    if not (task_tokens & build_verbs):
+        return None
+    if task_tokens & clarification_nouns:
+        return None
+    if task_tokens & direct_change_terms:
+        return None
+    if re.search(r"\.(py|ts|tsx|js|jsx|md|json|yaml|yml|sh)\b", task_text):
+        return None
+
+    for card in cards:
+        if card["job_type"] == "spec":
+            return card
+    return None
 
 
 def build_route_result(task: str) -> dict:
@@ -757,6 +801,11 @@ def build_route_result(task: str) -> dict:
     ranked = sorted(cards, key=lambda card: (score_route(task, card), card["id"]), reverse=True)
     selected = ranked[0]
     selected_score = score_route(task, selected)
+    if selected_score <= 0:
+        bootstrap_card = infer_bootstrap_route(task, cards)
+        if bootstrap_card is not None:
+            selected = bootstrap_card
+            selected_score = 1
     confidence = "medium" if selected_score > 0 else "low"
     assumption = (
         None if selected_score > 0 else "No strong semantic match; selected safest default route."
@@ -954,6 +1003,64 @@ def trace_append(trace: str, note: str) -> int:
     return 0
 
 
+def trace_checkpoint(
+    trace: str,
+    stage: str,
+    summary: str,
+    next_action: str | None,
+    artifacts: list[str],
+    unresolved_risks: list[str],
+) -> int:
+    path = resolve_trace_path(trace)
+    if not path.is_file():
+        return fail(f"trace record not found: {trace}")
+
+    record = json.loads(path.read_text(encoding="utf-8"))
+    checkpoint = {
+        "at": utc_now(),
+        "type": "trace.checkpoint",
+        "stage": stage,
+        "summary": summary,
+        "next_action": next_action,
+        "artifacts": artifacts,
+        "unresolved_risks": unresolved_risks,
+    }
+    record.setdefault("events", []).append(checkpoint)
+    if unresolved_risks:
+        record["unresolved_risks"] = unresolved_risks
+    path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"trace_record": rel(path), "checkpoint": checkpoint}, indent=2))
+    return 0
+
+
+def trace_resume(trace: str) -> int:
+    path = resolve_trace_path(trace)
+    if not path.is_file():
+        return fail(f"trace record not found: {trace}")
+
+    record = json.loads(path.read_text(encoding="utf-8"))
+    checkpoints = [
+        event
+        for event in record.get("events", [])
+        if isinstance(event, dict) and event.get("type") == "trace.checkpoint"
+    ]
+    latest_checkpoint = checkpoints[-1] if checkpoints else None
+    print(
+        json.dumps(
+            {
+                "trace_id": record.get("trace_id"),
+                "task": record.get("task"),
+                "route": record.get("route", {}),
+                "latest_checkpoint": latest_checkpoint,
+                "unresolved_risks": record.get("unresolved_risks", []),
+                "completion_claim": record.get("completion_claim"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def trace_finish(trace: str, claim: str, command: str | None, result: str | None) -> int:
     path = resolve_trace_path(trace)
     if not path.is_file():
@@ -995,6 +1102,15 @@ def main() -> int:
     trace_append_parser = trace_subparsers.add_parser("append")
     trace_append_parser.add_argument("trace")
     trace_append_parser.add_argument("note")
+    trace_checkpoint_parser = trace_subparsers.add_parser("checkpoint")
+    trace_checkpoint_parser.add_argument("trace")
+    trace_checkpoint_parser.add_argument("--stage", required=True)
+    trace_checkpoint_parser.add_argument("--summary", required=True)
+    trace_checkpoint_parser.add_argument("--next-action")
+    trace_checkpoint_parser.add_argument("--artifact", action="append", default=[])
+    trace_checkpoint_parser.add_argument("--risk", action="append", default=[])
+    trace_resume_parser = trace_subparsers.add_parser("resume")
+    trace_resume_parser.add_argument("trace")
     trace_finish_parser = trace_subparsers.add_parser("finish")
     trace_finish_parser.add_argument("trace")
     trace_finish_parser.add_argument("--claim", required=True)
@@ -1019,6 +1135,17 @@ def main() -> int:
             return trace_start(args.task)
         if args.trace_command == "append":
             return trace_append(args.trace, args.note)
+        if args.trace_command == "checkpoint":
+            return trace_checkpoint(
+                args.trace,
+                args.stage,
+                args.summary,
+                args.next_action,
+                args.artifact,
+                args.risk,
+            )
+        if args.trace_command == "resume":
+            return trace_resume(args.trace)
         if args.trace_command == "finish":
             return trace_finish(args.trace, args.claim, args.verification_command, args.result)
 

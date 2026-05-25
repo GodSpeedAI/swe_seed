@@ -17,6 +17,8 @@ python scripts/harness.py route --record "task"
 python scripts/harness.py inspect debug-discipline
 python scripts/harness.py context-plan "task"
 python scripts/harness.py trace start "task"
+python scripts/harness.py trace checkpoint TRACE_ID --stage change --summary "what changed"
+python scripts/harness.py trace resume TRACE_ID
 ```
 
-The harness also includes a dependency-free context stewardship layer inspired by `mksglu/context-mode`: route-required context first, tool-output containment, think-in-code analysis for bulk data, and trace-backed session continuity.
+The harness also includes a dependency-free context stewardship layer inspired by `mksglu/context-mode`, a narrow gstack-derived handoff delta, and a superpowers-derived bootstrap rule: route-required context first, tool-output containment, think-in-code analysis for bulk data, trace-backed session continuity, compact trace checkpoints that let a later route resume from stage, next action, and unresolved risk instead of the full transcript, and a spec-first entry point for broad fresh-session build prompts.

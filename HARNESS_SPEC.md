@@ -589,6 +589,11 @@ The router MUST determine:
 9. What first action should happen next.
 10. Whether missing context blocks execution.
 
+For fresh-session build prompts that express broad creation intent but do not yet name concrete
+acceptance criteria, implementation target, or changed artifact, the router SHOULD bootstrap into
+the `spec` route rather than defaulting to an unrelated maintenance route. The first step should
+clarify the contract before code.
+
 ### 6.5 Routing Failure Behavior
 
 If the router cannot classify a task:
@@ -1203,6 +1208,8 @@ harness test-skill <skill-id>
 harness verify
 harness trace start <task>
 harness trace append <trace> <note>
+harness trace checkpoint <trace> --stage <stage> --summary <summary>
+harness trace resume <trace>
 harness trace finish <trace> --claim <claim> [--command <command> --result <result>]
 harness reflect
 harness propose-improvement
@@ -1210,8 +1217,8 @@ harness doctor
 ```
 
 This repository implements `validate`, `doctor`, `render-skills`, `route`, `route --record`,
-`inspect`, `context-plan`, and `trace start|append|finish` in `scripts/harness.py`. `just` recipes
-expose the same operations for local use.
+`inspect`, `context-plan`, and `trace start|append|checkpoint|resume|finish` in `scripts/harness.py`.
+`just` recipes expose the same operations for local use.
 
 ### 15.2 `validate`
 
@@ -1271,6 +1278,8 @@ Trace commands SHOULD create and update filesystem trace records:
 
 - `trace start <task>` creates a trace record and linked route decision.
 - `trace append <trace> <note>` records meaningful evidence or decision boundaries.
+- `trace checkpoint <trace> --stage <stage> --summary <summary>` records a resumable handoff packet.
+- `trace resume <trace>` returns the latest checkpoint together with the governing route and open risks.
 - `trace finish <trace> --claim <claim>` records the completion claim and optional proof command.
 
 Trace commands MUST NOT store secrets. Generated trace records SHOULD be ignored by version control
@@ -1301,6 +1310,7 @@ Implementations SHOULD provide:
 - tool-output containment guidance,
 - a think-in-code rule for bulk analysis,
 - session continuity through durable records,
+- resumable checkpoints that condense the current stage, next action, and unresolved risks,
 - hook or route pressure that reminds the agent before high-volume tools run.
 
 ### 15A.3 Imported Context-Mode Invariants
@@ -1310,6 +1320,7 @@ invariants are:
 
 - keep raw tool output out of the working context where possible,
 - retain task continuity in durable indexed or searchable artifacts,
+- emit compact restart packets instead of relying on the full transcript,
 - generate code or shell pipelines to compute over large inputs,
 - route or hook the agent toward context-saving behavior,
 - keep context rules outcome-bound rather than stylistic.
@@ -1317,7 +1328,24 @@ invariants are:
 ### 15A.4 Local Contract
 
 This repository stores the contract in `.agent-harness/context/`, validates it through
-`scripts/harness.py validate`, and exposes it through `scripts/harness.py context-plan <task>`.
+`scripts/harness.py validate`, and exposes it through `scripts/harness.py context-plan <task>`,
+`scripts/harness.py trace checkpoint ...`, and `scripts/harness.py trace resume <trace>`.
+
+### 15A.5 Checkpoint and Resume
+
+Implementations SHOULD support a lightweight checkpoint operation on active traces.
+
+A checkpoint SHOULD record:
+
+- current stage,
+- compact summary of the current state,
+- next action,
+- relevant artifacts to reopen,
+- unresolved risks that could block the next agent.
+
+A resume operation SHOULD return the latest checkpoint together with the governing route and open
+risks. The goal is not archival completeness. The goal is a restart packet that lets the next
+agent continue surgically.
 
 ## 16. Observability Specification
 
@@ -1341,6 +1369,7 @@ Trace records SHOULD include:
 - job type,
 - selected route,
 - route decision record,
+- zero or more checkpoints with stage, summary, next action, relevant artifacts, and unresolved risks,
 - selected skills,
 - files changed,
 - commands run,
@@ -1352,6 +1381,9 @@ The trace store SHOULD separate source templates and generated records. This rep
 `.agent-harness/traces/traceability-template.yaml` for the source template,
 `.agent-harness/traces/route-decisions/` for route decision records, and
 `.agent-harness/traces/records/` for task traces.
+
+Checkpoint events SHOULD be small enough that a later agent can resume the task by reading the
+trace and the named artifacts instead of reconstructing state from the conversation transcript.
 
 ### 16.3 Observability Failure Behavior
 
@@ -1514,6 +1546,7 @@ Core evals SHOULD avoid duplicating every implementation detail. They should pro
 - Route cards are validated as executable contracts, not descriptive labels.
 - Route cards include relevant core playbooks in required context.
 - Route work loops require reading proof output before completion claims.
+- Canonical fresh-session build prompts bootstrap into a spec-first route instead of a maintenance route.
 
 ### 19.3 Skill IR Conformance
 
@@ -1551,6 +1584,7 @@ Core evals SHOULD avoid duplicating every implementation detail. They should pro
 - Skipped checks require justification.
 - Acceptance criteria mapping is required for implementation-like jobs.
 - Traceability records include files, checks, and results.
+- Checkpoint or resume surfaces, when shipped, must expose latest stage, next action, and unresolved risks without replaying raw transcript state.
 - Bugfix verification requires reliable reproduction or an explicit blocker, fail-path evidence, hypothesis disproof, and validation against the original symptom.
 
 ### 19.7 Learning Conformance

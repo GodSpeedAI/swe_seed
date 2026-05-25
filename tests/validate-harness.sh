@@ -61,6 +61,26 @@ required_files=(
   "docs/dev-harness/howto/run-local-ci.md"
   "docs/dev-harness/references/just-recipes.md"
   "docs/dev-harness/references/proof-command-map.md"
+  "docs/agent-harness/README.md"
+  "docs/agent-harness/explanations/routing-and-proof.md"
+  "docs/agent-harness/explanations/context-and-continuity.md"
+  "docs/agent-harness/explanations/verification-and-conformance.md"
+  "docs/agent-harness/explanations/hooks-memory-and-learning.md"
+  "docs/agent-harness/howto/start-a-task.md"
+  "docs/agent-harness/howto/run-harness-checks.md"
+  "docs/agent-harness/howto/capture-traces.md"
+  "docs/agent-harness/howto/debug-routing.md"
+  "docs/agent-harness/howto/extend-the-harness.md"
+  "docs/agent-harness/howto/add-a-route-card.md"
+  "docs/agent-harness/howto/add-a-conformance-eval.md"
+  "docs/agent-harness/howto/inspect-the-harness.md"
+  "docs/agent-harness/howto/render-skills-and-targets.md"
+  "docs/agent-harness/references/cli-recipes.md"
+  "docs/agent-harness/references/route-map.md"
+  "docs/agent-harness/references/artifact-map.md"
+  "docs/agent-harness/references/eval-map.md"
+  "docs/agent-harness/references/hook-events.md"
+  "docs/agent-harness/references/memory-map.md"
   "docs/specs/agentic-swe-harness.md"
   "docs/specs/skill-ir.md"
   "docs/specs/verification-system.md"
@@ -110,9 +130,15 @@ grep -q 'SWE_SEED' package.json
 grep -q 'swe-seed' pyproject.toml
 python scripts/harness.py validate
 python scripts/harness.py route "fix a failing regression test" | grep -q '"job_type": "bugfix"'
+python scripts/harness.py route "the login form is broken" | grep -q '"route_card": ".agent-harness/routes/bugfix.json"'
 python scripts/harness.py route "implement HARNESS_SPEC.md semantic router" | grep -q '"route_card": ".agent-harness/routes/harness_improvement.json"'
 python scripts/harness.py route "incorporate context-mode mechanisms" | grep -q '"route_card": ".agent-harness/routes/harness_improvement.json"'
+python scripts/harness.py route "Let's make a react todo list" | grep -q '"route_card": ".agent-harness/routes/spec.json"'
+python scripts/harness.py route "review my recent auth changes for risk" | grep -q '"route_card": ".agent-harness/routes/review.json"'
 python scripts/harness.py inspect debug-discipline | grep -q '"skills"'
 python scripts/harness.py context-plan "implement a parser change" | grep -q '"context_budget"'
+trace_id=$(python scripts/harness.py trace start "checkpoint smoke" | python -c 'import json,sys; print(json.load(sys.stdin)["trace_id"])')
+python scripts/harness.py trace checkpoint "$trace_id" --stage change --summary "spec delta captured" --next-action "run targeted validation" --artifact HARNESS_SPEC.md --risk "proof not run" | grep -q '"trace.checkpoint"'
+python scripts/harness.py trace resume "$trace_id" | grep -q '"latest_checkpoint"'
 
 echo "Harness validation passed"
