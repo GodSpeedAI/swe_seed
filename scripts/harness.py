@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -29,6 +30,16 @@ REQUIRED_SKILL_FIELDS = {
     "forbidden_behaviors",
     "outputs",
     "success_criteria",
+}
+
+REQUIRED_ACTIVE_SKILLS = {
+    "plan-and-frame",
+    "implement-with-proof",
+    "test-with-proof",
+    "debug-discipline",
+    "review-for-risk",
+    "verify-before-completion",
+    "capture-learning",
 }
 
 REQUIRED_JOB_TYPES = {
@@ -764,10 +775,17 @@ def validate() -> int:
         if route_id in seen_routes:
             errors.append(f"duplicate route id: {route_id}")
         seen_routes.add(route_id)
+        for skill_id in route_card.get("required_skills", []):
+            if skill_id not in seen_ids:
+                errors.append(f"{rel(path)} required_skill not found: {skill_id}")
 
     for job_type in REQUIRED_JOB_TYPES:
         if job_type not in seen_routes:
             errors.append(f"missing route card for job type: {job_type}")
+
+    for skill_id in sorted(REQUIRED_ACTIVE_SKILLS):
+        if skill_id not in seen_ids:
+            errors.append(f"missing required active skill: {skill_id}")
 
     for path in skill_paths():
         rendered = render_skill(load_skill(path))
@@ -969,7 +987,16 @@ def write_route_decision(task: str, result: dict) -> Path:
     return path
 
 
-def route(task: str, record: bool = False) -> int:
+def route(
+    task: str,
+    record: bool = False,
+    capture_hook: bool = False,
+    agent: str = "unknown",
+    agent_version: str = "unknown",
+    session_id: str | None = None,
+    trace_id: str | None = None,
+    span_id: str | None = None,
+) -> int:
     try:
         result = build_route_result(task)
     except RuntimeError as exc:
@@ -977,8 +1004,79 @@ def route(task: str, record: bool = False) -> int:
 
     if record:
         result["route_decision_record"] = rel(write_route_decision(task, result))
+
+    if capture_hook:
+        command = [
+            str(HARNESS_ROOT / "hooks" / "hook-router.sh"),
+            "prompt.submit",
+            "--task",
+            task,
+            "--agent",
+            agent,
+            "--agent-version",
+            agent_version,
+            "--capture",
+        ]
+        if session_id:
+            command.extend(["--session-id", session_id])
+        if trace_id:
+            command.extend(["--trace-id", trace_id])
+        if span_id:
+            command.extend(["--span-id", span_id])
+
+        try:
+            hook_output = subprocess.check_output(command, cwd=ROOT, text=True)
+        except subprocess.CalledProcessError as exc:
+            return fail(f"hook capture failed: {exc}")
+
+        result["hook_capture"] = json.loads(hook_output)
     print(json.dumps(result, indent=2))
     return 0
+
+
+def capture_observability_event(
+    *,
+    event_name: str,
+    agent: str,
+    agent_version: str,
+    session_id: str | None,
+    trace_id: str | None,
+    span_id: str | None,
+    result_payload: dict,
+    message: str,
+) -> dict:
+    payload = {
+        "native_event": event_name,
+        "event": event_name,
+        "session_id": session_id or trace_id,
+        "trace_id": trace_id or session_id,
+        "span_id": span_id or event_name,
+        "profile": "agent-harness-trace",
+        "hook_id": event_name,
+        "script": "scripts/harness.py",
+        "status": "ok",
+        "message": message,
+        "result": result_payload,
+    }
+    try:
+        hook_output = subprocess.check_output(
+            [
+                str(ROOT / "scripts" / "agent-hooks"),
+                "capture",
+                "--agent",
+                agent,
+                "--agent-version",
+                agent_version,
+                "--script",
+                "scripts/harness.py",
+            ],
+            cwd=ROOT,
+            input=json.dumps(payload),
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"observability capture failed: {exc}") from exc
+    return json.loads(hook_output)
 
 
 def inspect(item: str) -> int:
@@ -1078,7 +1176,14 @@ def resolve_trace_path(trace: str) -> Path:
     return TRACE_RECORDS_ROOT / trace
 
 
-def trace_start(task: str) -> int:
+def trace_start(
+    task: str,
+    capture_hook: bool = False,
+    agent: str = "unknown",
+    agent_version: str = "unknown",
+    session_id: str | None = None,
+    span_id: str | None = None,
+) -> int:
     try:
         route_result = build_route_result(task)
     except RuntimeError as exc:
@@ -1106,16 +1211,31 @@ def trace_start(task: str) -> int:
     }
     path = TRACE_RECORDS_ROOT / f"{trace_id}.json"
     path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
-    print(
-        json.dumps(
-            {
-                "trace_id": trace_id,
-                "trace_record": rel(path),
-                "route_decision_record": rel(route_decision_path),
-            },
-            indent=2,
-        )
-    )
+    result = {
+        "trace_id": trace_id,
+        "trace_record": rel(path),
+        "route_decision_record": rel(route_decision_path),
+    }
+    if capture_hook:
+        try:
+            result["hook_capture"] = capture_observability_event(
+                event_name="trace.start",
+                agent=agent,
+                agent_version=agent_version,
+                session_id=session_id or trace_id,
+                trace_id=trace_id,
+                span_id=span_id,
+                result_payload={
+                    "task": task,
+                    "trace_record": rel(path),
+                    "route_decision_record": rel(route_decision_path),
+                    "route": route_result,
+                },
+                message="Trace record created before implementation work.",
+            )
+        except RuntimeError as exc:
+            return fail(str(exc))
+    print(json.dumps(result, indent=2))
     return 0
 
 
@@ -1137,6 +1257,11 @@ def trace_checkpoint(
     next_action: str | None,
     artifacts: list[str],
     unresolved_risks: list[str],
+    capture_hook: bool = False,
+    agent: str = "unknown",
+    agent_version: str = "unknown",
+    session_id: str | None = None,
+    span_id: str | None = None,
 ) -> int:
     path = resolve_trace_path(trace)
     if not path.is_file():
@@ -1156,7 +1281,26 @@ def trace_checkpoint(
     if unresolved_risks:
         record["unresolved_risks"] = unresolved_risks
     path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"trace_record": rel(path), "checkpoint": checkpoint}, indent=2))
+    result = {"trace_record": rel(path), "checkpoint": checkpoint}
+    if capture_hook:
+        try:
+            result["hook_capture"] = capture_observability_event(
+                event_name="trace.checkpoint",
+                agent=agent,
+                agent_version=agent_version,
+                session_id=session_id or record.get("trace_id"),
+                trace_id=record.get("trace_id"),
+                span_id=span_id,
+                result_payload={
+                    "trace_record": rel(path),
+                    "checkpoint": checkpoint,
+                    "task": record.get("task"),
+                },
+                message=summary,
+            )
+        except RuntimeError as exc:
+            return fail(str(exc))
+    print(json.dumps(result, indent=2))
     return 0
 
 
@@ -1359,6 +1503,16 @@ def main() -> int:
     route_parser.add_argument(
         "--record", action="store_true", help="write a route decision ledger entry"
     )
+    route_parser.add_argument(
+        "--capture-hook",
+        action="store_true",
+        help="capture the prompt.submit hook through the observability layer",
+    )
+    route_parser.add_argument("--agent", default="unknown")
+    route_parser.add_argument("--agent-version", default="unknown")
+    route_parser.add_argument("--session-id")
+    route_parser.add_argument("--trace-id")
+    route_parser.add_argument("--span-id")
     route_parser.add_argument("task")
     inspect_parser = subparsers.add_parser("inspect")
     inspect_parser.add_argument("item")
@@ -1367,12 +1521,30 @@ def main() -> int:
     trace_parser = subparsers.add_parser("trace")
     trace_subparsers = trace_parser.add_subparsers(dest="trace_command", required=True)
     trace_start_parser = trace_subparsers.add_parser("start")
+    trace_start_parser.add_argument(
+        "--capture-hook",
+        action="store_true",
+        help="capture trace.start through the observability layer",
+    )
+    trace_start_parser.add_argument("--agent", default="unknown")
+    trace_start_parser.add_argument("--agent-version", default="unknown")
+    trace_start_parser.add_argument("--session-id")
+    trace_start_parser.add_argument("--span-id")
     trace_start_parser.add_argument("task")
     trace_append_parser = trace_subparsers.add_parser("append")
     trace_append_parser.add_argument("trace")
     trace_append_parser.add_argument("note")
     trace_checkpoint_parser = trace_subparsers.add_parser("checkpoint")
     trace_checkpoint_parser.add_argument("trace")
+    trace_checkpoint_parser.add_argument(
+        "--capture-hook",
+        action="store_true",
+        help="capture trace.checkpoint through the observability layer",
+    )
+    trace_checkpoint_parser.add_argument("--agent", default="unknown")
+    trace_checkpoint_parser.add_argument("--agent-version", default="unknown")
+    trace_checkpoint_parser.add_argument("--session-id")
+    trace_checkpoint_parser.add_argument("--span-id")
     trace_checkpoint_parser.add_argument("--stage", required=True)
     trace_checkpoint_parser.add_argument("--summary", required=True)
     trace_checkpoint_parser.add_argument("--next-action")
@@ -1396,14 +1568,30 @@ def main() -> int:
     if args.command == "render-skills":
         return render_skills()
     if args.command == "route":
-        return route(args.task, record=args.record)
+        return route(
+            args.task,
+            record=args.record,
+            capture_hook=args.capture_hook,
+            agent=args.agent,
+            agent_version=args.agent_version,
+            session_id=args.session_id,
+            trace_id=args.trace_id,
+            span_id=args.span_id,
+        )
     if args.command == "inspect":
         return inspect(args.item)
     if args.command == "context-plan":
         return context_plan(args.task)
     if args.command == "trace":
         if args.trace_command == "start":
-            return trace_start(args.task)
+            return trace_start(
+                args.task,
+                capture_hook=args.capture_hook,
+                agent=args.agent,
+                agent_version=args.agent_version,
+                session_id=args.session_id,
+                span_id=args.span_id,
+            )
         if args.trace_command == "append":
             return trace_append(args.trace, args.note)
         if args.trace_command == "checkpoint":
@@ -1414,6 +1602,11 @@ def main() -> int:
                 args.next_action,
                 args.artifact,
                 args.risk,
+                capture_hook=args.capture_hook,
+                agent=args.agent,
+                agent_version=args.agent_version,
+                session_id=args.session_id,
+                span_id=args.span_id,
             )
         if args.trace_command == "resume":
             return trace_resume(args.trace)

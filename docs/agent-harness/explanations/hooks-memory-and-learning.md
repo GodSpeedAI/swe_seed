@@ -2,7 +2,7 @@
 
 The harness does more than route tasks. It also shapes lifecycle behavior around the task.
 
-Hooks provide the timing. They connect lifecycle events such as session start, prompt submit, tool execution, turn stop, and session end to routing, context discipline, safety, trace capture, and learning. In this repository the hook surface is intentionally lightweight: `.agent-harness/hooks/hook-router.sh` emits purpose, action, and boundary guidance for the canonical events. The hooks guide behavior. They do not replace the agent's reasoning.
+Hooks provide the timing. They connect lifecycle events such as session start, prompt submit, tool execution, turn stop, and session end to routing, context discipline, safety, trace capture, and learning. In this repository the hook surface stays lightweight, but it is no longer text-only: `.agent-harness/hooks/hook-router.sh` can emit purpose, action, and boundary guidance or capture the same event through the dev-harness observability layer with shared identifiers. The hooks guide behavior and preserve evidence. They do not replace the agent's reasoning.
 
 Memory provides durable cognition. The harness keeps a repo map, decisions, constraints, failure patterns, successful patterns, a glossary, and open questions under `.agent-harness/memory/`. These files are not archives. They are small operating artifacts meant to sharpen future behavior. When they become transcripts or generic notes, they stop helping.
 
@@ -17,5 +17,7 @@ These three surfaces work together:
 - hooks prompt the right action at the right time,
 - memory keeps reusable context small and durable,
 - learning captures repeated friction without destabilizing the system.
+
+The shared-ID boundary matters. Hook capture should preserve `trace_id`, `session_id`, and `span_id` so the dev-harness replay surface and the agent-harness trace or learning surfaces can correlate work without becoming one runtime.
 
 That is how the harness improves while staying governable.

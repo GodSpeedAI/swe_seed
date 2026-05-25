@@ -63,6 +63,33 @@ harness-query-learning-store mode="summaries" limit="10" status="any" job_type="
 harness-eval-learning-retrieval db_path="":
     @bash scripts/eval-learning-retrieval.sh "{{db_path}}"
 
+agent-hooks-trace-last:
+    @scripts/agent-hooks trace --last
+
+agent-hooks-trace-session session_id:
+    @scripts/agent-hooks trace --session "{{session_id}}"
+
+agent-hooks-inspect event_id:
+    @scripts/agent-hooks inspect --event "{{event_id}}"
+
+agent-hooks-replay event_id:
+    @scripts/agent-hooks replay --event "{{event_id}}"
+
+agent-hooks-doctor:
+    @scripts/agent-hooks doctor --observability
+
+agent-hooks-compact-logs:
+    @scripts/agent-hooks compact-logs
+
+agent-hooks-index-rebuild:
+    @scripts/agent-hooks index rebuild
+
+agent-hooks-export-otel output="":
+    @if [ -n "{{output}}" ]; then scripts/agent-hooks export otel --output "{{output}}"; else scripts/agent-hooks export otel; fi
+
+agent-hooks-export-junit output="":
+    @if [ -n "{{output}}" ]; then scripts/agent-hooks export junit --output "{{output}}"; else scripts/agent-hooks export junit; fi
+
 harness-trace-finish trace claim:
     @python scripts/harness.py trace finish "{{trace}}" --claim "{{claim}}"
 

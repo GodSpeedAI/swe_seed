@@ -13,7 +13,7 @@
     ".agent-harness/playbooks/20-change-with-proof.md",
     ".agent-harness/memory/constraints.md"
   ],
-  "required_skills": [],
+  "required_skills": ["verify-before-completion"],
   "work_loop": [
     "confirm release scope and release target",
     "check whether version or changelog files exist",

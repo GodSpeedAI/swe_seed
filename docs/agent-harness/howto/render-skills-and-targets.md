@@ -4,6 +4,8 @@ Use this when Skill IR changed or when a generated agent surface looks stale.
 
 The canonical source for reusable behavior is JSON Skill IR under `.agent-harness/skills/`. Render targets are generated projections for different agent surfaces. They should not be edited directly.
 
+The repository ships a small built-in core skill set that covers planning, implementation with proof, testing, debugging, review, completion gating, and learning capture. If any of those canonical JSON skills change, rerender before claiming the harness behavior changed.
+
 ## Render the targets
 
 Run:

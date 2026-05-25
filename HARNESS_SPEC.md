@@ -968,6 +968,44 @@ Recommended behavior:
   - Update reflection record.
   - Propose harness improvements when evidence warrants.
 
+### 10.3A Hook Binding Contract
+
+Hooks MUST be specified so another implementation can bind them to a native agent runtime without reverse-engineering local conventions.
+
+At minimum, the implementation-defined hook contract MUST document:
+
+- how each canonical event is invoked,
+- what payload shape is passed to the hook,
+- which fields are required versus optional,
+- what the hook may emit,
+- what failures are blocking versus advisory,
+- what identifiers are preserved across hook, trace, and proof artifacts.
+
+The preferred portable model is stdin JSON in and stdout JSON or structured text out, with large payloads recorded as filesystem artifacts. Hook implementations SHOULD preserve `trace_id`, `session_id`, `span_id`, `event_id`, current workspace, selected route card, and proof-relevant command results when those values are available.
+
+### 10.3B Cross-Harness Harmony
+
+The agent harness and the dev harness SHOULD work together without becoming runtime dependencies of each other.
+
+The agent harness owns:
+
+- routing,
+- Skill IR selection and rendering,
+- context stewardship,
+- traceability records,
+- learning distillation,
+- proposal-oriented memory updates.
+
+The dev harness owns:
+
+- bootstrap and doctor commands,
+- CI parity,
+- secrets workflows,
+- command and hook observability,
+- durable event capture and replay.
+
+Harmony is achieved through shared identifiers and artifact references, not through shared mutable state or cross-imported runtime libraries. A conforming implementation SHOULD let hook and tool events reference agent-harness trace IDs and artifacts when present, but the absence of the other harness MUST NOT break local operation.
+
 ### 10.4 Hook Safety
 
 Hooks MUST:
@@ -1702,6 +1740,20 @@ Recommended checks:
 - Doctor command.
 - Real-agent smoke tests.
 - Built-in MECE core skill set.
+
+### 20.2A Recommended Outcome-Bearing Build Order
+
+Implementations that want productive real-world outcomes SHOULD build in this order:
+
+1. Router and proof discipline. Start with a semantic router, a complete route-card set, proof-bearing work loops, and deterministic conflict handling.
+
+1. Portable procedure coverage. Add a built-in core skill set that covers planning, debugging, implementation with proof, testing, review, receiving review, completion verification, release finishing, and skill authoring, plus fresh rendered targets for all configured agent surfaces.
+
+1. Lifecycle and continuity. Implement hook bindings with explicit payload contracts, trace start or checkpoint or resume or finish or distill, and proposal-oriented memory and learning updates.
+
+1. Optional acceleration. Add structured mirrors and observability indexes rebuildable from files, vector retrieval only after readiness evaluation, and dashboards only after command-line recovery is already sufficient.
+
+An implementation SHOULD NOT start by adding dashboards, embeddings, or autonomous self-modification. Those additions are lower leverage than portable procedures, proof gates, and resumable traces.
 
 ### 20.3 Recommended Extensions
 

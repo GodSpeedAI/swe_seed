@@ -10,6 +10,14 @@ Run:
 python scripts/harness.py route "task"
 ```
 
+If you want the routing step itself to produce observability evidence, run:
+
+```bash
+python scripts/harness.py route --capture-hook --agent copilot --agent-version local --session-id SESSION_ID --trace-id TRACE_ID --span-id SPAN_ID "task"
+```
+
+This records a real `prompt.submit` hook event through the dev-harness observability layer while keeping the route result as the primary control surface.
+
 The result should name:
 
 - `job_type`

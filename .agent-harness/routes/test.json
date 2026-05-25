@@ -17,7 +17,7 @@
     ".agent-harness/playbooks/30-debug-from-symptom.md",
     "docs/specs/verification-system.md"
   ],
-  "required_skills": [],
+  "required_skills": ["test-with-proof", "verify-before-completion"],
   "work_loop": [
     "identify behavior under test",
     "write a failing or contract-revealing check",

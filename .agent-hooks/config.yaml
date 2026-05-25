@@ -1,0 +1,27 @@
+version: 1
+
+paths:
+  root: .agent-hooks
+  logs: .agent-hooks/logs
+  payloads: .agent-hooks/payloads
+  artifacts: .agent-hooks/artifacts
+  index_db: .agent-hooks/index/hooks.rusql
+  vector_index_root: .agent-hooks/index/vectors
+
+logging:
+  schema_version: "1.0"
+  rotate_by_date: true
+  compact_min_size_bytes: 131072
+
+redaction:
+  key_substrings:
+    - secret
+    - token
+    - password
+    - api_key
+    - authorization
+    - cookie
+
+exports:
+  otel_format: opentelemetry-compatible-json
+  junit_suite_name: agent-hooks-observability

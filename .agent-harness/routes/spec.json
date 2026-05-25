@@ -21,7 +21,7 @@
     "HARNESS_SPEC.md",
     "docs/specs/"
   ],
-  "required_skills": [],
+  "required_skills": ["plan-and-frame"],
   "work_loop": [
     "identify the desired outcome",
     "separate normative requirements from examples",

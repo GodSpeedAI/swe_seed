@@ -11,4 +11,9 @@ These are the canonical hook events surfaced by `.agent-harness/hooks/hook-route
 | `turn.stop`     | Block false completion claims                     | compare proof obligations against observed evidence           |
 | `session.end`   | Capture reusable learning without drift           | write reflection or proposal only when evidence warrants      |
 
-The hook router is guidance, not an engine. It should tell the agent what to do and what boundary not to cross.
+The hook router supports two modes:
+
+- guidance mode, which emits `purpose`, `action`, and `boundary` text for the canonical event,
+- capture mode, which emits the same guidance through `scripts/agent-hooks capture` with shared identifiers such as `trace_id`, `session_id`, and `span_id`.
+
+For `prompt.submit`, capture mode also records a route preview when a `--task` value is provided. This keeps hook observability aligned with routing without making the dev harness depend on the agent harness runtime.

@@ -22,7 +22,11 @@
     ".agent-harness/memory/repo-map.md",
     ".agent-harness/memory/constraints.md"
   ],
-  "required_skills": ["debug-discipline"],
+  "required_skills": [
+    "plan-and-frame",
+    "implement-with-proof",
+    "verify-before-completion"
+  ],
   "work_loop": [
     "identify the governing requirement",
     "write or update failing validation before behavior changes",

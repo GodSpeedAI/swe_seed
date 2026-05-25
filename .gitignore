@@ -15,6 +15,12 @@ node_modules/
 .agent-harness/traces/records/*.json
 .agent-harness/traces/route-decisions/*.json
 
+# generated dev-harness observability artifacts
+.agent-hooks/logs/
+.agent-hooks/payloads/
+.agent-hooks/artifacts/
+.agent-hooks/index/
+
 # sops plaintext and local age keys
 *.dec.*
 *.plain.*

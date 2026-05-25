@@ -36,7 +36,12 @@
     ".agent-harness/memory/failure-patterns.md",
     ".agent-harness/memory/successful-patterns.md"
   ],
-  "required_skills": ["debug-discipline"],
+  "required_skills": [
+    "plan-and-frame",
+    "implement-with-proof",
+    "debug-discipline",
+    "capture-learning"
+  ],
   "work_loop": [
     "identify the harness gap and desired behavior",
     "update the governing spec before implementation when the contract changes",

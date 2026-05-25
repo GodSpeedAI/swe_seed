@@ -24,7 +24,7 @@
     ".agent-harness/imports/README.md",
     ".agent-harness/imports/anthropic-skills-skill-creator-normalization.md"
   ],
-  "required_skills": [],
+  "required_skills": ["plan-and-frame", "capture-learning"],
   "work_loop": [
     "define the JTBD, trigger conditions, and trigger metadata",
     "plan reusable resources and realistic evaluation prompts",
