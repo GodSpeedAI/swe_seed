@@ -12,7 +12,7 @@ if command -v pnpm >/dev/null 2>&1 && [[ -f pnpm-lock.yaml ]]; then
 fi
 
 if command -v uv >/dev/null 2>&1; then
-  uv sync || true
+  uv sync
 fi
 
 echo "Bootstrap complete. Run: just doctor"

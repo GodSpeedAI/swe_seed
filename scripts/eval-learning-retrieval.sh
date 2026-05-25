@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DEFAULT_DB_PATH=".agent-harness/traces/learning-store.sqlite3"
 db_path="${1:-}"
 if [[ -z "$db_path" ]]; then
-  db_path=".agent-harness/traces/learning-store.sqlite3"
+  db_path="$DEFAULT_DB_PATH"
 fi
 
 if [[ ! -f "$db_path" ]]; then

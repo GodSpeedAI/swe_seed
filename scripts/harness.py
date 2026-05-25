@@ -13,175 +13,494 @@ import sys
 from pathlib import Path
 
 
+def _parse_yaml(text: str) -> dict:
+    lines = text.split("\n")
+    pos = [0]
+
+    def indent_of(idx: int) -> int:
+        if idx >= len(lines):
+            return -1
+        line = lines[idx]
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            return -1
+        return len(line) - len(stripped)
+
+    def skip_empty() -> None:
+        while pos[0] < len(lines):
+            s = lines[pos[0]].lstrip()
+            if s and not s.startswith("#"):
+                break
+            pos[0] += 1
+
+    def scalar(value: str) -> object:
+        value = value.strip()
+        if not value or value.startswith("#"):
+            return ""
+        if " #" in value:
+            value = value[: value.index(" #")].strip()
+        if len(value) >= 2 and (
+            (value[0] == '"' and value[-1] == '"') or (value[0] == "'" and value[-1] == "'")
+        ):
+            return value[1:-1]
+        if value.lower() == "true":
+            return True
+        if value.lower() == "false":
+            return False
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        return value
+
+    def parse_mapping(min_indent: int) -> dict:
+        result: dict = {}
+        while pos[0] < len(lines):
+            skip_empty()
+            if pos[0] >= len(lines):
+                break
+            ind = indent_of(pos[0])
+            if ind < min_indent:
+                break
+            line = lines[pos[0]].lstrip()
+            if ":" not in line or line.startswith("-"):
+                break
+            key, _, value = line.partition(":")
+            key = key.strip()
+            value = value.strip()
+            if value == "" or value.startswith("#"):
+                pos[0] += 1
+                skip_empty()
+                if pos[0] < len(lines) and indent_of(pos[0]) > ind:
+                    next_line = lines[pos[0]].lstrip()
+                    if next_line.startswith("- "):
+                        result[key] = parse_sequence(indent_of(pos[0]))
+                    else:
+                        result[key] = parse_mapping(indent_of(pos[0]))
+                else:
+                    result[key] = {}
+            else:
+                result[key] = scalar(value)
+                pos[0] += 1
+        return result
+
+    def parse_sequence(min_indent: int) -> list:
+        items: list = []
+        while pos[0] < len(lines):
+            skip_empty()
+            if pos[0] >= len(lines):
+                break
+            ind = indent_of(pos[0])
+            if ind < min_indent:
+                break
+            line = lines[pos[0]].lstrip()
+            if not line.startswith("- "):
+                break
+            items.append(scalar(line[2:]))
+            pos[0] += 1
+        return items
+
+    return parse_mapping(0)
+
+
+def _load_harness_config() -> dict:
+    config_path = Path(__file__).resolve().parents[1] / ".agent-harness" / "config.yaml"
+    if config_path.is_file():
+        return _parse_yaml(config_path.read_text(encoding="utf-8"))
+    return {}
+
+
+def _cfg(keys: str, default: object = None) -> object:
+    config = _load_harness_config()
+    current: object = config
+    for key in keys.split("."):
+        if not isinstance(current, dict):
+            return default
+        current = current.get(key)
+        if current is None:
+            return default
+    return current
+
+
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS_ROOT = ROOT / ".agent-harness"
 TRACE_RECORDS_ROOT = HARNESS_ROOT / "traces" / "records"
 ROUTE_DECISIONS_ROOT = HARNESS_ROOT / "traces" / "route-decisions"
 
-REQUIRED_SKILL_FIELDS = {
-    "id",
-    "version",
-    "category",
-    "jtbd",
-    "description",
-    "triggers",
-    "procedure",
-    "evidence_required",
-    "forbidden_behaviors",
-    "outputs",
-    "success_criteria",
-}
-
-REQUIRED_ACTIVE_SKILLS = {
-    "plan-and-frame",
-    "implement-with-proof",
-    "test-with-proof",
-    "debug-discipline",
-    "review-for-risk",
-    "verify-before-completion",
-    "capture-learning",
-}
-
-REQUIRED_JOB_TYPES = {
-    "research",
-    "spec",
-    "implementation",
-    "bugfix",
-    "refactor",
-    "test",
-    "review",
-    "release",
-    "documentation",
-    "harness_improvement",
-    "skill_authoring",
-}
-
-REQUIRED_PATHS = [
-    "AGENTS.md",
-    "HARNESS_SPEC.md",
-    ".github/copilot-instructions.md",
-    ".agent-harness/config.yaml",
-    ".agent-harness/context/README.md",
-    ".agent-harness/context/budget-policy.yaml",
-    ".agent-harness/context/context-mode-normalization.md",
-    ".agent-harness/hooks/hook-router.sh",
-    ".agent-harness/imports/9arm-skills-normalization.md",
-    ".agent-harness/imports/anthropic-skills-skill-creator-normalization.md",
-    ".agent-harness/imports/hermes-agent-normalization.md",
-    ".agent-harness/traces/README.md",
-    ".agent-harness/traces/route-decisions/README.md",
-    ".agent-harness/traces/traceability-template.yaml",
-    ".agent-harness/reflections/reflection-template.yaml",
-    ".agent-harness/reflections/learning-review-template.yaml",
-    ".agent-harness/reflections/harness-improvement-proposals.md",
-    ".agent-harness/evals/negative-conformance.md",
-    ".agent-harness/evals/route-conflicts.md",
-    "docs/specs/agentic-swe-harness.md",
-    "docs/specs/skill-ir.md",
-    "docs/specs/verification-system.md",
-    "docs/specs/memory-system.md",
-    "docs/specs/hook-strategy.md",
-]
-
-REQUIRED_MEMORY = [
-    "repo-map.md",
-    "decisions.md",
-    "open-questions.md",
-    "failure-patterns.md",
-    "successful-patterns.md",
-    "glossary.md",
-    "constraints.md",
-]
-
-MEMORY_MIN_WORDS = 80
-MEMORY_REQUIRED_PHRASES = ["Use this when", "Keep in mind"]
-BEHAVIOR_SHAPING_PHRASES = [
-    "behavior shaping",
-    "agent tendency",
-    "outcome production",
-]
-
-REQUIRED_PLAYBOOKS = [
-    "00-orient-and-route.md",
-    "10-frame-outcome.md",
-    "20-change-with-proof.md",
-    "30-debug-from-symptom.md",
-    "40-review-for-risk.md",
-    "50-capture-learning.md",
-]
-PLAYBOOK_MIN_WORDS = 120
-PLAYBOOK_REQUIRED_PHRASES = ["Use this when", "Composes with", "Stop when"]
-HOOK_EVENTS = [
-    "session.start",
-    "prompt.submit",
-    "tool.pre",
-    "tool.post",
-    "turn.stop",
-    "session.end",
-]
-REFLECTION_MIN_WORDS = 100
-REFLECTION_REQUIRED_PHRASES = ["Use this when", "Do not use this for", "Evidence required"]
-PROPOSAL_REQUIRED_PHRASES = ["Use this when", "Proposal states", "Not enough evidence"]
-LEARNING_REVIEW_REQUIRED_PHRASES = [
-    "candidate_memory_updates",
-    "candidate_skill_updates",
-    "candidate_harness_updates",
-    "provenance",
-]
-EVAL_MIN_CASES = 6
-EVAL_REQUIRED_PHRASES = ["Eval Case", "Command", "Expected", "Why it matters"]
-NEGATIVE_EVAL_REQUIRED_PHRASES = ["Failure Eval", "Breakage", "Expected failure", "Why it matters"]
-ROUTE_CONFLICT_REQUIRED_PHRASES = ["Conflict Eval", "Prompt", "Expected route", "Precedence rule"]
-TRACE_REQUIRED_PHRASES = ["Use this when", "Route decision", "Trace record", "Do not store secrets"]
-CONTEXT_REQUIRED_PHRASES = [
-    "Use this when",
-    "context budget",
-    "tool-output containment",
-    "think in code",
-    "session continuity",
-]
-CONTEXT_AGENTS_PHRASES = [
-    "context budget",
-    "tool-output containment",
-    "think in code",
-    "session continuity",
-]
-CONTEXT_NORMALIZATION_PHRASES = [
-    "Source mechanism",
-    "Imported invariant",
-    "Local artifact",
-    "Validation",
-]
-RENDER_TARGET_MIN_WORDS = 100
-RENDER_TARGET_REQUIRED_PHRASES = [
-    "Use this when",
-    "What to do",
-    "Evidence required",
-    "Forbidden behavior",
-    "Done when",
-]
-CLAUDE_SKILL_REQUIRED_PHRASES = ["---", "name:", "description:", "#"]
-SKILL_RESOURCE_KINDS = {"script", "reference", "asset"}
-CANONICAL_RENDER_RULE = (
-    "Skill IR JSON is canonical. Render targets are generated projections and must not be edited directly. "
-    "If two paths need the same bytes, one must be a symlink."
+REQUIRED_SKILL_FIELDS = set(
+    _cfg(
+        "skills.required_fields",
+        [
+            "id",
+            "version",
+            "category",
+            "jtbd",
+            "description",
+            "triggers",
+            "procedure",
+            "evidence_required",
+            "forbidden_behaviors",
+            "outputs",
+            "success_criteria",
+        ],
+    )
+    or []
 )
-NINEARM_DEBUG_PHRASES = [
-    "reliable reproduction",
-    "fail path",
-    "disprove",
-    "breadcrumb ledger",
-]
-NINEARM_REVIEW_PHRASES = [
-    "simpler alternative",
-    "trace the actual path",
-    "claim vs verification",
-]
-NINEARM_LEARNING_PHRASES = [
-    "post-mortem",
-    "root cause",
-    "validation coverage",
-]
+
+REQUIRED_ACTIVE_SKILLS = set(
+    _cfg(
+        "skills.required_active",
+        [
+            "plan-and-frame",
+            "implement-with-proof",
+            "test-with-proof",
+            "debug-discipline",
+            "review-for-risk",
+            "verify-before-completion",
+            "capture-learning",
+        ],
+    )
+    or []
+)
+
+REQUIRED_JOB_TYPES = set(
+    _cfg(
+        "job_types.definitions",
+        [
+            "research",
+            "spec",
+            "implementation",
+            "bugfix",
+            "refactor",
+            "test",
+            "review",
+            "release",
+            "documentation",
+            "harness_improvement",
+            "skill_authoring",
+        ],
+    )
+    or []
+)
+
+REQUIRED_PATHS = (
+    _cfg(
+        "validation.required_paths",
+        [
+            "AGENTS.md",
+            "HARNESS_SPEC.md",
+            ".github/copilot-instructions.md",
+            ".agent-harness/config.yaml",
+            ".agent-harness/context/README.md",
+            ".agent-harness/context/budget-policy.yaml",
+            ".agent-harness/context/context-mode-normalization.md",
+            ".agent-harness/hooks/hook-router.sh",
+            ".agent-harness/imports/9arm-skills-normalization.md",
+            ".agent-harness/imports/anthropic-skills-skill-creator-normalization.md",
+            ".agent-harness/imports/hermes-agent-normalization.md",
+            ".agent-harness/traces/README.md",
+            ".agent-harness/traces/route-decisions/README.md",
+            ".agent-harness/traces/traceability-template.yaml",
+            ".agent-harness/reflections/reflection-template.yaml",
+            ".agent-harness/reflections/learning-review-template.yaml",
+            ".agent-harness/reflections/harness-improvement-proposals.md",
+            ".agent-harness/evals/negative-conformance.md",
+            ".agent-harness/evals/route-conflicts.md",
+            "docs/specs/agentic-swe-harness.md",
+            "docs/specs/skill-ir.md",
+            "docs/specs/verification-system.md",
+            "docs/specs/memory-system.md",
+            "docs/specs/hook-strategy.md",
+        ],
+    )
+    or []
+)
+
+REQUIRED_MEMORY = (
+    _cfg(
+        "memory.required",
+        [
+            "repo-map.md",
+            "decisions.md",
+            "open-questions.md",
+            "failure-patterns.md",
+            "successful-patterns.md",
+            "glossary.md",
+            "constraints.md",
+        ],
+    )
+    or []
+)
+
+MEMORY_MIN_WORDS = _cfg("memory.min_words", 80)
+MEMORY_REQUIRED_PHRASES = _cfg("memory.required_phrases", ["Use this when", "Keep in mind"]) or []
+BEHAVIOR_SHAPING_PHRASES = (
+    _cfg(
+        "validation.behavior_shaping_phrases",
+        [
+            "behavior shaping",
+            "agent tendency",
+            "outcome production",
+        ],
+    )
+    or []
+)
+
+REQUIRED_PLAYBOOKS = (
+    _cfg(
+        "validation.required_playbooks",
+        [
+            "00-orient-and-route.md",
+            "10-frame-outcome.md",
+            "20-change-with-proof.md",
+            "30-debug-from-symptom.md",
+            "40-review-for-risk.md",
+            "50-capture-learning.md",
+        ],
+    )
+    or []
+)
+PLAYBOOK_MIN_WORDS = _cfg("validation.playbook_min_words", 120)
+PLAYBOOK_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.playbook_required_phrases",
+        [
+            "Use this when",
+            "Composes with",
+            "Stop when",
+        ],
+    )
+    or []
+)
+HOOK_EVENTS = (
+    _cfg(
+        "hooks.events",
+        [
+            "session.start",
+            "prompt.submit",
+            "tool.pre",
+            "tool.post",
+            "turn.stop",
+            "session.end",
+        ],
+    )
+    or []
+)
+REFLECTION_MIN_WORDS = _cfg("validation.reflection_min_words", 100)
+REFLECTION_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.reflection_required_phrases",
+        [
+            "Use this when",
+            "Do not use this for",
+            "Evidence required",
+        ],
+    )
+    or []
+)
+PROPOSAL_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.proposal_required_phrases",
+        [
+            "Use this when",
+            "Proposal states",
+            "Not enough evidence",
+        ],
+    )
+    or []
+)
+LEARNING_REVIEW_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.learning_review_required_phrases",
+        [
+            "candidate_memory_updates",
+            "candidate_skill_updates",
+            "candidate_harness_updates",
+            "provenance",
+        ],
+    )
+    or []
+)
+EVAL_MIN_CASES = _cfg("validation.eval_min_cases", 6)
+EVAL_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.eval_required_phrases",
+        [
+            "Eval Case",
+            "Command",
+            "Expected",
+            "Why it matters",
+        ],
+    )
+    or []
+)
+NEGATIVE_EVAL_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.negative_eval_required_phrases",
+        [
+            "Failure Eval",
+            "Breakage",
+            "Expected failure",
+            "Why it matters",
+        ],
+    )
+    or []
+)
+ROUTE_CONFLICT_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.route_conflict_required_phrases",
+        [
+            "Conflict Eval",
+            "Prompt",
+            "Expected route",
+            "Precedence rule",
+        ],
+    )
+    or []
+)
+TRACE_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.trace_required_phrases",
+        [
+            "Use this when",
+            "Route decision",
+            "Trace record",
+            "Do not store secrets",
+        ],
+    )
+    or []
+)
+CONTEXT_REQUIRED_PHRASES = (
+    _cfg(
+        "validation.context_required_phrases",
+        [
+            "Use this when",
+            "context budget",
+            "tool-output containment",
+            "think in code",
+            "session continuity",
+        ],
+    )
+    or []
+)
+CONTEXT_AGENTS_PHRASES = (
+    _cfg(
+        "validation.context_agents_phrases",
+        [
+            "context budget",
+            "tool-output containment",
+            "think in code",
+            "session continuity",
+        ],
+    )
+    or []
+)
+CONTEXT_NORMALIZATION_PHRASES = (
+    _cfg(
+        "validation.context_normalization_phrases",
+        [
+            "Source mechanism",
+            "Imported invariant",
+            "Local artifact",
+            "Validation",
+        ],
+    )
+    or []
+)
+RENDER_TARGET_MIN_WORDS = _cfg("render_targets.min_words", 100)
+RENDER_TARGET_REQUIRED_PHRASES = (
+    _cfg(
+        "render_targets.required_phrases",
+        [
+            "Use this when",
+            "What to do",
+            "Evidence required",
+            "Forbidden behavior",
+            "Done when",
+        ],
+    )
+    or []
+)
+CLAUDE_SKILL_REQUIRED_PHRASES = (
+    _cfg(
+        "render_targets.claude_skill_required_phrases",
+        [
+            "---",
+            "name:",
+            "description:",
+            "#",
+        ],
+    )
+    or []
+)
+SKILL_RESOURCE_KINDS = set(_cfg("skills.resource_kinds", ["script", "reference", "asset"]) or [])
+CANONICAL_RENDER_RULE = _cfg(
+    "validation.canonical_render_rule",
+    "Skill IR JSON is canonical. Render targets are generated projections and must not be "
+    "edited directly. If two paths need the same bytes, one must be a symlink.",
+)
+NINEARM_DEBUG_PHRASES = (
+    _cfg(
+        "validation.ninearm_debug_phrases",
+        [
+            "reliable reproduction",
+            "fail path",
+            "disprove",
+            "breadcrumb ledger",
+        ],
+    )
+    or []
+)
+NINEARM_REVIEW_PHRASES = (
+    _cfg(
+        "validation.ninearm_review_phrases",
+        [
+            "simpler alternative",
+            "trace the actual path",
+            "claim vs verification",
+        ],
+    )
+    or []
+)
+NINEARM_LEARNING_PHRASES = (
+    _cfg(
+        "validation.ninearm_learning_phrases",
+        [
+            "post-mortem",
+            "root cause",
+            "validation coverage",
+        ],
+    )
+    or []
+)
+
+SECRET_PATTERNS = (
+    _cfg(
+        "security.secret_patterns",
+        [
+            r"sk-[a-zA-Z0-9]{20,}",
+            r"ghp_[a-zA-Z0-9]{36}",
+            r"gho_[a-zA-Z0-9]{36}",
+            r"xox[bpras]-[a-zA-Z0-9-]+",
+            r"AKIA[0-9A-Z]{16}",
+            r"-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----",
+        ],
+    )
+    or []
+)
+
+HOOK_TIMEOUT_SECONDS = _cfg("hooks.timeout_seconds", 30)
+
+
+def redact_secrets(text: str) -> str:
+    for pattern in SECRET_PATTERNS:
+        text = re.sub(pattern, "[REDACTED]", text)
+    return text
+
 
 REQUIRED_ROUTE_FIELDS = {
     "id",
@@ -296,7 +615,10 @@ def validate_skill(path: Path) -> list[str]:
                         + ", ".join(sorted(SKILL_RESOURCE_KINDS))
                     )
                 for field in ("path", "purpose", "when"):
-                    if not isinstance(resource.get(field), str) or not resource.get(field, "").strip():
+                    if (
+                        not isinstance(resource.get(field), str)
+                        or not resource.get(field, "").strip()
+                    ):
                         errors.append(
                             f"{rel(path)} bundled_resources[{index}] {field} must be a non-empty string"
                         )
@@ -322,7 +644,10 @@ def validate_skill(path: Path) -> list[str]:
                     errors.append(
                         f"{rel(path)} evaluation_prompts[{index}] id must be a non-empty string"
                     )
-                if not isinstance(prompt.get("prompt"), str) or not prompt.get("prompt", "").strip():
+                if (
+                    not isinstance(prompt.get("prompt"), str)
+                    or not prompt.get("prompt", "").strip()
+                ):
                     errors.append(
                         f"{rel(path)} evaluation_prompts[{index}] prompt must be a non-empty string"
                     )
@@ -384,7 +709,11 @@ def validate_route(path: Path) -> list[str]:
             errors.append(f"{rel(path)} {field} must not be empty")
 
     for field, minimum in ROUTE_MIN_ITEMS.items():
-        if len(route_card.get(field, [])) < minimum:
+        value = route_card.get(field, [])
+        if not isinstance(value, list):
+            errors.append(f"{rel(path)} {field} must be a list")
+            continue
+        if len(value) < minimum:
             errors.append(f"{rel(path)} {field} must have at least {minimum} items")
 
     if not any("playbooks" in item for item in route_card.get("required_context", [])):
@@ -437,9 +766,7 @@ def render_skill(skill: dict) -> dict[Path, str]:
         prompt_lines = []
         for prompt in skill["evaluation_prompts"]:
             checks = "; ".join(prompt["checks"])
-            prompt_lines.append(
-                f"- `{prompt['id']}`: {prompt['prompt']} Check for: {checks}."
-            )
+            prompt_lines.append(f"- `{prompt['id']}`: {prompt['prompt']} Check for: {checks}.")
         evaluation_prompts = "\n\n## Evaluation prompts\n\n" + "\n".join(prompt_lines)
 
     return {
@@ -578,16 +905,20 @@ def validate() -> int:
 
     agents = ROOT / "AGENTS.md"
     if agents.is_file():
-        text = agents.read_text(encoding="utf-8").lower()
+        agents_text = agents.read_text(encoding="utf-8")
+        agents_lower = agents_text.lower()
         for phrase in BEHAVIOR_SHAPING_PHRASES:
-            if phrase not in text:
+            if phrase not in agents_lower:
                 errors.append(f"AGENTS.md missing behavior-shaping phrase: {phrase}")
         for phrase in ["avoid em dashes", "no praise before verification", "avoid should work"]:
-            if phrase not in text:
+            if phrase not in agents_lower:
                 errors.append(f"AGENTS.md missing prose constraint phrase: {phrase}")
         for phrase in CONTEXT_AGENTS_PHRASES:
-            if phrase not in text:
+            if phrase not in agents_lower:
                 errors.append(f"AGENTS.md missing context discipline phrase: {phrase}")
+        for job_type in REQUIRED_JOB_TYPES:
+            if job_type not in agents_text:
+                errors.append(f"AGENTS.md missing job type: {job_type}")
 
     hook_router = HARNESS_ROOT / "hooks" / "hook-router.sh"
     if hook_router.is_file():
@@ -734,35 +1065,28 @@ def validate() -> int:
             if phrase not in text:
                 errors.append(f"context budget policy missing phrase: {phrase}")
 
-    agents = ROOT / "AGENTS.md"
-    if agents.is_file():
-        text = agents.read_text(encoding="utf-8")
-        for job_type in REQUIRED_JOB_TYPES:
-            if job_type not in text:
-                errors.append(f"AGENTS.md missing job type: {job_type}")
-
     seen_ids: set[str] = set()
+    loaded_skills: dict[str, tuple[Path, dict]] = {}
     for path in skill_paths():
         errors.extend(validate_skill(path))
         try:
-            skill_id = load_skill(path)["id"]
+            skill = load_skill(path)
+            skill_id = skill["id"]
         except (json.JSONDecodeError, KeyError):
             continue
         if skill_id in seen_ids:
             errors.append(f"duplicate skill id: {skill_id}")
         seen_ids.add(skill_id)
+        loaded_skills[skill_id] = (path, skill)
 
     if "debug-discipline" not in seen_ids:
         errors.append("missing required active skill: debug-discipline")
     else:
-        for path in skill_paths():
-            skill = load_skill(path)
-            if skill.get("id") == "debug-discipline":
-                debug_text = json.dumps(skill).lower()
-                for phrase in NINEARM_DEBUG_PHRASES:
-                    if phrase not in debug_text:
-                        errors.append(f"debug-discipline missing 9arm process phrase: {phrase}")
-                break
+        debug_skill = loaded_skills["debug-discipline"][1]
+        debug_text = json.dumps(debug_skill).lower()
+        for phrase in NINEARM_DEBUG_PHRASES:
+            if phrase not in debug_text:
+                errors.append(f"debug-discipline missing 9arm process phrase: {phrase}")
 
     seen_routes: set[str] = set()
     for path in route_paths():
@@ -787,15 +1111,15 @@ def validate() -> int:
         if skill_id not in seen_ids:
             errors.append(f"missing required active skill: {skill_id}")
 
-    for path in skill_paths():
-        rendered = render_skill(load_skill(path))
+    for skill_id, (path, skill) in sorted(loaded_skills.items()):
+        rendered = render_skill(skill)
         for target, expected in rendered.items():
             if not target.is_file():
                 errors.append(f"missing rendered artifact: {rel(target)}")
             elif target.read_text(encoding="utf-8") != expected:
                 errors.append(f"stale rendered artifact: {rel(target)}")
             else:
-                text = target.read_text(encoding="utf-8")
+                text = expected
                 word_count = len(re.findall(r"\b\w+\b", text))
                 if word_count < RENDER_TARGET_MIN_WORDS:
                     errors.append(f"rendered artifact too thin: {rel(target)}")
@@ -978,7 +1302,7 @@ def write_route_decision(task: str, result: dict) -> Path:
     decision = {
         "trace_id": trace_id,
         "created_at": utc_now(),
-        "task": task,
+        "task": redact_secrets(task),
         "route": result,
         "decision_basis": "deterministic token overlap against route-card triggers, examples, and job type",
     }
@@ -1025,9 +1349,13 @@ def route(
             command.extend(["--span-id", span_id])
 
         try:
-            hook_output = subprocess.check_output(command, cwd=ROOT, text=True)
+            hook_output = subprocess.check_output(
+                command, cwd=ROOT, text=True, timeout=HOOK_TIMEOUT_SECONDS
+            )
         except subprocess.CalledProcessError as exc:
             return fail(f"hook capture failed: {exc}")
+        except subprocess.TimeoutExpired:
+            return fail(f"hook capture timed out after {HOOK_TIMEOUT_SECONDS}s")
 
         result["hook_capture"] = json.loads(hook_output)
     print(json.dumps(result, indent=2))
@@ -1073,6 +1401,7 @@ def capture_observability_event(
             cwd=ROOT,
             input=json.dumps(payload),
             text=True,
+            timeout=HOOK_TIMEOUT_SECONDS,
         )
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(f"observability capture failed: {exc}") from exc
@@ -1195,7 +1524,7 @@ def trace_start(
     record = {
         "trace_id": trace_id,
         "created_at": utc_now(),
-        "task": task,
+        "task": redact_secrets(task),
         "route_decision_record": rel(route_decision_path),
         "route": route_result,
         "events": [
@@ -1363,7 +1692,9 @@ def classify_verification_status(record: dict) -> str:
         str(item.get("result", "")) for item in verification if isinstance(item, dict)
     ).lower()
     success_markers = ("exit 0", "passed", "success", "all checks passed")
-    return "verified" if any(marker in verification_text for marker in success_markers) else "partial"
+    return (
+        "verified" if any(marker in verification_text for marker in success_markers) else "partial"
+    )
 
 
 def trace_distill(trace: str) -> int:
@@ -1614,8 +1945,7 @@ def main() -> int:
             return trace_distill(args.trace)
         if args.trace_command == "finish":
             return trace_finish(args.trace, args.claim, args.verification_command, args.result)
-
-    return fail(f"unknown command: {args.command}")
+    return 1
 
 
 if __name__ == "__main__":

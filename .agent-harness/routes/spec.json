@@ -13,10 +13,7 @@
     "update the harness spec",
     "write acceptance criteria for routing"
   ],
-  "negative_examples": [
-    "apply the implementation delta",
-    "debug CI"
-  ],
+  "negative_examples": ["apply the implementation delta", "debug CI"],
   "required_context": [
     "AGENTS.md",
     ".agent-harness/playbooks/10-frame-outcome.md",
@@ -24,9 +21,7 @@
     "HARNESS_SPEC.md",
     "docs/specs/"
   ],
-  "required_skills": [
-    "plan-and-frame"
-  ],
+  "required_skills": ["plan-and-frame"],
   "work_loop": [
     "identify the desired outcome",
     "separate normative requirements from examples",
@@ -39,9 +34,7 @@
     "acceptance criteria or validation notes",
     "implementation implication note"
   ],
-  "proof": [
-    "just ci"
-  ],
+  "proof": ["just ci"],
   "done_when": [
     "the spec can drive implementation",
     "acceptance criteria are concrete",

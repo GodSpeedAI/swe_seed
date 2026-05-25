@@ -61,7 +61,7 @@ required_files=(
   ".agent-harness/skills/20-implementation/implement-with-proof.json"
   ".agent-harness/skills/30-test/test-with-proof.json"
   ".agent-harness/skills/40-debug/debug-discipline.json"
-  ".agent-harness/skills/40-review/review-for-risk.json"
+  ".agent-harness/skills/45-review/review-for-risk.json"
   ".agent-harness/skills/50-completion/verify-before-completion.json"
   ".agent-harness/skills/60-learning/capture-learning.json"
   ".agent-harness/traces/traceability-template.yaml"
@@ -176,6 +176,9 @@ grep -q 'pnpm/action-setup' .github/workflows/ci.yml
 grep -q 'astral-sh/setup-uv' .github/workflows/ci.yml
 grep -q 'AGENTS.md' .github/copilot-instructions.md
 grep -q '.agent-harness/routes/' AGENTS.md
+grep -q '\.secrets/' .gitignore
+grep -q '\*\.dec\.\*' .gitignore
+grep -q '\*\.plain\.\*' .gitignore
 grep -q 'sops' .gitignore
 grep -q 'SWE_SEED' package.json
 grep -q 'swe-seed' pyproject.toml

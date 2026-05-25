@@ -1,92 +1,90 @@
 {
-    "id": "plan-and-frame",
-    "version": 1,
-    "category": "planning",
-    "jtbd": "turn a routed task into a concrete, proof-bearing next action before editing",
-    "description": "A framing procedure that names the outcome, the governing artifact, the proof surface, and the smallest useful delta before implementation starts.",
-    "triggers": [
-        "plan",
-        "scope",
-        "requirements",
-        "acceptance criteria",
-        "unclear target"
-    ],
-    "trigger_contexts": [
-        "broad requests that need an executable next action",
-        "implementation work where the acceptance criteria or proof are still fuzzy",
-        "spec or harness changes that need a smallest useful delta"
-    ],
-    "inputs": {
-        "required": [
-            "task_or_requirement"
-        ]
+  "id": "plan-and-frame",
+  "version": 1,
+  "category": "planning",
+  "jtbd": "turn a routed task into a concrete, proof-bearing next action before editing",
+  "description": "A framing procedure that names the outcome, the governing artifact, the proof surface, and the smallest useful delta before implementation starts.",
+  "triggers": [
+    "plan",
+    "scope",
+    "requirements",
+    "acceptance criteria",
+    "unclear target"
+  ],
+  "trigger_contexts": [
+    "broad requests that need an executable next action",
+    "implementation work where the acceptance criteria or proof are still fuzzy",
+    "spec or harness changes that need a smallest useful delta"
+  ],
+  "inputs": {
+    "required": ["task_or_requirement"]
+  },
+  "procedure": [
+    "Write the intended outcome in one sentence.",
+    "Identify the governing artifact that must change, such as spec, code, docs, route card, validation, or hook.",
+    "Name the proof surface that can falsify the plan, such as a command, validation check, or reviewed artifact.",
+    "Choose the smallest useful delta that moves the task toward the intended outcome.",
+    "Decide whether the governing spec must change before implementation begins."
+  ],
+  "evidence_required": [
+    "one-sentence outcome",
+    "governing artifact",
+    "proof surface",
+    "smallest useful delta",
+    "spec-first or implementation-first decision"
+  ],
+  "forbidden_behaviors": [
+    "starting implementation without naming the proof surface",
+    "inventing scope to make the work feel complete",
+    "creating abstractions that do not remove a real decision burden",
+    "treating a route label as sufficient guidance"
+  ],
+  "outputs": [
+    "framed outcome note",
+    "selected artifact note",
+    "proof note",
+    "next action"
+  ],
+  "bundled_resources": [
+    {
+      "kind": "reference",
+      "path": ".agent-harness/playbooks/10-frame-outcome.md",
+      "purpose": "extend the compact framing procedure with the full outcome-and-proof workflow",
+      "when": "the task is broad, the acceptance criteria are unclear, or the agent needs to decide whether spec changes come first"
     },
-    "procedure": [
-        "Write the intended outcome in one sentence.",
-        "Identify the governing artifact that must change, such as spec, code, docs, route card, validation, or hook.",
-        "Name the proof surface that can falsify the plan, such as a command, validation check, or reviewed artifact.",
-        "Choose the smallest useful delta that moves the task toward the intended outcome.",
-        "Decide whether the governing spec must change before implementation begins."
-    ],
-    "evidence_required": [
-        "one-sentence outcome",
-        "governing artifact",
-        "proof surface",
-        "smallest useful delta",
-        "spec-first or implementation-first decision"
-    ],
-    "forbidden_behaviors": [
-        "starting implementation without naming the proof surface",
-        "inventing scope to make the work feel complete",
-        "creating abstractions that do not remove a real decision burden",
-        "treating a route label as sufficient guidance"
-    ],
-    "outputs": [
-        "framed outcome note",
-        "selected artifact note",
-        "proof note",
-        "next action"
-    ],
-    "bundled_resources": [
-        {
-            "kind": "reference",
-            "path": ".agent-harness/playbooks/10-frame-outcome.md",
-            "purpose": "extend the compact framing procedure with the full outcome-and-proof workflow",
-            "when": "the task is broad, the acceptance criteria are unclear, or the agent needs to decide whether spec changes come first"
-        },
-        {
-            "kind": "reference",
-            "path": ".agent-harness/memory/constraints.md",
-            "purpose": "keep planning tied to cheap levers and outcome production instead of decorative structure",
-            "when": "the proposed change risks adding ceremony without improving proof quality or recovery"
-        }
-    ],
-    "evaluation_prompts": [
-        {
-            "id": "broad-harness-request",
-            "prompt": "A user asks to improve the harness without naming a failing behavior. Frame the outcome and choose the smallest useful delta before editing.",
-            "checks": [
-                "names a concrete outcome",
-                "identifies a falsifiable proof surface",
-                "chooses a minimal delta rather than broad exploration"
-            ]
-        }
-    ],
-    "success_criteria": [
-        "the next edit and proof command are explicit",
-        "the chosen artifact aligns with the requested outcome",
-        "implementation does not begin before the task is framed"
-    ],
-    "failure_modes": [
-        "proof surface is still ambiguous",
-        "the task needs a missing external requirement",
-        "the chosen artifact does not actually govern the behavior"
-    ],
-    "status": "active",
-    "render_targets": [
-        "claude_skill",
-        "copilot_instruction",
-        "hook_prompt",
-        "checklist"
-    ]
+    {
+      "kind": "reference",
+      "path": ".agent-harness/memory/constraints.md",
+      "purpose": "keep planning tied to cheap levers and outcome production instead of decorative structure",
+      "when": "the proposed change risks adding ceremony without improving proof quality or recovery"
+    }
+  ],
+  "evaluation_prompts": [
+    {
+      "id": "broad-harness-request",
+      "prompt": "A user asks to improve the harness without naming a failing behavior. Frame the outcome and choose the smallest useful delta before editing.",
+      "checks": [
+        "names a concrete outcome",
+        "identifies a falsifiable proof surface",
+        "chooses a minimal delta rather than broad exploration"
+      ]
+    }
+  ],
+  "success_criteria": [
+    "the next edit and proof command are explicit",
+    "the chosen artifact aligns with the requested outcome",
+    "implementation does not begin before the task is framed"
+  ],
+  "failure_modes": [
+    "proof surface is still ambiguous",
+    "the task needs a missing external requirement",
+    "the chosen artifact does not actually govern the behavior"
+  ],
+  "status": "active",
+  "render_targets": [
+    "claude_skill",
+    "copilot_instruction",
+    "hook_prompt",
+    "checklist"
+  ]
 }

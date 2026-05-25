@@ -22,11 +22,42 @@ job_types:
 routes:
   registry: .agent-harness/routes
   semantic_fallback: deterministic_token_overlap
+  min_items:
+    semantic_triggers: 4
+    positive_examples: 2
+    negative_examples: 2
+    required_context: 3
+    work_loop: 5
+    required_artifacts: 3
+    done_when: 3
+    failure_modes: 2
 
 skills:
   registry: .agent-harness/skills
   required_active:
+    - plan-and-frame
+    - implement-with-proof
+    - test-with-proof
     - debug-discipline
+    - review-for-risk
+    - verify-before-completion
+    - capture-learning
+  required_fields:
+    - id
+    - version
+    - category
+    - jtbd
+    - description
+    - triggers
+    - procedure
+    - evidence_required
+    - forbidden_behaviors
+    - outputs
+    - success_criteria
+  resource_kinds:
+    - script
+    - reference
+    - asset
   render_targets:
     - claude_skill
     - copilot_instruction
@@ -35,6 +66,18 @@ skills:
 
 render_targets:
   root: .agent-harness/render-targets
+  min_words: 100
+  required_phrases:
+    - "Use this when"
+    - "What to do"
+    - "Evidence required"
+    - "Forbidden behavior"
+    - "Done when"
+  claude_skill_required_phrases:
+    - "---"
+    - "name:"
+    - "description:"
+    - "#"
 
 hooks:
   router: .agent-harness/hooks/hook-router.sh
@@ -45,6 +88,7 @@ hooks:
     - tool.post
     - turn.stop
     - session.end
+  timeout_seconds: 30
 
 memory:
   root: .agent-harness/memory
@@ -56,6 +100,118 @@ memory:
     - successful-patterns.md
     - glossary.md
     - constraints.md
+  min_words: 80
+  required_phrases:
+    - "Use this when"
+    - "Keep in mind"
+
+validation:
+  required_paths:
+    - AGENTS.md
+    - HARNESS_SPEC.md
+    - .github/copilot-instructions.md
+    - .agent-harness/config.yaml
+    - .agent-harness/context/README.md
+    - .agent-harness/context/budget-policy.yaml
+    - .agent-harness/context/context-mode-normalization.md
+    - .agent-harness/hooks/hook-router.sh
+    - .agent-harness/imports/9arm-skills-normalization.md
+    - .agent-harness/imports/anthropic-skills-skill-creator-normalization.md
+    - .agent-harness/imports/hermes-agent-normalization.md
+    - .agent-harness/traces/README.md
+    - .agent-harness/traces/route-decisions/README.md
+    - .agent-harness/traces/traceability-template.yaml
+    - .agent-harness/reflections/reflection-template.yaml
+    - .agent-harness/reflections/learning-review-template.yaml
+    - .agent-harness/reflections/harness-improvement-proposals.md
+    - .agent-harness/evals/negative-conformance.md
+    - .agent-harness/evals/route-conflicts.md
+    - docs/specs/agentic-swe-harness.md
+    - docs/specs/skill-ir.md
+    - docs/specs/verification-system.md
+    - docs/specs/memory-system.md
+    - docs/specs/hook-strategy.md
+  required_playbooks:
+    - 00-orient-and-route.md
+    - 10-frame-outcome.md
+    - 20-change-with-proof.md
+    - 30-debug-from-symptom.md
+    - 40-review-for-risk.md
+    - 50-capture-learning.md
+  playbook_min_words: 120
+  playbook_required_phrases:
+    - "Use this when"
+    - "Composes with"
+    - "Stop when"
+  behavior_shaping_phrases:
+    - "behavior shaping"
+    - "agent tendency"
+    - "outcome production"
+  reflection_min_words: 100
+  reflection_required_phrases:
+    - "Use this when"
+    - "Do not use this for"
+    - "Evidence required"
+  proposal_required_phrases:
+    - "Use this when"
+    - "Proposal states"
+    - "Not enough evidence"
+  learning_review_required_phrases:
+    - candidate_memory_updates
+    - candidate_skill_updates
+    - candidate_harness_updates
+    - provenance
+  eval_min_cases: 6
+  eval_required_phrases:
+    - "Eval Case"
+    - "Command"
+    - "Expected"
+    - "Why it matters"
+  negative_eval_required_phrases:
+    - "Failure Eval"
+    - "Breakage"
+    - "Expected failure"
+    - "Why it matters"
+  route_conflict_required_phrases:
+    - "Conflict Eval"
+    - "Prompt"
+    - "Expected route"
+    - "Precedence rule"
+  trace_required_phrases:
+    - "Use this when"
+    - "Route decision"
+    - "Trace record"
+    - "Do not store secrets"
+  context_required_phrases:
+    - "Use this when"
+    - "context budget"
+    - "tool-output containment"
+    - "think in code"
+    - "session continuity"
+  context_agents_phrases:
+    - "context budget"
+    - "tool-output containment"
+    - "think in code"
+    - "session continuity"
+  context_normalization_phrases:
+    - "Source mechanism"
+    - "Imported invariant"
+    - "Local artifact"
+    - "Validation"
+  ninearm_debug_phrases:
+    - "reliable reproduction"
+    - "fail path"
+    - "disprove"
+    - "breadcrumb ledger"
+  ninearm_review_phrases:
+    - "simpler alternative"
+    - "trace the actual path"
+    - "claim vs verification"
+  ninearm_learning_phrases:
+    - "post-mortem"
+    - "root cause"
+    - "validation coverage"
+  canonical_render_rule: "Skill IR JSON is canonical. Render targets are generated projections and must not be edited directly. If two paths need the same bytes, one must be a symlink."
 
 verification:
   require_traceability_for:
@@ -81,3 +237,12 @@ context:
   tool_output_containment: true
   session_continuity_store: .agent-harness/traces
   dependency_on_context_mode: false
+
+security:
+  secret_patterns:
+    - "sk-[a-zA-Z0-9]{20,}"
+    - "ghp_[a-zA-Z0-9]{36}"
+    - "gho_[a-zA-Z0-9]{36}"
+    - "xox[bpras]-[a-zA-Z0-9-]+"
+    - "AKIA[0-9A-Z]{16}"
+    - "-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----"

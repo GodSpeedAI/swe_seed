@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DEFAULT_DB_PATH=".agent-harness/traces/learning-store.sqlite3"
 mode="${1:-summaries}"
 limit="${2:-10}"
 status="${3:-any}"
@@ -8,7 +9,7 @@ job_type="${4:-any}"
 db_path="${5:-}"
 
 if [[ -z "$db_path" ]]; then
-  db_path=".agent-harness/traces/learning-store.sqlite3"
+  db_path="$DEFAULT_DB_PATH"
 fi
 
 if [[ ! "$limit" =~ ^[0-9]+$ ]]; then

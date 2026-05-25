@@ -1,90 +1,84 @@
 {
-    "id": "test-with-proof",
-    "version": 1,
-    "category": "test",
-    "jtbd": "add or repair verification that catches the intended behavior and is included in the proof path",
-    "description": "A test-focused procedure that writes a failing or contract-revealing check, makes it pass without unrelated behavior changes, and proves the new check is part of completion.",
-    "triggers": [
-        "test",
-        "coverage",
-        "validation",
-        "proof",
-        "regression protection"
-    ],
-    "trigger_contexts": [
-        "tasks that exist to add or repair verification",
-        "implementation follow-up work that still lacks behavior coverage",
-        "contract checks for harness surfaces"
-    ],
-    "inputs": {
-        "required": [
-            "behavior_under_test"
-        ]
+  "id": "test-with-proof",
+  "version": 1,
+  "category": "test",
+  "jtbd": "add or repair verification that catches the intended behavior and is included in the proof path",
+  "description": "A test-focused procedure that writes a failing or contract-revealing check, makes it pass without unrelated behavior changes, and proves the new check is part of completion.",
+  "triggers": [
+    "test",
+    "coverage",
+    "validation",
+    "proof",
+    "regression protection"
+  ],
+  "trigger_contexts": [
+    "tasks that exist to add or repair verification",
+    "implementation follow-up work that still lacks behavior coverage",
+    "contract checks for harness surfaces"
+  ],
+  "inputs": {
+    "required": ["behavior_under_test"]
+  },
+  "procedure": [
+    "Identify the behavior under test and the intended failure signal.",
+    "Write a failing or contract-revealing check that exercises the real behavior.",
+    "Run the check and confirm the expected signal.",
+    "Make the smallest change needed to make the check pass without unrelated behavior changes.",
+    "Run the proof path that includes the new check and read the output."
+  ],
+  "evidence_required": [
+    "behavior-under-test note",
+    "failing or contract-revealing check",
+    "red-green evidence when applicable",
+    "proof output"
+  ],
+  "forbidden_behaviors": [
+    "tests that only validate mocks instead of real behavior",
+    "tests that pass before they can fail",
+    "folding unrelated production changes into the testing slice",
+    "claiming the check works without rerunning proof"
+  ],
+  "outputs": ["test change summary", "red-green note", "proof evidence"],
+  "bundled_resources": [
+    {
+      "kind": "reference",
+      "path": ".agent-harness/routes/test.json",
+      "purpose": "keep the testing procedure aligned with the route card that governs verification-only work",
+      "when": "the task is primarily about tests or validation"
     },
-    "procedure": [
-        "Identify the behavior under test and the intended failure signal.",
-        "Write a failing or contract-revealing check that exercises the real behavior.",
-        "Run the check and confirm the expected signal.",
-        "Make the smallest change needed to make the check pass without unrelated behavior changes.",
-        "Run the proof path that includes the new check and read the output."
-    ],
-    "evidence_required": [
-        "behavior-under-test note",
-        "failing or contract-revealing check",
-        "red-green evidence when applicable",
-        "proof output"
-    ],
-    "forbidden_behaviors": [
-        "tests that only validate mocks instead of real behavior",
-        "tests that pass before they can fail",
-        "folding unrelated production changes into the testing slice",
-        "claiming the check works without rerunning proof"
-    ],
-    "outputs": [
-        "test change summary",
-        "red-green note",
-        "proof evidence"
-    ],
-    "bundled_resources": [
-        {
-            "kind": "reference",
-            "path": ".agent-harness/routes/test.json",
-            "purpose": "keep the testing procedure aligned with the route card that governs verification-only work",
-            "when": "the task is primarily about tests or validation"
-        },
-        {
-            "kind": "reference",
-            "path": "docs/specs/verification-system.md",
-            "purpose": "tie the new check to the repository proof model and completion rule",
-            "when": "the operator needs to confirm that the verification surface supports the final claim"
-        }
-    ],
-    "evaluation_prompts": [
-        {
-            "id": "contract-check",
-            "prompt": "Add a harness contract check for a missing behavior and prove it fails before the implementation change.",
-            "checks": [
-                "captures a real failure signal",
-                "keeps the change scoped to verification when possible",
-                "proves the new check is part of the final proof path"
-            ]
-        }
-    ],
-    "success_criteria": [
-        "the new check catches the intended behavior",
-        "the proof path includes the new check",
-        "the testing slice does not smuggle in unrelated changes"
-    ],
-    "failure_modes": [
-        "behavior cannot be observed through the chosen test surface",
-        "the check is flaky or environment-dependent",
-        "the proof path omits the new check"
-    ],
-    "status": "active",
-    "render_targets": [
-        "claude_skill",
-        "copilot_instruction",
-        "hook_prompt",
-        "checklist"
-    ]
+    {
+      "kind": "reference",
+      "path": "docs/specs/verification-system.md",
+      "purpose": "tie the new check to the repository proof model and completion rule",
+      "when": "the operator needs to confirm that the verification surface supports the final claim"
+    }
+  ],
+  "evaluation_prompts": [
+    {
+      "id": "contract-check",
+      "prompt": "Add a harness contract check for a missing behavior and prove it fails before the implementation change.",
+      "checks": [
+        "captures a real failure signal",
+        "keeps the change scoped to verification when possible",
+        "proves the new check is part of the final proof path"
+      ]
+    }
+  ],
+  "success_criteria": [
+    "the new check catches the intended behavior",
+    "the proof path includes the new check",
+    "the testing slice does not smuggle in unrelated changes"
+  ],
+  "failure_modes": [
+    "behavior cannot be observed through the chosen test surface",
+    "the check is flaky or environment-dependent",
+    "the proof path omits the new check"
+  ],
+  "status": "active",
+  "render_targets": [
+    "claude_skill",
+    "copilot_instruction",
+    "hook_prompt",
+    "checklist"
+  ]
 }

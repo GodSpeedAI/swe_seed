@@ -9,6 +9,8 @@ fi
 find secrets -type f \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' -o -name '*.env' \) -print0 2>/dev/null |
   while IFS= read -r -d '' file; do
     output="${file}.dec"
-    sops --decrypt "$file" > "$output"
+    sops --decrypt "$file" >"$output"
     echo "Wrote $output"
   done
+
+echo "Warning: Decrypted files are on disk. Clean up *.dec files when done." >&2

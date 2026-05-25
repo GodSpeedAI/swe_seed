@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DEFAULT_DB_PATH=".agent-harness/traces/learning-store.sqlite3"
 db_path="${1:-}"
 if [[ -z "$db_path" ]]; then
-  db_path=".agent-harness/traces/learning-store.sqlite3"
+  db_path="$DEFAULT_DB_PATH"
 fi
 
 python - "$db_path" <<'PY'
@@ -63,18 +64,45 @@ conn.execute(
     )
     """
 )
+conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_job_type ON trace_records(job_type)")
+conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_created_at ON trace_records(synced_at)")
+conn.execute("CREATE INDEX IF NOT EXISTS idx_learning_reviews_trace_id ON learning_reviews(trace_id)")
+conn.execute("CREATE INDEX IF NOT EXISTS idx_learning_reviews_verification_status ON learning_reviews(verification_status)")
 
 trace_count = 0
 review_count = 0
 synced_at = utc_now()
 
+last_sync = None
+try:
+    cursor = conn.execute("SELECT MAX(synced_at) FROM trace_records")
+    row = cursor.fetchone()
+    if row and row[0]:
+        last_sync = row[0]
+except sqlite3.OperationalError:
+    pass
+
+if last_sync:
+    print(f"Incremental sync from {last_sync}", file=sys.stderr)
+else:
+    print("Full sync", file=sys.stderr)
+
 for trace_path in trace_paths:
+    if last_sync:
+        file_mtime = datetime.fromtimestamp(trace_path.stat().st_mtime, tz=timezone.utc).replace(microsecond=0).isoformat()
+        if file_mtime <= last_sync:
+            continue
     record = json.loads(trace_path.read_text(encoding="utf-8"))
-    distill_output = subprocess.check_output(
-        [sys.executable, "scripts/harness.py", "trace", "distill", str(trace_path)],
-        cwd=root,
-        text=True,
-    )
+    try:
+        distill_output = subprocess.check_output(
+            [sys.executable, "scripts/harness.py", "trace", "distill", str(trace_path)],
+            cwd=root,
+            text=True,
+            timeout=30,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        print(f"Warning: distill failed for {trace_path}: {exc}", file=sys.stderr)
+        continue
     learning_review = json.loads(distill_output)["learning_review"]
 
     conn.execute(

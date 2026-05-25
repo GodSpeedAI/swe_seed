@@ -16,4 +16,10 @@ python scripts/harness.py render-skills
 
 ## Skills
 
+- [plan-and-frame](planning/plan-and-frame/SKILL.md)
+- [implement-with-proof](implementation/implement-with-proof/SKILL.md)
+- [test-with-proof](test/test-with-proof/SKILL.md)
 - [debug-discipline](debug/debug-discipline/SKILL.md)
+- [review-for-risk](review/review-for-risk/SKILL.md)
+- [verify-before-completion](completion/verify-before-completion/SKILL.md)
+- [capture-learning](learning/capture-learning/SKILL.md)

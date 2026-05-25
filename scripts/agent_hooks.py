@@ -13,8 +13,126 @@ from pathlib import Path
 from typing import Any, Iterable
 from xml.etree import ElementTree as ET
 
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # type: ignore[assignment]
 
-ROOT = Path.cwd()
+
+def _parse_yaml(text: str) -> dict:
+    lines = text.split("\n")
+    pos = [0]
+
+    def indent_of(idx: int) -> int:
+        if idx >= len(lines):
+            return -1
+        line = lines[idx]
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            return -1
+        return len(line) - len(stripped)
+
+    def skip_empty() -> None:
+        while pos[0] < len(lines):
+            s = lines[pos[0]].lstrip()
+            if s and not s.startswith("#"):
+                break
+            pos[0] += 1
+
+    def scalar(value: str) -> object:
+        value = value.strip()
+        if not value or value.startswith("#"):
+            return ""
+        if " #" in value:
+            value = value[: value.index(" #")].strip()
+        if len(value) >= 2 and (
+            (value[0] == '"' and value[-1] == '"') or (value[0] == "'" and value[-1] == "'")
+        ):
+            return value[1:-1]
+        if value.lower() == "true":
+            return True
+        if value.lower() == "false":
+            return False
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        return value
+
+    def parse_mapping(min_indent: int) -> dict:
+        result: dict = {}
+        while pos[0] < len(lines):
+            skip_empty()
+            if pos[0] >= len(lines):
+                break
+            ind = indent_of(pos[0])
+            if ind < min_indent:
+                break
+            line = lines[pos[0]].lstrip()
+            if ":" not in line or line.startswith("-"):
+                break
+            key, _, value = line.partition(":")
+            key = key.strip()
+            value = value.strip()
+            if value == "" or value.startswith("#"):
+                pos[0] += 1
+                skip_empty()
+                if pos[0] < len(lines) and indent_of(pos[0]) > ind:
+                    next_line = lines[pos[0]].lstrip()
+                    if next_line.startswith("- "):
+                        result[key] = parse_sequence(indent_of(pos[0]))
+                    else:
+                        result[key] = parse_mapping(indent_of(pos[0]))
+                else:
+                    result[key] = {}
+            else:
+                result[key] = scalar(value)
+                pos[0] += 1
+        return result
+
+    def parse_sequence(min_indent: int) -> list:
+        items: list = []
+        while pos[0] < len(lines):
+            skip_empty()
+            if pos[0] >= len(lines):
+                break
+            ind = indent_of(pos[0])
+            if ind < min_indent:
+                break
+            line = lines[pos[0]].lstrip()
+            if not line.startswith("- "):
+                break
+            items.append(scalar(line[2:]))
+            pos[0] += 1
+        return items
+
+    return parse_mapping(0)
+
+
+def _load_hooks_config() -> dict:
+    config_path = Path(__file__).resolve().parents[1] / ".agent-hooks" / "config.yaml"
+    if config_path.is_file():
+        return _parse_yaml(config_path.read_text(encoding="utf-8"))
+    return {}
+
+
+def _cfg(keys: str, default: object = None) -> object:
+    config = _load_hooks_config()
+    current: object = config
+    for key in keys.split("."):
+        if not isinstance(current, dict):
+            return default
+        current = current.get(key)
+        if current is None:
+            return default
+    return current
+
+
+ROOT = Path(__file__).resolve().parents[1]
 OBS_ROOT = ROOT / ".agent-hooks"
 LOG_DIR = OBS_ROOT / "logs"
 PAYLOAD_ROOT = OBS_ROOT / "payloads"
@@ -22,8 +140,30 @@ ARTIFACT_ROOT = OBS_ROOT / "artifacts"
 INDEX_DB = OBS_ROOT / "index" / "hooks.rusql"
 VECTOR_ROOT = OBS_ROOT / "index" / "vectors"
 SCHEMA_VERSION = "1.0"
-COMPACT_MIN_SIZE_BYTES = 131072
-REDACT_KEYS = ("secret", "token", "password", "api_key", "authorization", "cookie")
+REDACT_KEYS = (
+    _cfg(
+        "redaction.key_substrings",
+        ["secret", "token", "password", "api_key", "authorization", "cookie"],
+    )
+    or []
+)
+REDACT_VALUE_PATTERNS = (
+    _cfg(
+        "redaction.value_patterns",
+        [
+            r"sk-[a-zA-Z0-9]{20,}",
+            r"ghp_[a-zA-Z0-9]{36}",
+            r"gho_[a-zA-Z0-9]{36}",
+            r"xox[bpras]-[a-zA-Z0-9-]+",
+            r"AKIA[0-9A-Z]{16}",
+            r"-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----",
+        ],
+    )
+    or []
+)
+COMPACT_MIN_SIZE_BYTES = int(_cfg("logging.compact_min_size_bytes", 131072))
+STDIN_MAX_BYTES = int(_cfg("security.stdin_max_bytes", 10485760))
+HOOK_TIMEOUT_SECONDS = int(_cfg("hooks.timeout_seconds", 30))
 
 
 @dataclass
@@ -53,12 +193,18 @@ def ensure_layout() -> None:
 
 
 def redact(value: Any) -> Any:
+    import re as _re
+
     if isinstance(value, dict):
         redacted: dict[str, Any] = {}
         for key, item in value.items():
-            lowered = key.lower()
-            if any(fragment in lowered for fragment in REDACT_KEYS):
+            if any(sub in key.lower() for sub in REDACT_KEYS):
                 redacted[key] = "[REDACTED]"
+            elif isinstance(item, str):
+                v = item
+                for pattern in REDACT_VALUE_PATTERNS:
+                    v = _re.sub(pattern, "[REDACTED]", v)
+                redacted[key] = v
             else:
                 redacted[key] = redact(item)
         return redacted
@@ -101,14 +247,22 @@ def iter_events() -> Iterable[EventRecord]:
                 line = line.strip()
                 if not line:
                     continue
-                yield EventRecord(envelope=json.loads(line), log_path=str(log_path.relative_to(ROOT)))
+                yield EventRecord(
+                    envelope=json.loads(line), log_path=str(log_path.relative_to(ROOT))
+                )
 
 
 def append_event(envelope: dict[str, Any]) -> str:
     ensure_layout()
     log_path = current_log_path()
     with log_path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(envelope, ensure_ascii=False) + "\n")
+        if fcntl is not None:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            handle.write(json.dumps(envelope, ensure_ascii=False) + "\n")
+        finally:
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
     return str(log_path.relative_to(ROOT))
 
 
@@ -116,7 +270,8 @@ def find_event(event_id: str) -> EventRecord:
     for record in iter_events():
         if record.envelope.get("event_id") == event_id:
             return record
-    raise SystemExit(f"event not found: {event_id}")
+    print(f"event not found: {event_id}", file=sys.stderr)
+    raise SystemExit(1)
 
 
 def read_ref(ref: str | None, kind: str) -> Any:
@@ -162,7 +317,9 @@ def build_capture_envelope(payload: dict[str, Any], args: argparse.Namespace) ->
     dated_payload_dir = PAYLOAD_ROOT / date_string(moment)
     dated_artifact_dir = ARTIFACT_ROOT / date_string(moment)
     native_ref = write_json(dated_payload_dir / f"{event_id}.native.json", native_payload)
-    normalized_ref = write_json(dated_payload_dir / f"{event_id}.normalized.json", normalized_payload)
+    normalized_ref = write_json(
+        dated_payload_dir / f"{event_id}.normalized.json", normalized_payload
+    )
     result_ref = write_json(dated_payload_dir / f"{event_id}.result.json", result_payload)
     stdout_ref = write_text(dated_artifact_dir / f"{event_id}.stdout.txt", stdout_text)
     stderr_ref = write_text(dated_artifact_dir / f"{event_id}.stderr.txt", stderr_text)
@@ -196,21 +353,37 @@ def build_capture_envelope(payload: dict[str, Any], args: argparse.Namespace) ->
     }
 
 
-def command_capture(args: argparse.Namespace) -> None:
-    raw = sys.stdin.read().strip()
+def command_capture(args: argparse.Namespace) -> int:
+    raw = sys.stdin.read(STDIN_MAX_BYTES + 1)
+    if len(raw) > STDIN_MAX_BYTES:
+        print(json.dumps({"error": f"stdin exceeds {STDIN_MAX_BYTES} bytes"}))
+        return 1
+    raw = raw.strip()
     if not raw:
-        raise SystemExit("capture requires JSON on stdin")
+        print("capture requires stdin input", file=sys.stderr)
+        return 1
     payload = json.loads(raw)
     envelope = build_capture_envelope(payload, args)
     log_path = append_event(envelope)
-    print(json.dumps({"event_id": envelope["event_id"], "log_path": log_path, "event": envelope}, indent=2))
+    print(
+        json.dumps(
+            {"event_id": envelope["event_id"], "log_path": log_path, "event": envelope}, indent=2
+        )
+    )
+    return 0
 
 
 def filter_events(session_id: str | None = None, limit: int | None = None) -> list[EventRecord]:
     records = list(iter_events())
     if session_id is not None:
         records = [record for record in records if record.envelope.get("session_id") == session_id]
-    records.sort(key=lambda record: (record.envelope.get("timestamp", ""), record.envelope.get("event_id", "")), reverse=True)
+    records.sort(
+        key=lambda record: (
+            record.envelope.get("timestamp", ""),
+            record.envelope.get("event_id", ""),
+        ),
+        reverse=True,
+    )
     if limit is not None:
         records = records[:limit]
     return records
@@ -265,9 +438,10 @@ def command_replay(args: argparse.Namespace) -> None:
     )
 
 
-def command_doctor(args: argparse.Namespace) -> None:
+def command_doctor(args: argparse.Namespace) -> int:
     if not args.observability:
-        raise SystemExit("doctor currently supports only --observability")
+        print("doctor currently supports only --observability", file=sys.stderr)
+        return 1
     ensure_layout()
     records = list(iter_events())
     status = "ok" if (OBS_ROOT / "config.yaml").exists() else "missing-config"
@@ -286,6 +460,7 @@ def command_doctor(args: argparse.Namespace) -> None:
             indent=2,
         )
     )
+    return 0
 
 
 def command_compact_logs(args: argparse.Namespace) -> None:
@@ -355,7 +530,9 @@ def command_index_rebuild(args: argparse.Namespace) -> None:
         count += 1
     conn.commit()
     conn.close()
-    print(json.dumps({"index_db": str(INDEX_DB.relative_to(ROOT)), "indexed_events": count}, indent=2))
+    print(
+        json.dumps({"index_db": str(INDEX_DB.relative_to(ROOT)), "indexed_events": count}, indent=2)
+    )
 
 
 def maybe_write_output(content: str, output: str | None) -> None:
@@ -390,7 +567,10 @@ def command_export_otel(args: argparse.Namespace) -> None:
                         "attributes": [
                             {"key": "event_id", "value": {"stringValue": envelope.get("event_id")}},
                             {"key": "hook_id", "value": {"stringValue": envelope.get("hook_id")}},
-                            {"key": "session_id", "value": {"stringValue": envelope.get("session_id")}},
+                            {
+                                "key": "session_id",
+                                "value": {"stringValue": envelope.get("session_id")},
+                            },
                         ],
                     }
                     for envelope in records
@@ -472,7 +652,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    args.func(args)
+    result = args.func(args)
+    if result is not None and result != 0:
+        raise SystemExit(result)
 
 
 if __name__ == "__main__":

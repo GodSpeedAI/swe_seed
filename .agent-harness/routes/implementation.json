@@ -13,10 +13,7 @@
     "implement the payment retry feature",
     "scaffold the project harness"
   ],
-  "negative_examples": [
-    "review this diff",
-    "explain how this works"
-  ],
+  "negative_examples": ["review this diff", "explain how this works"],
   "required_context": [
     "AGENTS.md",
     ".agent-harness/playbooks/10-frame-outcome.md",
@@ -42,10 +39,7 @@
     "traceability note",
     "verification evidence"
   ],
-  "proof": [
-    "python scripts/harness.py validate",
-    "just ci"
-  ],
+  "proof": ["python scripts/harness.py validate", "just ci"],
   "done_when": [
     "requirement is mapped to changed files",
     "proof commands pass",

@@ -13,4 +13,9 @@ if ! command -v sops >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ ! -f "$file" ]]; then
+  echo "error: file not found: $file" >&2
+  exit 1
+fi
+
 sops "$file"

@@ -1935,3 +1935,25 @@ candidate_improvements:
 evidence_links:
   - trace-456
 ```
+
+## Appendix G. Filename Versioning Approach
+
+Specification files that define the governing contract for this harness use filename-based versioning to make the spec version immediately visible without opening the file.
+
+### Rules
+
+1. Spec filenames MUST include a version identifier in the form `_vX.Y.Z` before the `.md` extension (for example, `SWE_SEED_SPEC_v0.2.0.md`).
+
+2. When a spec undergoes a material change that affects the implementation contract, a new file with the incremented version MUST be created. The previous version file SHOULD be removed unless historical comparison is needed.
+
+3. The version in the filename MUST match the version stated in the document header. If they disagree, the filename is authoritative for file discovery and the header is authoritative for content.
+
+4. Non-spec files (such as `HARNESS_SPEC.md`, `AGENTS.md`, route cards, skills, playbooks, and memory artifacts) do not use filename versioning. These files are versioned through git history and change in place.
+
+5. The `HARNESS_SPEC.md` file is the primary harness specification and evolves incrementally through git history without filename versioning. Breaking changes are incorporated in-place with documented migration notes. If an implementation requires a parallel major version, create a new repository or branch rather than maintaining multiple spec versions in one directory.
+
+6. Validation scripts MUST check that the current spec version file exists and that superseded version files do not remain unless explicitly intended.
+
+### Rationale
+
+Filename versioning makes spec evolution visible in directory listings, git log, and cross-references without requiring tools to open and parse file contents. It prevents the confusion that arises when a file named `spec.md` is updated in place and downstream consumers cannot tell whether they are reading the old or new contract.
