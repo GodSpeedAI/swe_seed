@@ -1,0 +1,50 @@
+# Use this when a finished trace should be distilled into candidate memory,
+# skill, or harness-learning updates before the session context is compacted or
+# dropped.
+#
+# Do not use this for raw transcript storage, one-off notes with no future
+# value, or speculative changes without evidence from the trace.
+#
+# Evidence required: trace id, governing route, latest checkpoint or completion
+# claim, and any proof or unresolved risk carried by the trace.
+
+trace_id: ""
+route:
+  job_type: ""
+  route_card: ""
+summary: ""
+verification_status: "" # verified | partial | missing
+
+candidate_memory_updates:
+  - destination: "" # successful-patterns | failure-patterns | open-questions | decisions | constraints
+    note: ""
+    rationale: ""
+    evidence:
+      - ""
+
+candidate_skill_updates:
+  - priority: 1
+    action: "" # patch_loaded_skill | patch_existing_skill | add_support_file | create_skill
+    target: ""
+    summary: ""
+    rationale: ""
+    evidence:
+      - ""
+
+candidate_harness_updates:
+  - target: "" # route | skill | hook | memory | spec | validation | docs | playbook
+    summary: ""
+    rationale: ""
+    validation:
+      - command: ""
+        expected: ""
+
+compression_handoff:
+  preserve_for_resume:
+    - ""
+
+provenance:
+  generated_by: "trace.distill"
+  generated_at: ""
+  trace_record: ""
+  route_decision_record: ""

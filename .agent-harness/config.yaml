@@ -67,6 +67,7 @@ verification:
 learning:
   auto_apply: false
   proposal_path: .agent-harness/reflections/harness-improvement-proposals.md
+  review_template: .agent-harness/reflections/learning-review-template.yaml
 
 observability:
   trace_template: .agent-harness/traces/traceability-template.yaml

@@ -184,12 +184,16 @@ Optional dependencies include:
 
 - native agent hooks,
 - a universal hook router,
-- SQLite, rusql,  or another local trace store,
+- SQLite, rusql, or another local trace store,
 - vector search or embeddings,
 - test runners and linters,
 - CI systems,
 - project-management APIs,
 - local or remote dashboards.
+
+If an optional local trace store is enabled, it MUST remain rebuildable from filesystem artifacts and SHOULD expose a read-only structured query surface over trace summaries, unresolved risks, and candidate learning updates before any semantic retrieval layer is introduced.
+
+If a database is used for memory recall, session search, or learning-packet indexing, it MUST remain optional. A conforming baseline MUST continue to work from filesystem artifacts alone.
 
 ## 4. Directory Contract
 
@@ -491,6 +495,22 @@ Fields:
 - `validation_plan`
 - `status`
 
+#### 5.1.10 Learning Review Packet
+
+Structured post-trace distillation artifact.
+
+Fields:
+
+- `trace_id`
+- `route`
+- `summary`
+- `verification_status`
+- `candidate_memory_updates`
+- `candidate_skill_updates`
+- `candidate_harness_updates`
+- `compression_handoff`
+- `provenance`
+
 ### 5.2 Stable Identifiers and Naming Rules
 
 - Skill IDs MUST be lowercase kebab-case.
@@ -665,6 +685,7 @@ Every Skill IR file MUST include:
 - `version`
 - `category`
 - `jtbd`
+- `description`
 - `triggers`
 - `procedure`
 - `evidence_required`
@@ -679,6 +700,9 @@ Skill IR SHOULD include:
 - `failure_modes`
 - `examples`
 - `non_examples`
+- `trigger_contexts`
+- `bundled_resources`
+- `evaluation_prompts`
 - `rendering_notes`
 - `source`
 - `status`
@@ -701,6 +725,7 @@ Rendered skills MUST preserve behavioral invariants.
 Behavioral invariants include:
 
 - the JTBD,
+- the skill description that tells the agent what the skill does and when it should trigger,
 - trigger conditions,
 - required evidence,
 - forbidden behaviors,
@@ -787,6 +812,12 @@ Import flow:
 ### 8.3 Skill Normalization Requirements
 
 A normalizer MUST extract or require human/agent completion of:
+
+- the job to be done,
+- metadata that says what the skill does and when it should trigger,
+- any reusable scripts, references, or assets worth preserving,
+- realistic evaluation prompts when the skill outcome can be tested,
+- proof obligations and forbidden behavior.
 
 - JTBD,
 - triggers,
@@ -1076,6 +1107,20 @@ Reflection records SHOULD be used only when the session produced reusable learni
 
 Reflection templates SHOULD require evidence such as command output, route result, changed file, validation failure, user correction, or repeated friction.
 
+### 13.2A Learning Review Distillation
+
+Implementations SHOULD support a small executable step that distills a finished trace into candidate learning outputs before context is compacted or dropped.
+
+A learning review packet SHOULD:
+
+- carry provenance from the originating trace and route,
+- distinguish candidate memory updates, candidate skill updates, and candidate harness updates,
+- preserve unresolved risks and next-action carry-forward for resume surfaces,
+- prefer patching an existing governing skill or support file before proposing a new standalone skill,
+- remain proposal-oriented when `learning.auto_apply=false`.
+
+The packet MAY be indexed in a lightweight local database, but the filesystem artifact remains the required baseline and source of truth.
+
 ### 13.3 Improvement Proposal Flow
 
 Improvement flow:
@@ -1210,6 +1255,7 @@ harness trace start <task>
 harness trace append <trace> <note>
 harness trace checkpoint <trace> --stage <stage> --summary <summary>
 harness trace resume <trace>
+harness trace distill <trace>
 harness trace finish <trace> --claim <claim> [--command <command> --result <result>]
 harness reflect
 harness propose-improvement
@@ -1217,7 +1263,7 @@ harness doctor
 ```
 
 This repository implements `validate`, `doctor`, `render-skills`, `route`, `route --record`,
-`inspect`, `context-plan`, and `trace start|append|checkpoint|resume|finish` in `scripts/harness.py`.
+`inspect`, `context-plan`, and `trace start|append|checkpoint|resume|distill|finish` in `scripts/harness.py`.
 `just` recipes expose the same operations for local use.
 
 ### 15.2 `validate`
@@ -1280,6 +1326,7 @@ Trace commands SHOULD create and update filesystem trace records:
 - `trace append <trace> <note>` records meaningful evidence or decision boundaries.
 - `trace checkpoint <trace> --stage <stage> --summary <summary>` records a resumable handoff packet.
 - `trace resume <trace>` returns the latest checkpoint together with the governing route and open risks.
+- `trace distill <trace>` emits a learning review packet with candidate memory, skill, and harness updates plus compaction-safe carry-forward.
 - `trace finish <trace> --claim <claim>` records the completion claim and optional proof command.
 
 Trace commands MUST NOT store secrets. Generated trace records SHOULD be ignored by version control
@@ -1590,6 +1637,7 @@ Core evals SHOULD avoid duplicating every implementation detail. They should pro
 ### 19.7 Learning Conformance
 
 - Reflection records are created after meaningful sessions.
+- Learning review packets can be distilled from traces and carry provenance.
 - Improvement proposals include evidence, risk, rollback, and validation plan.
 - Material harness changes are not auto-applied when `learning.auto_apply=false`.
 - Rejected proposals do not modify active skills or router rules.
@@ -1649,6 +1697,7 @@ Recommended checks:
 - Render targets for Codex/AGENTS.md and eval criteria.
 - Hook integration with a universal hook router.
 - Trace store using files or SQLite.
+- Optional structured mirror for distilled learning packets, rebuildable from filesystem artifacts.
 - Skill import/normalization command.
 - Doctor command.
 - Real-agent smoke tests.
@@ -1658,6 +1707,7 @@ Recommended checks:
 
 - Vector retrieval for memory artifacts.
 - SQLite-backed trace and skill performance store.
+- Vector retrieval only after an explicit readiness evaluation shows structured recall is insufficient.
 - Dashboard or local status server.
 - CI integration.
 - Signed skill packages.

@@ -21,12 +21,14 @@
     ".agent-harness/playbooks/10-frame-outcome.md",
     ".agent-harness/playbooks/20-change-with-proof.md",
     "docs/specs/skill-ir.md",
-    ".agent-harness/imports/README.md"
+    ".agent-harness/imports/README.md",
+    ".agent-harness/imports/anthropic-skills-skill-creator-normalization.md"
   ],
   "required_skills": [],
   "work_loop": [
-    "define the JTBD and trigger conditions",
-    "write required Skill IR fields",
+    "define the JTBD, trigger conditions, and trigger metadata",
+    "plan reusable resources and realistic evaluation prompts",
+    "write required Skill IR fields and any useful authoring metadata",
     "render targets",
     "validate behavior-preserving outputs",
     "run proof commands and read the output"

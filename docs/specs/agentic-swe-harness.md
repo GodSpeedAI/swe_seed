@@ -4,7 +4,7 @@ Canonical source: [`HARNESS_SPEC.md`](../../HARNESS_SPEC.md).
 
 This document exists so agents can discover the harness specification through the `docs/specs/` contract.
 
-The implementation target for this repository is Core Conformance plus the production-readiness delta now captured in `HARNESS_SPEC.md`: executable route cards, Skill IR rendering, memory artifacts, trace templates, route decision ledgers, trace records, negative evals, route conflict evals, import normalization notes, validation, and a minimal harness CLI.
+The implementation target for this repository is Core Conformance plus the production-readiness delta now captured in `HARNESS_SPEC.md`: executable route cards, Skill IR rendering, memory artifacts, trace templates, route decision ledgers, trace records, learning-review distillation packets, negative evals, route conflict evals, import normalization notes, validation, and a minimal harness CLI.
 
 Required local CLI surface:
 

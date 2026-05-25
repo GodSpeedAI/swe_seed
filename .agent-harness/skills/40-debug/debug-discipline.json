@@ -5,6 +5,11 @@
   "jtbd": "diagnose and fix a defect without guessing",
   "description": "A repro-first debugging procedure with reliable reproduction, fail path tracing, hypothesis disproof, breadcrumb ledger, and completion gates.",
   "triggers": ["failing test", "regression", "unexpected behavior"],
+  "trigger_contexts": [
+    "failing tests",
+    "regressions",
+    "unexpected behavior that needs root-cause diagnosis"
+  ],
   "inputs": {
     "required": ["symptom_or_failure"]
   },
@@ -41,6 +46,40 @@
     "root cause note",
     "changed files summary",
     "validation evidence"
+  ],
+  "bundled_resources": [
+    {
+      "kind": "reference",
+      "path": ".agent-harness/playbooks/30-debug-from-symptom.md",
+      "purpose": "extend the compact skill procedure with the longer repro-first debugging workflow",
+      "when": "the failure is broad, the repro is unstable, or the operator needs the full debugging loop"
+    },
+    {
+      "kind": "asset",
+      "path": ".agent-harness/traces/traceability-template.yaml",
+      "purpose": "capture breadcrumb-style evidence and next actions across multiple debugging runs",
+      "when": "the investigation needs a durable trace or handoff packet"
+    }
+  ],
+  "evaluation_prompts": [
+    {
+      "id": "parser-regression",
+      "prompt": "A parser refactor introduced a failing regression test. Diagnose the root cause, make the smallest fix, and show the proof.",
+      "checks": [
+        "establishes a reliable reproduction",
+        "traces the failing path before editing",
+        "connects the root cause to the final validation"
+      ]
+    },
+    {
+      "id": "intermittent-cli-failure",
+      "prompt": "A CLI command fails intermittently in CI but not every local run. Use a repro-first debugging flow and avoid speculative rewrites.",
+      "checks": [
+        "documents missing repro inputs if reproduction is not stable",
+        "keeps a breadcrumb ledger of experiments",
+        "avoids broad rewrites before root cause"
+      ]
+    }
   ],
   "success_criteria": [
     "original failure no longer reproduces under the reliable reproduction",

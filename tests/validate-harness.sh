@@ -12,6 +12,8 @@ required_files=(
   ".agent-harness/hooks/hook-router.sh"
   ".agent-harness/imports/README.md"
   ".agent-harness/imports/9arm-skills-normalization.md"
+  ".agent-harness/imports/anthropic-skills-skill-creator-normalization.md"
+  ".agent-harness/imports/hermes-agent-normalization.md"
   ".agent-harness/memory/constraints.md"
   ".agent-harness/memory/decisions.md"
   ".agent-harness/memory/failure-patterns.md"
@@ -21,6 +23,7 @@ required_files=(
   ".agent-harness/memory/successful-patterns.md"
   ".agent-harness/playbooks/README.md"
   ".agent-harness/reflections/harness-improvement-proposals.md"
+  ".agent-harness/reflections/learning-review-template.yaml"
   ".agent-harness/reflections/reflection-template.yaml"
   ".agent-harness/render-targets/checklists/debug-discipline.md"
   ".agent-harness/render-targets/copilot/debug-discipline.instructions.md"
@@ -90,6 +93,10 @@ required_files=(
   "package.json"
   "pyproject.toml"
   "scripts/harness.py"
+  "scripts/query-learning-store.sh"
+  "scripts/eval-learning-retrieval.sh"
+  "scripts/plan-learning-store.sh"
+  "scripts/sync-learning-store.sh"
   "scripts/bootstrap.sh"
   "scripts/ci.sh"
   "scripts/doctor.sh"
@@ -120,6 +127,11 @@ grep -qE '^harness-route-record task:' justfile
 grep -qE '^harness-inspect item:' justfile
 grep -qE '^harness-context-plan task:' justfile
 grep -qE '^harness-trace-start task:' justfile
+grep -qE '^harness-trace-distill trace:' justfile
+grep -qE '^harness-sync-learning-store db_path="":' justfile
+grep -qE '^harness-query-learning-store mode="summaries" limit="10" status="any" job_type="any" db_path="":' justfile
+grep -qE '^harness-eval-learning-retrieval db_path="":' justfile
+grep -qE '^harness-plan-learning-store backend="both":' justfile
 grep -q 'just ci' .github/workflows/ci.yml
 grep -q 'pnpm/action-setup' .github/workflows/ci.yml
 grep -q 'astral-sh/setup-uv' .github/workflows/ci.yml
@@ -129,16 +141,43 @@ grep -q 'sops' .gitignore
 grep -q 'SWE_SEED' package.json
 grep -q 'swe-seed' pyproject.toml
 python scripts/harness.py validate
-python scripts/harness.py route "fix a failing regression test" | grep -q '"job_type": "bugfix"'
-python scripts/harness.py route "the login form is broken" | grep -q '"route_card": ".agent-harness/routes/bugfix.json"'
-python scripts/harness.py route "implement HARNESS_SPEC.md semantic router" | grep -q '"route_card": ".agent-harness/routes/harness_improvement.json"'
-python scripts/harness.py route "incorporate context-mode mechanisms" | grep -q '"route_card": ".agent-harness/routes/harness_improvement.json"'
-python scripts/harness.py route "Let's make a react todo list" | grep -q '"route_card": ".agent-harness/routes/spec.json"'
-python scripts/harness.py route "review my recent auth changes for risk" | grep -q '"route_card": ".agent-harness/routes/review.json"'
-python scripts/harness.py inspect debug-discipline | grep -q '"skills"'
-python scripts/harness.py context-plan "implement a parser change" | grep -q '"context_budget"'
+route_output=$(python scripts/harness.py route "fix a failing regression test")
+grep -q '"job_type": "bugfix"' <<<"$route_output"
+route_output=$(python scripts/harness.py route "the login form is broken")
+grep -q '"route_card": ".agent-harness/routes/bugfix.json"' <<<"$route_output"
+route_output=$(python scripts/harness.py route "implement HARNESS_SPEC.md semantic router")
+grep -q '"route_card": ".agent-harness/routes/harness_improvement.json"' <<<"$route_output"
+route_output=$(python scripts/harness.py route "incorporate context-mode mechanisms")
+grep -q '"route_card": ".agent-harness/routes/harness_improvement.json"' <<<"$route_output"
+route_output=$(python scripts/harness.py route "Let's make a react todo list")
+grep -q '"route_card": ".agent-harness/routes/spec.json"' <<<"$route_output"
+route_output=$(python scripts/harness.py route "review my recent auth changes for risk")
+grep -q '"route_card": ".agent-harness/routes/review.json"' <<<"$route_output"
+inspect_output=$(python scripts/harness.py inspect debug-discipline)
+grep -q '"skills"' <<<"$inspect_output"
+context_plan_output=$(python scripts/harness.py context-plan "implement a parser change")
+grep -q '"context_budget"' <<<"$context_plan_output"
+grep -q '## Bundled resources' .agent-harness/render-targets/claude/debug/debug-discipline/SKILL.md
+grep -q '## Evaluation prompts' .agent-harness/render-targets/claude/debug/debug-discipline/SKILL.md
 trace_id=$(python scripts/harness.py trace start "checkpoint smoke" | python -c 'import json,sys; print(json.load(sys.stdin)["trace_id"])')
-python scripts/harness.py trace checkpoint "$trace_id" --stage change --summary "spec delta captured" --next-action "run targeted validation" --artifact HARNESS_SPEC.md --risk "proof not run" | grep -q '"trace.checkpoint"'
-python scripts/harness.py trace resume "$trace_id" | grep -q '"latest_checkpoint"'
+trace_output=$(python scripts/harness.py trace checkpoint "$trace_id" --stage change --summary "spec delta captured" --next-action "run targeted validation" --artifact HARNESS_SPEC.md --risk "proof not run")
+grep -q '"trace.checkpoint"' <<<"$trace_output"
+trace_output=$(python scripts/harness.py trace resume "$trace_id")
+grep -q '"latest_checkpoint"' <<<"$trace_output"
+trace_output=$(python scripts/harness.py trace distill "$trace_id")
+grep -q '"learning_review"' <<<"$trace_output"
+grep -q '"provenance"' <<<"$trace_output"
+learning_store_plan=$(bash scripts/plan-learning-store.sh both)
+grep -q 'Phase 1: Optional rusql mirror' <<<"$learning_store_plan"
+grep -q 'Phase 2: Optional ruvector retrieval' <<<"$learning_store_plan"
+sync_output=$(bash scripts/sync-learning-store.sh)
+grep -q 'learning_store_db' <<<"$sync_output"
+grep -q 'backend' <<<"$sync_output"
+query_output=$(bash scripts/query-learning-store.sh)
+grep -q 'mode' <<<"$query_output"
+grep -q 'results' <<<"$query_output"
+retrieval_eval_output=$(bash scripts/eval-learning-retrieval.sh)
+grep -q 'vector_readiness' <<<"$retrieval_eval_output"
+grep -q 'recommendation' <<<"$retrieval_eval_output"
 
 echo "Harness validation passed"

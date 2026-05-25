@@ -39,6 +39,8 @@ Common generated surfaces live under `.agent-harness/render-targets/` and includ
 - hook prompt fragments,
 - checklists.
 
+When a Skill IR includes authoring metadata such as `bundled_resources` or `evaluation_prompts`, the generated targets should surface those sections instead of forcing operators to rediscover them manually.
+
 If two targets would need identical bytes, they should be symlinked instead of copied as divergent regular files.
 
 ## Keep in mind

@@ -22,6 +22,7 @@ REQUIRED_SKILL_FIELDS = {
     "version",
     "category",
     "jtbd",
+    "description",
     "triggers",
     "procedure",
     "evidence_required",
@@ -54,10 +55,13 @@ REQUIRED_PATHS = [
     ".agent-harness/context/context-mode-normalization.md",
     ".agent-harness/hooks/hook-router.sh",
     ".agent-harness/imports/9arm-skills-normalization.md",
+    ".agent-harness/imports/anthropic-skills-skill-creator-normalization.md",
+    ".agent-harness/imports/hermes-agent-normalization.md",
     ".agent-harness/traces/README.md",
     ".agent-harness/traces/route-decisions/README.md",
     ".agent-harness/traces/traceability-template.yaml",
     ".agent-harness/reflections/reflection-template.yaml",
+    ".agent-harness/reflections/learning-review-template.yaml",
     ".agent-harness/reflections/harness-improvement-proposals.md",
     ".agent-harness/evals/negative-conformance.md",
     ".agent-harness/evals/route-conflicts.md",
@@ -107,6 +111,12 @@ HOOK_EVENTS = [
 REFLECTION_MIN_WORDS = 100
 REFLECTION_REQUIRED_PHRASES = ["Use this when", "Do not use this for", "Evidence required"]
 PROPOSAL_REQUIRED_PHRASES = ["Use this when", "Proposal states", "Not enough evidence"]
+LEARNING_REVIEW_REQUIRED_PHRASES = [
+    "candidate_memory_updates",
+    "candidate_skill_updates",
+    "candidate_harness_updates",
+    "provenance",
+]
 EVAL_MIN_CASES = 6
 EVAL_REQUIRED_PHRASES = ["Eval Case", "Command", "Expected", "Why it matters"]
 NEGATIVE_EVAL_REQUIRED_PHRASES = ["Failure Eval", "Breakage", "Expected failure", "Why it matters"]
@@ -140,6 +150,7 @@ RENDER_TARGET_REQUIRED_PHRASES = [
     "Done when",
 ]
 CLAUDE_SKILL_REQUIRED_PHRASES = ["---", "name:", "description:", "#"]
+SKILL_RESOURCE_KINDS = {"script", "reference", "asset"}
 CANONICAL_RENDER_RULE = (
     "Skill IR JSON is canonical. Render targets are generated projections and must not be edited directly. "
     "If two paths need the same bytes, one must be a symlink."
@@ -240,6 +251,80 @@ def validate_skill(path: Path) -> list[str]:
     if missing:
         errors.append(f"{rel(path)} missing fields: {', '.join(missing)}")
 
+    if not isinstance(skill.get("description"), str) or not skill.get("description", "").strip():
+        errors.append(f"{rel(path)} description must be a non-empty string")
+
+    trigger_contexts = skill.get("trigger_contexts")
+    if trigger_contexts is not None:
+        if not isinstance(trigger_contexts, list) or not trigger_contexts:
+            errors.append(f"{rel(path)} trigger_contexts must be a non-empty list when present")
+        elif any(not isinstance(item, str) or not item.strip() for item in trigger_contexts):
+            errors.append(f"{rel(path)} trigger_contexts entries must be non-empty strings")
+
+    bundled_resources = skill.get("bundled_resources")
+    if bundled_resources is not None:
+        if not isinstance(bundled_resources, list) or not bundled_resources:
+            errors.append(f"{rel(path)} bundled_resources must be a non-empty list when present")
+        else:
+            for index, resource in enumerate(bundled_resources, start=1):
+                if not isinstance(resource, dict):
+                    errors.append(f"{rel(path)} bundled_resources[{index}] must be an object")
+                    continue
+                missing_resource_fields = {
+                    field for field in ("kind", "path", "purpose", "when") if field not in resource
+                }
+                if missing_resource_fields:
+                    fields = ", ".join(sorted(missing_resource_fields))
+                    errors.append(
+                        f"{rel(path)} bundled_resources[{index}] missing fields: {fields}"
+                    )
+                kind = resource.get("kind")
+                if kind not in SKILL_RESOURCE_KINDS:
+                    errors.append(
+                        f"{rel(path)} bundled_resources[{index}] kind must be one of: "
+                        + ", ".join(sorted(SKILL_RESOURCE_KINDS))
+                    )
+                for field in ("path", "purpose", "when"):
+                    if not isinstance(resource.get(field), str) or not resource.get(field, "").strip():
+                        errors.append(
+                            f"{rel(path)} bundled_resources[{index}] {field} must be a non-empty string"
+                        )
+
+    evaluation_prompts = skill.get("evaluation_prompts")
+    if evaluation_prompts is not None:
+        if not isinstance(evaluation_prompts, list) or not evaluation_prompts:
+            errors.append(f"{rel(path)} evaluation_prompts must be a non-empty list when present")
+        else:
+            for index, prompt in enumerate(evaluation_prompts, start=1):
+                if not isinstance(prompt, dict):
+                    errors.append(f"{rel(path)} evaluation_prompts[{index}] must be an object")
+                    continue
+                missing_prompt_fields = {
+                    field for field in ("id", "prompt", "checks") if field not in prompt
+                }
+                if missing_prompt_fields:
+                    fields = ", ".join(sorted(missing_prompt_fields))
+                    errors.append(
+                        f"{rel(path)} evaluation_prompts[{index}] missing fields: {fields}"
+                    )
+                if not isinstance(prompt.get("id"), str) or not prompt.get("id", "").strip():
+                    errors.append(
+                        f"{rel(path)} evaluation_prompts[{index}] id must be a non-empty string"
+                    )
+                if not isinstance(prompt.get("prompt"), str) or not prompt.get("prompt", "").strip():
+                    errors.append(
+                        f"{rel(path)} evaluation_prompts[{index}] prompt must be a non-empty string"
+                    )
+                checks = prompt.get("checks")
+                if not isinstance(checks, list) or not checks:
+                    errors.append(
+                        f"{rel(path)} evaluation_prompts[{index}] checks must be a non-empty list"
+                    )
+                elif any(not isinstance(item, str) or not item.strip() for item in checks):
+                    errors.append(
+                        f"{rel(path)} evaluation_prompts[{index}] checks entries must be non-empty strings"
+                    )
+
     if skill.get("status") not in {
         "draft",
         "active",
@@ -321,6 +406,30 @@ def render_skill(skill: dict) -> dict[Path, str]:
     success = "\n".join(f"- {item}" for item in skill["success_criteria"])
     triggers = ", ".join(skill["triggers"])
     title = skill["id"].replace("-", " ").title()
+    claude_description = skill["description"]
+
+    if skill.get("trigger_contexts"):
+        contexts = ", ".join(skill["trigger_contexts"])
+        claude_description += f" Use this skill when the request mentions {contexts}."
+
+    bundled_resources = ""
+    if skill.get("bundled_resources"):
+        resource_lines = []
+        for resource in skill["bundled_resources"]:
+            resource_lines.append(
+                f"- `{resource['path']}` ({resource['kind']}): {resource['purpose']} Use when {resource['when']}."
+            )
+        bundled_resources = "\n\n## Bundled resources\n\n" + "\n".join(resource_lines)
+
+    evaluation_prompts = ""
+    if skill.get("evaluation_prompts"):
+        prompt_lines = []
+        for prompt in skill["evaluation_prompts"]:
+            checks = "; ".join(prompt["checks"])
+            prompt_lines.append(
+                f"- `{prompt['id']}`: {prompt['prompt']} Check for: {checks}."
+            )
+        evaluation_prompts = "\n\n## Evaluation prompts\n\n" + "\n".join(prompt_lines)
 
     return {
         HARNESS_ROOT / "render-targets" / "copilot" / f"{skill['id']}.instructions.md": (
@@ -334,6 +443,8 @@ def render_skill(skill: dict) -> dict[Path, str]:
             + "\n\n"
             + "## Evidence required\n\n"
             + evidence
+            + bundled_resources
+            + evaluation_prompts
             + "\n\n## Forbidden behavior\n\n"
             + forbidden
             + "\n\n## Done when\n\n"
@@ -351,6 +462,8 @@ def render_skill(skill: dict) -> dict[Path, str]:
             + "\n\n"
             + "## Evidence required\n\n"
             + evidence
+            + bundled_resources
+            + evaluation_prompts
             + "\n\n## Forbidden behavior\n\n"
             + forbidden
             + "\n\n## Done when\n\n"
@@ -366,6 +479,8 @@ def render_skill(skill: dict) -> dict[Path, str]:
             + checklist
             + "\n\n## Evidence required\n\n"
             + evidence
+            + bundled_resources
+            + evaluation_prompts
             + "\n\n## Forbidden behavior\n\n"
             + forbidden
             + "\n\n## Done when\n\n"
@@ -375,7 +490,7 @@ def render_skill(skill: dict) -> dict[Path, str]:
         HARNESS_ROOT / "render-targets" / "claude" / skill["category"] / skill["id"] / "SKILL.md": (
             "---\n"
             + f"name: {skill['id']}\n"
-            + f"description: {skill['description']}\n"
+            + f"description: {claude_description}\n"
             + "---\n\n"
             + header
             + f"# {title}\n\n"
@@ -387,6 +502,8 @@ def render_skill(skill: dict) -> dict[Path, str]:
             + "\n\n"
             + "## Evidence required\n\n"
             + evidence
+            + bundled_resources
+            + evaluation_prompts
             + "\n\n## Forbidden behavior\n\n"
             + forbidden
             + "\n\n## Done when\n\n"
@@ -521,6 +638,16 @@ def validate() -> int:
         for phrase in REFLECTION_REQUIRED_PHRASES:
             if phrase not in text:
                 errors.append(f"reflection template missing phrase: {phrase}")
+
+    learning_review_template = HARNESS_ROOT / "reflections" / "learning-review-template.yaml"
+    if learning_review_template.is_file():
+        text = learning_review_template.read_text(encoding="utf-8")
+        word_count = len(re.findall(r"\b\w+\b", text))
+        if word_count < REFLECTION_MIN_WORDS:
+            errors.append("learning review template too thin")
+        for phrase in LEARNING_REVIEW_REQUIRED_PHRASES:
+            if phrase not in text:
+                errors.append(f"learning review template missing phrase: {phrase}")
 
     proposals = HARNESS_ROOT / "reflections" / "harness-improvement-proposals.md"
     if proposals.is_file():
@@ -1080,6 +1207,148 @@ def trace_finish(trace: str, claim: str, command: str | None, result: str | None
     return 0
 
 
+def classify_verification_status(record: dict) -> str:
+    verification = record.get("verification", [])
+    unresolved = record.get("unresolved_risks", [])
+    if not verification:
+        return "missing"
+    if unresolved:
+        return "partial"
+
+    verification_text = " ".join(
+        str(item.get("result", "")) for item in verification if isinstance(item, dict)
+    ).lower()
+    success_markers = ("exit 0", "passed", "success", "all checks passed")
+    return "verified" if any(marker in verification_text for marker in success_markers) else "partial"
+
+
+def trace_distill(trace: str) -> int:
+    path = resolve_trace_path(trace)
+    if not path.is_file():
+        return fail(f"trace record not found: {trace}")
+
+    record = json.loads(path.read_text(encoding="utf-8"))
+    route = record.get("route", {})
+    job_type = route.get("job_type", "unknown")
+    route_card = route.get("route_card", "")
+    latest_checkpoint = next(
+        (
+            event
+            for event in reversed(record.get("events", []))
+            if isinstance(event, dict) and event.get("type") == "trace.checkpoint"
+        ),
+        None,
+    )
+    completion_claim = record.get("completion_claim") or {}
+    summary = (
+        (latest_checkpoint or {}).get("summary")
+        or completion_claim.get("claim")
+        or record.get("task", "")
+    )
+    verification_status = classify_verification_status(record)
+    unresolved_risks = record.get("unresolved_risks", [])
+    checkpoint_artifacts = (latest_checkpoint or {}).get("artifacts", [])
+    checkpoint_next_action = (latest_checkpoint or {}).get("next_action")
+
+    evidence = [
+        f"trace:{record.get('trace_id', '')}",
+        f"route:{route_card}",
+    ]
+    evidence.extend(f"artifact:{artifact}" for artifact in checkpoint_artifacts)
+
+    if verification_status == "verified" and not unresolved_risks:
+        candidate_memory_updates = [
+            {
+                "destination": "successful-patterns",
+                "note": f"{job_type} trace reached proof-backed completion: {summary}",
+                "rationale": "Preserve the validated pattern without storing the whole transcript.",
+                "evidence": evidence,
+            }
+        ]
+    else:
+        destination = "open-questions" if unresolved_risks else "failure-patterns"
+        candidate_memory_updates = [
+            {
+                "destination": destination,
+                "note": f"{job_type} trace ended with incomplete proof or unresolved risk: {summary}",
+                "rationale": "Carry forward the blocker so the next agent sees the gap without rereading the transcript.",
+                "evidence": evidence + [f"risk:{risk}" for risk in unresolved_risks],
+            }
+        ]
+
+    required_skills = route.get("required_skills", [])
+    if required_skills:
+        candidate_skill_updates = [
+            {
+                "priority": 1,
+                "action": "patch_existing_skill",
+                "target": required_skills[0],
+                "summary": f"Patch the governing skill first if this trace exposed a reusable lesson: {summary}",
+                "rationale": "Prefer updating the active governing skill before creating a new one.",
+                "evidence": evidence,
+            }
+        ]
+    else:
+        candidate_skill_updates = [
+            {
+                "priority": 2,
+                "action": "add_support_file",
+                "target": "existing umbrella skill or future skill-authoring target",
+                "summary": f"If this trace revealed reusable detail, prefer a reference, template, or script before a new standalone skill: {summary}",
+                "rationale": "Support files capture durable operational detail with less library sprawl than creating a new skill.",
+                "evidence": evidence,
+            }
+        ]
+
+    candidate_harness_updates = []
+    if job_type == "harness_improvement" or any(
+        artifact.startswith(".agent-harness/") or artifact == "HARNESS_SPEC.md"
+        for artifact in checkpoint_artifacts
+    ):
+        candidate_harness_updates.append(
+            {
+                "target": "spec" if "HARNESS_SPEC.md" in checkpoint_artifacts else "validation",
+                "summary": f"Review whether the trace lesson should be promoted into the harness contract: {summary}",
+                "rationale": "Harness-facing work should convert repeated friction into a validated contract rather than a one-off note.",
+                "validation": [
+                    {
+                        "command": "python scripts/harness.py validate",
+                        "expected": "passes with the promoted contract",
+                    },
+                    {
+                        "command": "bash tests/validate-harness.sh",
+                        "expected": "smoke checks cover the new behavior",
+                    },
+                ],
+            }
+        )
+
+    learning_review = {
+        "trace_id": record.get("trace_id"),
+        "route": {"job_type": job_type, "route_card": route_card},
+        "summary": summary,
+        "verification_status": verification_status,
+        "candidate_memory_updates": candidate_memory_updates,
+        "candidate_skill_updates": candidate_skill_updates,
+        "candidate_harness_updates": candidate_harness_updates,
+        "compression_handoff": {
+            "preserve_for_resume": [
+                summary,
+                *([checkpoint_next_action] if checkpoint_next_action else []),
+                *[f"risk: {risk}" for risk in unresolved_risks],
+            ]
+        },
+        "provenance": {
+            "generated_by": "trace.distill",
+            "generated_at": utc_now(),
+            "trace_record": rel(path),
+            "route_decision_record": record.get("route_decision_record"),
+        },
+    }
+    print(json.dumps({"learning_review": learning_review}, indent=2))
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="harness")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1111,6 +1380,8 @@ def main() -> int:
     trace_checkpoint_parser.add_argument("--risk", action="append", default=[])
     trace_resume_parser = trace_subparsers.add_parser("resume")
     trace_resume_parser.add_argument("trace")
+    trace_distill_parser = trace_subparsers.add_parser("distill")
+    trace_distill_parser.add_argument("trace")
     trace_finish_parser = trace_subparsers.add_parser("finish")
     trace_finish_parser.add_argument("trace")
     trace_finish_parser.add_argument("--claim", required=True)
@@ -1146,6 +1417,8 @@ def main() -> int:
             )
         if args.trace_command == "resume":
             return trace_resume(args.trace)
+        if args.trace_command == "distill":
+            return trace_distill(args.trace)
         if args.trace_command == "finish":
             return trace_finish(args.trace, args.claim, args.verification_command, args.result)
 

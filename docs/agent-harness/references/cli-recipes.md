@@ -16,6 +16,7 @@ python scripts/harness.py trace start "task"
 python scripts/harness.py trace append TRACE_ID "note"
 python scripts/harness.py trace checkpoint TRACE_ID --stage change --summary "summary"
 python scripts/harness.py trace resume TRACE_ID
+python scripts/harness.py trace distill TRACE_ID
 python scripts/harness.py trace finish TRACE_ID --claim "claim" --command "just ci" --result "exit 0"
 ```
 
@@ -31,6 +32,11 @@ just harness-inspect debug-discipline
 just harness-context-plan "task"
 just harness-trace-start "task"
 just harness-trace-append TRACE_ID "note"
+just harness-trace-distill TRACE_ID
+just harness-plan-learning-store both
+just harness-sync-learning-store
+just harness-query-learning-store summaries 10 any any
+just harness-eval-learning-retrieval
 just harness-trace-finish TRACE_ID "claim"
 ```
 
