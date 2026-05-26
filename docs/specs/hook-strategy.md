@@ -2,7 +2,7 @@
 
 Hooks connect agent lifecycle events to routing, safety, trace capture, verification, and reflection.
 
-This scaffold provides `.agent-harness/hooks/hook-router.sh` as a portable placeholder for these events:
+This scaffold provides `.agent-harness/hooks/hook-router.sh` as a portable handler for these events:
 
 - `session.start`
 - `prompt.submit`

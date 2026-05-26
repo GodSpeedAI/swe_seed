@@ -236,6 +236,37 @@ REQUIRED_MEMORY = (
     or []
 )
 
+ROOT_SPECS = [
+    "SWE_SEED_SPEC_v0.2.0.md",
+    "HARNESS_SPEC.md",
+    "FABRICATOR_SPEC_v0.1.0.md",
+]
+BAML_SOURCE_CONTRACTS = [
+    ".agent-harness/baml/baml_src/swe_seed.baml",
+    ".agent-harness/baml/baml_src/harness.baml",
+    ".agent-harness/baml/baml_src/fabricator.baml",
+]
+INCOMPLETE_WORK_MARKERS = [
+    "TODO",
+    "FIXME",
+    "TBD",
+    "XXX",
+    "coming soon",
+    "stub implementation",
+    "mock implementation",
+    "placeholder for",
+]
+INCOMPLETE_SCAN_PATHS = [
+    "AGENTS.md",
+    "SWE_SEED_SPEC_v0.2.0.md",
+    "HARNESS_SPEC.md",
+    "FABRICATOR_SPEC_v0.1.0.md",
+    ".agent-harness",
+    "scripts",
+    "tests",
+    "docs/specs",
+]
+
 MEMORY_MIN_WORDS = _cfg("memory.min_words", 80)
 MEMORY_REQUIRED_PHRASES = _cfg("memory.required_phrases", ["Use this when", "Keep in mind"]) or []
 BEHAVIOR_SHAPING_PHRASES = (
@@ -557,6 +588,17 @@ def load_route(path: Path) -> dict:
         return json.load(handle)
 
 
+def load_structured_artifact(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    try:
+        loaded = json.loads(text)
+    except json.JSONDecodeError:
+        loaded = _parse_yaml(text)
+    if not isinstance(loaded, dict):
+        raise ValueError(f"{rel(path)} must contain an object")
+    return loaded
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -728,6 +770,277 @@ def validate_route(path: Path) -> list[str]:
     return errors
 
 
+def iter_incomplete_scan_files() -> list[Path]:
+    files: list[Path] = []
+    for path_text in INCOMPLETE_SCAN_PATHS:
+        path = ROOT / path_text
+        if path.is_file():
+            files.append(path)
+        elif path.is_dir():
+            files.extend(
+                child
+                for child in path.rglob("*")
+                if child.is_file()
+                and not child.is_symlink()
+                and "baml_client" not in child.parts
+                and child.suffix.lower()
+                in {".md", ".yaml", ".yml", ".json", ".py", ".sh", ".baml", ".toml"}
+            )
+    return sorted(set(files))
+
+
+def validate_no_incomplete_work_markers() -> list[str]:
+    errors: list[str] = []
+    for path in iter_incomplete_scan_files():
+        rel_path = rel(path)
+        if "TODO" in path.name or "FIXME" in path.name or "TBD" in path.name:
+            errors.append(f"incomplete-work marker in filename: {rel_path}")
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if rel_path == "scripts/harness.py" and stripped.strip('",') in INCOMPLETE_WORK_MARKERS:
+                continue
+            if rel_path == "scripts/harness.py" and (
+                "incomplete-work marker" in stripped or "path.name" in stripped
+            ):
+                continue
+            if rel_path == "scripts/harness.py" and "marker in {" in stripped:
+                continue
+            lower = stripped.lower()
+            policy_line = any(
+                phrase in lower
+                for phrase in [
+                    "strictly forbidden",
+                    "prohibited",
+                    "must reject",
+                    "must not rely",
+                    "cannot rely",
+                    "forbidden release evidence",
+                    "incomplete_work_markers",
+                ]
+            )
+            for marker in INCOMPLETE_WORK_MARKERS:
+                if marker in {"TODO", "FIXME", "TBD", "XXX"}:
+                    marker_found = re.search(rf"\b{re.escape(marker)}\b", stripped) is not None
+                else:
+                    marker_found = marker.lower() in lower
+                if marker_found and not policy_line:
+                    errors.append(
+                        f"incomplete-work marker {marker!r} in {rel_path}:{line_number}"
+                    )
+    return errors
+
+
+def check_file_exists(check: dict) -> tuple[str, str | None]:
+    target = ROOT / str(check.get("target", ""))
+    return ("pass", rel(target) if target.exists() else f"missing file: {rel(target)}")
+
+
+def target_text(check: dict) -> tuple[str | None, str | None]:
+    target = ROOT / str(check.get("target", ""))
+    if not target.is_file():
+        return None, f"target file missing: {rel(target)}"
+    return target.read_text(encoding="utf-8", errors="replace"), None
+
+
+def list_rule_values(rule: object, key: str = "patterns") -> list[str]:
+    if isinstance(rule, list):
+        return [str(item) for item in rule]
+    if isinstance(rule, dict):
+        value = rule.get(key, [])
+        if isinstance(value, list):
+            return [str(item) for item in value]
+        if isinstance(value, str):
+            return [value]
+    if isinstance(rule, str):
+        return [rule]
+    return []
+
+
+def evaluate_check(check: dict) -> dict:
+    check_id = str(check.get("id", "unknown"))
+    check_class = str(check.get("class", "process_compliance"))
+    check_type = str(check.get("type", "manual_check"))
+    required = bool(check.get("required", True))
+    rule = check.get("rule", {})
+    evidence: list[str] = []
+    status = "fail"
+    failure_reason: str | None = None
+
+    if check_type == "file_exists":
+        status, detail = check_file_exists(check)
+        evidence.append(detail or str(check.get("target", "")))
+        if status != "pass":
+            failure_reason = detail
+    elif check_type == "static_required_patterns":
+        text, error = target_text(check)
+        if error:
+            failure_reason = error
+        else:
+            missing = [pattern for pattern in list_rule_values(rule) if pattern not in (text or "")]
+            status = "pass" if not missing else "fail"
+            evidence.append(f"required_patterns_checked={len(list_rule_values(rule))}")
+            if missing:
+                failure_reason = "missing required patterns: " + ", ".join(missing)
+    elif check_type == "static_forbidden_patterns":
+        text, error = target_text(check)
+        if error:
+            failure_reason = error
+        else:
+            found = [pattern for pattern in list_rule_values(rule) if pattern in (text or "")]
+            status = "pass" if not found else "fail"
+            evidence.append(f"forbidden_patterns_checked={len(list_rule_values(rule))}")
+            if found:
+                failure_reason = "found forbidden patterns: " + ", ".join(found)
+    elif check_type == "command_check":
+        command = rule.get("command") if isinstance(rule, dict) else None
+        expected_exit = int(rule.get("expected_exit", 0)) if isinstance(rule, dict) else 0
+        if not isinstance(command, list) or not command:
+            failure_reason = "command_check requires rule.command list"
+        else:
+            evidence.append(f"command={' '.join(command)}")
+            try:
+                completed = subprocess.run(
+                    command,
+                    cwd=ROOT,
+                    text=True,
+                    capture_output=True,
+                    timeout=HOOK_TIMEOUT_SECONDS,
+                )
+            except subprocess.TimeoutExpired:
+                status = "fail"
+                evidence.append(f"timeout={HOOK_TIMEOUT_SECONDS}")
+                failure_reason = f"command_check timed out after {HOOK_TIMEOUT_SECONDS}s"
+            else:
+                status = "pass" if completed.returncode == expected_exit else "fail"
+                evidence.append(f"exit={completed.returncode}")
+                if status != "pass":
+                    failure_reason = completed.stderr.strip() or completed.stdout.strip()
+    elif check_type == "json_schema_check":
+        target = ROOT / str(check.get("target", ""))
+        try:
+            data = load_structured_artifact(target)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            failure_reason = str(exc)
+        else:
+            required_fields = list_rule_values(rule, "required")
+            missing = [field for field in required_fields if field not in data]
+            status = "pass" if not missing else "fail"
+            evidence.append(f"required_fields_checked={len(required_fields)}")
+            if missing:
+                failure_reason = "missing required fields: " + ", ".join(missing)
+    elif check_type == "artifact_consistency":
+        status, detail = check_file_exists(check)
+        evidence.append(detail or str(check.get("target", "")))
+        if status != "pass":
+            failure_reason = detail
+    elif check_type == "git_diff_policy":
+        forbidden_paths = list_rule_values(rule, "forbidden_paths")
+        git_diff_timeout = max(60, int(HOOK_TIMEOUT_SECONDS))
+        try:
+            completed = subprocess.run(
+                ["git", "diff", "--name-only"],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                timeout=git_diff_timeout,
+            )
+        except subprocess.TimeoutExpired:
+            status = "fail"
+            evidence.append(f"git_diff_timeout={git_diff_timeout}")
+            failure_reason = f"git_diff_policy timed out after {git_diff_timeout}s"
+        else:
+            changed = completed.stdout.splitlines()
+            violations = [
+                changed_path
+                for changed_path in changed
+                for forbidden in forbidden_paths
+                if changed_path == forbidden or changed_path.startswith(f"{forbidden}/")
+            ]
+            status = "pass" if not violations else "fail"
+            evidence.append(f"changed_paths={len(changed)}")
+            if violations:
+                failure_reason = "forbidden changed paths: " + ", ".join(sorted(set(violations)))
+    elif check_type in {"manual_check", "reflection_check", "promotion_policy"}:
+        supplied = check.get("evidence") or check.get("evidence_required")
+        if isinstance(supplied, list) and supplied:
+            status = "pass"
+            evidence.extend(str(item) for item in supplied)
+        elif isinstance(supplied, str) and supplied.strip():
+            status = "pass"
+            evidence.append(supplied)
+        else:
+            failure_reason = f"{check_type} requires recorded evidence"
+    else:
+        failure_reason = f"unsupported check type: {check_type}"
+
+    if not required and status == "fail":
+        status = "waived"
+
+    result = {
+        "id": check_id,
+        "class": check_class,
+        "status": status,
+        "evidence": evidence,
+    }
+    if failure_reason:
+        result["failure_reason"] = failure_reason
+    return result
+
+
+def run_eval_spec(spec_path: Path, output_path: Path | None = None) -> int:
+    try:
+        spec = load_structured_artifact(spec_path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return fail(f"invalid EvalSpec: {exc}")
+
+    required_fields = {
+        "id",
+        "version",
+        "run_id",
+        "target_type",
+        "target_path",
+        "purpose",
+        "eval_classes",
+        "checks",
+        "pass_condition",
+        "outputs",
+    }
+    missing = sorted(required_fields - set(spec))
+    if missing:
+        return fail(f"EvalSpec missing fields: {', '.join(missing)}")
+    if not isinstance(spec.get("checks"), list) or not spec["checks"]:
+        return fail("EvalSpec checks must be a non-empty list")
+
+    check_results = [evaluate_check(check) for check in spec["checks"]]
+    failed_required = [
+        result
+        for check, result in zip(spec["checks"], check_results, strict=True)
+        if check.get("required", True) and result["status"] != "pass"
+    ]
+    status = "pass" if not failed_required else "fail"
+    result = {
+        "eval_id": spec["id"],
+        "run_id": spec["run_id"],
+        "status": status,
+        "checks": check_results,
+        "summary": (
+            f"{len(check_results) - len(failed_required)}/{len(check_results)} checks passed"
+        ),
+        "created_at": utc_now(),
+    }
+
+    rendered = json.dumps(result, indent=2) + "\n"
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(rendered, encoding="utf-8")
+    print(rendered, end="")
+    return 0 if status == "pass" else 1
+
+
 def render_skill(skill: dict) -> dict[Path, str]:
     skill_ref = f"{skill['id']}@{skill['version']}"
     header = (
@@ -853,6 +1166,23 @@ def render_skill(skill: dict) -> dict[Path, str]:
 
 def validate() -> int:
     errors: list[str] = []
+
+    for spec_path in ROOT_SPECS:
+        if not (ROOT / spec_path).is_file():
+            errors.append(f"missing root spec: {spec_path}")
+
+    obsolete_fabrication_alias = "FABRICATION_LAYER" + "_SPEC_v0.1.0.md"
+    if (ROOT / obsolete_fabrication_alias).exists():
+        errors.append(f"remove obsolete fabrication-layer alias: {obsolete_fabrication_alias}")
+
+    for source_path in BAML_SOURCE_CONTRACTS:
+        if not (ROOT / source_path).is_file():
+            errors.append(f"missing BAML source contract: {source_path}")
+
+    if not (HARNESS_ROOT / "baml" / "V0_1_RELEASE_CRITERIA.md").is_file():
+        errors.append("missing BAML release criteria: .agent-harness/baml/V0_1_RELEASE_CRITERIA.md")
+
+    errors.extend(validate_no_incomplete_work_markers())
 
     for required in REQUIRED_PATHS:
         if not (ROOT / required).is_file():
@@ -1849,6 +2179,11 @@ def main() -> int:
     inspect_parser.add_argument("item")
     context_plan_parser = subparsers.add_parser("context-plan")
     context_plan_parser.add_argument("task")
+    eval_parser = subparsers.add_parser("eval")
+    eval_subparsers = eval_parser.add_subparsers(dest="eval_command", required=True)
+    eval_run_parser = eval_subparsers.add_parser("run")
+    eval_run_parser.add_argument("spec")
+    eval_run_parser.add_argument("--output")
     trace_parser = subparsers.add_parser("trace")
     trace_subparsers = trace_parser.add_subparsers(dest="trace_command", required=True)
     trace_start_parser = trace_subparsers.add_parser("start")
@@ -1913,6 +2248,12 @@ def main() -> int:
         return inspect(args.item)
     if args.command == "context-plan":
         return context_plan(args.task)
+    if args.command == "eval":
+        if args.eval_command == "run":
+            return run_eval_spec(
+                (ROOT / args.spec).resolve(),
+                (ROOT / args.output).resolve() if args.output else None,
+            )
     if args.command == "trace":
         if args.trace_command == "start":
             return trace_start(

@@ -1,0 +1,61 @@
+title: TDDPlan
+type: object
+required:
+  - scenarios
+properties:
+  scenarios:
+    type: array
+    items:
+      type: object
+      required:
+        - id
+        - requirement_id
+        - title
+        - given
+        - when
+        - then
+      properties:
+        id:
+          type: string
+        requirement_id:
+          type: string
+        title:
+          type: string
+        given:
+          type: array
+          items:
+            type: string
+        when:
+          type: array
+          items:
+            type: string
+        then:
+          type: array
+          items:
+            type: string
+  checks:
+    type: array
+    items:
+      type: object
+      required:
+        - id
+        - scenario_id
+        - type
+        - expected
+      properties:
+        id:
+          type: string
+        scenario_id:
+          type: string
+        type:
+          type: string
+        selector:
+          type: string
+        expression:
+          type: string
+        expected:
+          type: string
+        value:
+          type: string
+        message:
+          type: string

@@ -1,0 +1,42 @@
+title: ProductSeed
+type: object
+required:
+  - run_id
+  - product_type
+  - user
+  - situation
+  - desired_outcome
+  - prototype_goal
+properties:
+  run_id:
+    type: string
+  product_type:
+    type: string
+  user:
+    type: string
+  situation:
+    type: string
+  desired_outcome:
+    type: string
+  prototype_goal:
+    type: string
+  constraints:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  non_goals:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  success_conditions:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  proof_expectations:
+    type: array
+    items:
+      type: string
+    uniqueItems: true

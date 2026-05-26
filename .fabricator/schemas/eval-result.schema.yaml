@@ -1,0 +1,13 @@
+title: EvalResult
+type: object
+required:
+  - result_id
+  - run_id
+  - status
+  - checks
+properties:
+  result_id: { type: string }
+  run_id: { type: string }
+  status: { type: string }
+  checks:
+    type: array

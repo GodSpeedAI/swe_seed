@@ -1,0 +1,145 @@
+version: 0.1.0
+status: active_contract
+purpose: >
+  File-first schema contract for local EvalSpec, EvalResult, AdaptationDecision,
+  RegressionCase, and LearningCandidate artifacts. The local harness validator
+  and eval runner use this contract as the v0.1 operating surface.
+
+eval_classes:
+  - product_outcome
+  - process_compliance
+  - learning_quality
+  - adaptation_eligibility
+
+check_types_v0_1:
+  - file_exists
+  - static_required_patterns
+  - static_forbidden_patterns
+  - command_check
+  - json_schema_check
+  - artifact_consistency
+  - git_diff_policy
+  - manual_check
+  - reflection_check
+  - promotion_policy
+
+EvalSpec:
+  required:
+    - id
+    - version
+    - run_id
+    - target_type
+    - target_path
+    - purpose
+    - eval_classes
+    - checks
+    - pass_condition
+    - outputs
+  check_required:
+    - id
+    - class
+    - type
+    - target
+    - required
+    - rule
+    - evidence_required
+
+EvalResult:
+  required:
+    - eval_id
+    - run_id
+    - status
+    - checks
+    - summary
+    - created_at
+  check_result_required:
+    - id
+    - class
+    - status
+    - evidence
+  check_result_optional:
+    - failure_reason
+
+AdaptationDecision:
+  required:
+    - run_id
+    - decision_id
+    - product_result
+    - process_result
+    - learning_result
+    - adaptation_result
+    - allowed_adaptations
+    - blocked_adaptations
+    - reason
+    - required_next_actions
+    - created_artifacts
+  allowed_targets:
+    - SkillIR
+    - RouteCard
+    - ContextBudget
+    - EvalSpec
+    - RegressionCase
+    - BAML function/prompt
+    - docs
+    - no-change record
+
+RegressionCase:
+  required:
+    - id
+    - source_run_id
+    - failure_mode
+    - detection
+    - future_rule
+    - status
+    - linked_eval_check
+
+LearningCandidate:
+  required:
+    - id
+    - source_run_id
+    - type
+    - claim
+    - evidence
+    - scope
+    - confidence
+    - promotion_status
+    - required_regression_case
+
+immutability:
+  active_eval_frozen_after: implementation_handoff
+  mutation_policy: future_revision_only_unless_human_waiver_or_restart
+
+eval_to_adaptation:
+  product_pass_process_pass_learning_pass:
+    allowed:
+      - propose_skill
+      - add_positive_example
+      - update_pattern_library
+    approval_required:
+      - activate_skill
+  product_fail_process_pass:
+    allowed:
+      - create_bug_regression
+      - improve_tdd_for_future_run
+      - update_context_pack_for_future_run
+    blocked:
+      - promote_skill
+  product_pass_process_fail:
+    allowed:
+      - create_process_regression
+      - update_route_guardrail_for_future_run
+    blocked:
+      - promote_skill_from_output
+  product_fail_process_fail:
+    allowed:
+      - reflection_only
+      - create_failure_case
+    blocked:
+      - skill_promotion
+      - route_generalization
+  eval_inconclusive:
+    allowed:
+      - manual_review
+      - improve_eval_spec_for_future_run
+    blocked:
+      - auto_learning

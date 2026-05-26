@@ -1,0 +1,8 @@
+title: HypothesisMirror
+type: object
+required:
+  - hypothesis_id
+  - canonical_path
+properties:
+  hypothesis_id: { type: string }
+  canonical_path: { type: string }

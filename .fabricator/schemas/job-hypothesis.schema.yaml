@@ -1,0 +1,23 @@
+title: JobHypothesis
+type: object
+required:
+  - hypothesis_id
+  - target_job
+  - actor
+  - constraints
+  - success_signals
+properties:
+  hypothesis_id:
+    type: string
+  target_job:
+    type: string
+  actor:
+    type: string
+  constraints:
+    type: array
+    items:
+      type: string
+  success_signals:
+    type: array
+    items:
+      type: string

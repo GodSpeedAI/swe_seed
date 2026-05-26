@@ -1,0 +1,9 @@
+title: SDS
+type: object
+required:
+  - components
+properties:
+  components:
+    type: array
+  mermaid:
+    type: string

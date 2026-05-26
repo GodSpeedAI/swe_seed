@@ -9,6 +9,13 @@ required_files=(
   ".agent-harness/evals/core-conformance.md"
   ".agent-harness/evals/negative-conformance.md"
   ".agent-harness/evals/route-conflicts.md"
+  ".agent-harness/evals/schemas/eval-artifacts.schema.yaml"
+  ".agent-harness/baml/MIGRATION_NOTE.md"
+  ".agent-harness/baml/SEMANTIC_CHAIN_V0_1_BACKLOG.md"
+  ".agent-harness/baml/V0_1_RELEASE_CRITERIA.md"
+  ".agent-harness/baml/baml_src/harness.baml"
+  ".agent-harness/baml/baml_src/swe_seed.baml"
+  ".agent-harness/baml/baml_src/fabricator.baml"
   ".agent-harness/hooks/hook-router.sh"
   ".agent-harness/imports/README.md"
   ".agent-harness/imports/9arm-skills-normalization.md"
@@ -73,12 +80,61 @@ required_files=(
   ".vscode/settings.json"
   "AGENTS.md"
   "SWE_SEED_SPEC_v0.2.0.md"
+  "HARNESS_SPEC.md"
+  "FABRICATOR_SPEC_v0.1.0.md"
   ".editorconfig"
   ".env.example"
   ".envrc"
   ".gitattributes"
   ".gitignore"
   ".agent-hooks/config.yaml"
+  ".fabricator/config.yaml"
+  ".fabricator/runs/README.md"
+  ".fabricator/schemas/product-seed.schema.yaml"
+  ".fabricator/schemas/jtbd.schema.yaml"
+  ".fabricator/schemas/job-hypothesis.schema.yaml"
+  ".fabricator/schemas/hypothesis.schema.yaml"
+  ".fabricator/schemas/adr.schema.yaml"
+  ".fabricator/schemas/prd.schema.yaml"
+  ".fabricator/schemas/sds.schema.yaml"
+  ".fabricator/schemas/tdd-plan.schema.yaml"
+  ".fabricator/schemas/context-pack.schema.yaml"
+  ".fabricator/schemas/agent-task.schema.yaml"
+  ".fabricator/schemas/eval-checklist.schema.yaml"
+  ".fabricator/schemas/eval-spec.schema.yaml"
+  ".fabricator/schemas/eval-result.schema.yaml"
+  ".fabricator/schemas/proof-record.schema.yaml"
+  ".fabricator/schemas/reflection.schema.yaml"
+  ".fabricator/schemas/adaptation-decision.schema.yaml"
+  ".fabricator/schemas/skill-proposal.schema.yaml"
+  ".fabricator/templates/PRODUCT_SEED.md.j2"
+  ".fabricator/templates/JTBD.md.j2"
+  ".fabricator/templates/JOB_HYPOTHESIS.md.j2"
+  ".fabricator/templates/HYPOTHESIS.md.j2"
+  ".fabricator/templates/ADR.md.j2"
+  ".fabricator/templates/PRD.md.j2"
+  ".fabricator/templates/SDS.md.j2"
+  ".fabricator/templates/TDD.md.j2"
+  ".fabricator/templates/CONTEXT_PACK.md.j2"
+  ".fabricator/templates/AGENT_TASK.md.j2"
+  ".fabricator/templates/EVAL_CHECKLIST.md.j2"
+  ".fabricator/templates/PROOF_RECORD.md.j2"
+  ".fabricator/templates/REFLECTION.md.j2"
+  ".fabricator/templates/NO_SKILL_PROPOSED.md.j2"
+  ".fabricator/templates/ADAPTATION_DECISION.yaml.j2"
+  "scripts/fabricate.py"
+  "docs/fabrication-layer/README.md"
+  "docs/fabrication-layer/howto/create-a-product-seed.md"
+  "docs/fabrication-layer/howto/generate-a-fabrication-packet.md"
+  "docs/fabrication-layer/howto/hand-off-to-claude-code.md"
+  "docs/fabrication-layer/howto/verify-a-prototype.md"
+  "docs/fabrication-layer/howto/capture-run-learning.md"
+  "docs/fabrication-layer/explanations/artifact-chain.md"
+  "docs/fabrication-layer/explanations/baml-generation-model.md"
+  "docs/fabrication-layer/explanations/proof-before-completion.md"
+  "docs/fabrication-layer/references/artifact-schemas.md"
+  "docs/fabrication-layer/references/command-contract.md"
+  "docs/fabrication-layer/references/html5-game-pilot.md"
   ".mise.toml"
   "devbox.json"
   "docs/dev-harness/README.md"
@@ -161,6 +217,14 @@ grep -qE '^harness-trace-distill trace:' justfile
 grep -qE '^harness-sync-learning-store db_path="":' justfile
 grep -qE '^harness-query-learning-store mode="summaries" limit="10" status="any" job_type="any" db_path="":' justfile
 grep -qE '^harness-eval-learning-retrieval db_path="":' justfile
+grep -qE '^harness-eval-run spec output="":' justfile
+grep -qE '^fabricate-new seed:' justfile
+grep -qE '^fabricate-generate run_id:' justfile
+grep -qE '^fabricate-validate run_id:' justfile
+grep -qE '^fabricate-handoff run_id:' justfile
+grep -qE '^fabricate-proof run_id:' justfile
+grep -qE '^fabricate-reflect run_id:' justfile
+grep -qE '^fabricate-status run_id:' justfile
 grep -qE '^harness-plan-learning-store backend="both":' justfile
 grep -qE '^agent-hooks-trace-last:' justfile
 grep -qE '^agent-hooks-trace-session session_id:' justfile
@@ -182,7 +246,149 @@ grep -q '\*\.plain\.\*' .gitignore
 grep -q 'sops' .gitignore
 grep -q 'SWE_SEED' package.json
 grep -q 'swe-seed' pyproject.toml
+python scripts/fabricate.py --help >/tmp/swe-seed-fabricate-help.log
+grep -q 'fabricate' /tmp/swe-seed-fabricate-help.log
 python scripts/harness.py validate
+obsolete_fabrication_alias="FABRICATION_LAYER""_SPEC_v0.1.0.md"
+if [[ -f "$obsolete_fabrication_alias" ]]; then
+  echo "Obsolete fabrication-layer alias still exists" >&2
+  exit 1
+fi
+uv run baml-cli generate --from .agent-harness/baml/baml_src >/tmp/swe-seed-baml-generate.log
+grep -q 'Generated' /tmp/swe-seed-baml-generate.log
+grep -q 'class ProductHypothesis' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'target_job string' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'value_proposition string' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'class JobStory' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'enum EARSPattern' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'class EARSRequirement' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'class YStatement' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'class SDSComponent' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'class GherkinScenario' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'class TraceabilityLink' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'requirements EARSRequirement\[\]' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'y_statements YStatement\[\]' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'components SDSComponent\[\]' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'scenarios GherkinScenario\[\]' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateProductHypothesis' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateJobStory' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateEARSRequirements' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateYStatementADR' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateSDSComponents' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateGherkinScenarios' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateEvalSpecFromSemanticChain' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function GenerateAgentTaskFromSemanticChain' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function ValidateSemanticChain' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'function ProposeTraceabilityRepair' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'Every requirement MUST use EARS format' .agent-harness/baml/baml_src/fabricator.baml
+grep -q 'Semantic Specification Chain' SWE_SEED_SPEC_v0.2.0.md
+grep -q 'Semantic Specification Chain' FABRICATOR_SPEC_v0.1.0.md
+grep -q 'just fabricate-new <seed>' SWE_SEED_SPEC_v0.2.0.md
+grep -q 'scripts/fabricate.py' SWE_SEED_SPEC_v0.2.0.md
+grep -q 'eval-spec.schema.yaml' FABRICATOR_SPEC_v0.1.0.md
+grep -q 'NO_SKILL_PROPOSED.md.j2' FABRICATOR_SPEC_v0.1.0.md
+grep -q 'EVAL_RESULT.json' FABRICATOR_SPEC_v0.1.0.md
+grep -q 'Deterministic Serialization' FABRICATOR_SPEC_v0.1.0.md
+grep -q 'Semantic Chain Validation' SWE_SEED_SPEC_v0.2.0.md
+grep -q '## Job Story Syntax' FABRICATOR_SPEC_v0.1.0.md
+grep -q '## Y-Statement ADR Syntax' FABRICATOR_SPEC_v0.1.0.md
+grep -q '## SDS Structural Requirements' FABRICATOR_SPEC_v0.1.0.md
+grep -q '## Gherkin Behavioral Syntax' FABRICATOR_SPEC_v0.1.0.md
+grep -q 'No Gherkin scenario may be considered satisfied' FABRICATOR_SPEC_v0.1.0.md
+fabricator_seed=$(mktemp --suffix=.fabricator-seed.yaml)
+cat >"$fabricator_seed" <<'YAML'
+run_id: "0001-focus-runner"
+product_type: "single_page_html5_game"
+user: "casual player with 60 seconds"
+situation: "player opens a local browser game with no setup"
+desired_outcome: "player experiences how distractions compete with focus"
+prototype_goal: "create a playable one-file HTML5 canvas game"
+constraints:
+  - "index.html only"
+  - "vanilla HTML/CSS/JS"
+  - "no backend"
+  - "no external assets"
+  - "no network calls"
+non_goals:
+  - "no multiplayer"
+  - "no account system"
+  - "no build system"
+success_conditions:
+  - "game opens locally"
+  - "player can move"
+  - "score changes"
+  - "win/loss condition works"
+  - "restart works"
+proof_expectations:
+  - "manual browser checklist passes"
+  - "no console errors on load"
+YAML
+python scripts/fabricate.py new "$fabricator_seed" >/tmp/swe-seed-fabricate-new.log
+grep -q '0001-focus-runner' /tmp/swe-seed-fabricate-new.log
+python scripts/fabricate.py generate 0001-focus-runner >/tmp/swe-seed-fabricate-generate.log
+grep -q 'generated' /tmp/swe-seed-fabricate-generate.log
+python scripts/fabricate.py validate 0001-focus-runner >/tmp/swe-seed-fabricate-validate.log
+grep -q '"status": "pass"' /tmp/swe-seed-fabricate-validate.log
+python scripts/fabricate.py handoff 0001-focus-runner >/tmp/swe-seed-fabricate-handoff.log
+grep -q 'AGENT_TASK.md' /tmp/swe-seed-fabricate-handoff.log
+python scripts/fabricate.py proof 0001-focus-runner >/tmp/swe-seed-fabricate-proof.log
+grep -q '"status": "pass"' /tmp/swe-seed-fabricate-proof.log
+python scripts/fabricate.py reflect 0001-focus-runner >/tmp/swe-seed-fabricate-reflect.log
+grep -q 'REFLECTION.md' /tmp/swe-seed-fabricate-reflect.log
+python scripts/fabricate.py status 0001-focus-runner >/tmp/swe-seed-fabricate-status.log
+grep -q '"run_id": "0001-focus-runner"' /tmp/swe-seed-fabricate-status.log
+eval_spec_path=$(mktemp --suffix=.EVAL_SPEC.yaml)
+eval_result_path=$(mktemp --suffix=.EVAL_RESULT.json)
+cat >"$eval_spec_path" <<'JSON'
+{
+  "id": "harness-smoke-eval",
+  "version": "0.1.0",
+  "run_id": "validate-harness",
+  "target_type": "repo",
+  "target_path": "HARNESS_SPEC.md",
+  "purpose": "Verify local EvalSpec and EvalResult execution.",
+  "eval_classes": [
+    "product_outcome",
+    "process_compliance",
+    "learning_quality",
+    "adaptation_eligibility"
+  ],
+  "checks": [
+    {
+      "id": "root-spec-exists",
+      "class": "process_compliance",
+      "type": "file_exists",
+      "target": "HARNESS_SPEC.md",
+      "required": true,
+      "rule": "file exists",
+      "evidence_required": ["observed file"]
+    },
+    {
+      "id": "root-spec-has-eval-layer",
+      "class": "process_compliance",
+      "type": "static_required_patterns",
+      "target": "HARNESS_SPEC.md",
+      "required": true,
+      "rule": ["Evaluation and Adaptation Layer"],
+      "evidence_required": ["observed required section"]
+    },
+    {
+      "id": "release-evidence-recorded",
+      "class": "learning_quality",
+      "type": "manual_check",
+      "target": "HARNESS_SPEC.md",
+      "required": true,
+      "rule": "operator evidence recorded",
+      "evidence": ["tests/validate-harness.sh executed local eval runner"],
+      "evidence_required": ["manual evidence"]
+    }
+  ],
+  "pass_condition": "all required checks pass",
+  "outputs": ["EVAL_RESULT.json"]
+}
+JSON
+python scripts/harness.py eval run "$eval_spec_path" --output "$eval_result_path" >/tmp/swe-seed-eval-run.log
+grep -q '"status": "pass"' "$eval_result_path"
 route_output=$(python scripts/harness.py route "fix a failing regression test")
 grep -q '"job_type": "bugfix"' <<<"$route_output"
 route_output=$(python scripts/harness.py route "the login form is broken")

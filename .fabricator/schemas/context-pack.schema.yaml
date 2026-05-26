@@ -1,0 +1,94 @@
+title: ContextPack
+type: object
+required:
+  - run_id
+  - objective
+  - current_artifact_chain
+  - required_context
+  - linked_specs
+  - constraints
+  - non_goals
+  - allowed_files
+  - forbidden_files
+  - allowed_actions
+  - forbidden_actions
+  - success_conditions
+  - proof_expectations
+  - escalation_triggers
+properties:
+  run_id:
+    type: string
+  objective:
+    type: string
+  current_artifact_chain:
+    type: array
+    items:
+      type: string
+  artifact_chain:
+    type: array
+    items:
+      type: string
+  required_context:
+    type: array
+    items:
+      type: string
+  linked_specs:
+    type: array
+    items:
+      type: string
+  constraints:
+    type: array
+    items:
+      type: string
+  non_goals:
+    type: array
+    items:
+      type: string
+  allowed_files:
+    type: array
+    items:
+      type: string
+  forbidden_files:
+    type: array
+    items:
+      type: string
+  allowed_actions:
+    type: array
+    items:
+      type: string
+  forbidden_actions:
+    type: array
+    items:
+      type: string
+  success_conditions:
+    type: array
+    items:
+      type: string
+  proof_expectations:
+    type: array
+    items:
+      type: string
+  escalation_triggers:
+    type: array
+    items:
+      type: string
+  context_budget:
+    type: string
+  stale_context_warnings:
+    type: array
+    items:
+      type: string
+  freshness_rules:
+    type: array
+    items:
+      type: string
+  relevant_prior_lessons:
+    type: array
+    items:
+      type: string
+  excluded_context:
+    type: array
+    items:
+      type: string
+  open_ambiguities_summary:
+    type: string

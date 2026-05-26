@@ -1,0 +1,31 @@
+title: EvalChecklist
+type: object
+required:
+  - run_id
+  - checklist_id
+  - eval_spec_id
+  - checks
+properties:
+  run_id:
+    type: string
+  checklist_id:
+    type: string
+  eval_spec_id:
+    type: string
+  checks:
+    type: array
+    items:
+      type: object
+      required:
+        - id
+        - source_check_id
+        - description
+      properties:
+        id:
+          type: string
+        source_check_id:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean

@@ -1,0 +1,23 @@
+---
+artifact: ADR
+run_id: {{run_id}}
+adr_id: ADR-001
+y_statement_id: Y-001
+---
+
+# ADR
+
+## Decision
+
+- ADR ID: ADR-001
+- Y-Statement ID: Y-001
+
+In the context of `{{run_id}}`, facing the need to `{{prototype_goal}}`, we decided for a local,
+single-file implementation and against a server-backed or build-dependent stack to achieve a
+reproducible proof path from seed to prototype.
+
+## Consequences
+
+- Positive: local verification stays simple and portable.
+- Positive: agent handoff stays bounded to a small file set.
+- Tradeoff: proof is static by default and still benefits from manual play verification.

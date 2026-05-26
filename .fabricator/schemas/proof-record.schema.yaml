@@ -1,0 +1,11 @@
+title: ProofRecord
+type: object
+required:
+  - proof_id
+  - status
+  - checks
+properties:
+  proof_id: { type: string }
+  status: { type: string }
+  checks:
+    type: array

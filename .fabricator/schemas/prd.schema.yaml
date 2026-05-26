@@ -1,0 +1,9 @@
+title: PRD
+type: object
+required:
+  - requirements
+properties:
+  requirements:
+    type: array
+  non_goals:
+    type: array

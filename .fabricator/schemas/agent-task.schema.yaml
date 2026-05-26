@@ -1,0 +1,62 @@
+title: AgentTask
+type: object
+required:
+  - task_id
+  - role
+  - mission
+  - input_artifacts
+  - allowed_files
+  - forbidden_files
+  - allowed_actions
+  - forbidden_actions
+  - implementation_steps
+  - proof_steps
+  - done_when
+  - final_response_requirements
+properties:
+  task_id:
+    type: string
+  role:
+    type: string
+  mission:
+    type: string
+  input_artifacts:
+    type: array
+    items:
+      type: string
+  allowed_files:
+    type: array
+    items:
+      type: string
+  forbidden_files:
+    type: array
+    items:
+      type: string
+  allowed_actions:
+    type: array
+    items:
+      type: string
+  forbidden_actions:
+    type: array
+    items:
+      type: string
+  implementation_steps:
+    type: array
+    items:
+      type: string
+  proof_steps:
+    type: array
+    items:
+      type: string
+  done_when:
+    type: array
+    items:
+      type: string
+  final_response_requirements:
+    type: array
+    items:
+      type: string
+  forbidden_behaviors:
+    type: array
+    items:
+      type: string

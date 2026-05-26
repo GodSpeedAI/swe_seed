@@ -63,6 +63,30 @@ harness-query-learning-store mode="summaries" limit="10" status="any" job_type="
 harness-eval-learning-retrieval db_path="":
     @bash scripts/eval-learning-retrieval.sh "{{db_path}}"
 
+harness-eval-run spec output="":
+    @if [ -n "{{output}}" ]; then python scripts/harness.py eval run "{{spec}}" --output "{{output}}"; else python scripts/harness.py eval run "{{spec}}"; fi
+
+fabricate-new seed:
+    @python scripts/fabricate.py new "{{seed}}"
+
+fabricate-generate run_id:
+    @python scripts/fabricate.py generate "{{run_id}}"
+
+fabricate-validate run_id:
+    @python scripts/fabricate.py validate "{{run_id}}"
+
+fabricate-handoff run_id:
+    @python scripts/fabricate.py handoff "{{run_id}}"
+
+fabricate-proof run_id:
+    @python scripts/fabricate.py proof "{{run_id}}"
+
+fabricate-reflect run_id:
+    @python scripts/fabricate.py reflect "{{run_id}}"
+
+fabricate-status run_id:
+    @python scripts/fabricate.py status "{{run_id}}"
+
 agent-hooks-trace-last:
     @scripts/agent-hooks trace --last
 

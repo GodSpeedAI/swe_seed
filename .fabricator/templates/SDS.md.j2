@@ -1,0 +1,25 @@
+---
+artifact: SDS
+run_id: {{run_id}}
+---
+
+# SDS
+
+## Structure
+
+{{component_table}}
+
+## Mermaid
+
+```mermaid
+flowchart LR
+  JOB[{{job_id}}]
+  ADR[ADR-001]
+  PRD[PRD Requirements]
+  SDS[SDS Components]
+  TDD[TDD Scenarios]
+  EVAL[Eval Checks]
+  TASK[Agent Task]
+  PROOF[Proof Record]
+  JOB --> ADR --> PRD --> SDS --> TDD --> EVAL --> TASK --> PROOF
+```

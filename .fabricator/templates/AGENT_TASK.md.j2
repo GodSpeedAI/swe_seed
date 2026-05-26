@@ -1,0 +1,30 @@
+---
+artifact: AGENT_TASK
+run_id: {{run_id}}
+task_id: TASK-001
+---
+
+# Agent Task
+
+## Mission
+
+Produce or refine the prototype so the chain `{{requirement_ids}} -> {{scenario_ids}} -> {{check_ids}}`
+is satisfied without violating the bounded context pack.
+
+## Allowed Actions
+
+- Edit files inside the run prototype directory.
+- Use only the linked specs and generated context pack.
+- Improve implementation only when it strengthens proof or traceability.
+
+## Forbidden Actions
+
+- Add network dependencies or external assets.
+- Expand scope beyond the bounded product seed.
+- Claim completion without proof artifacts.
+
+## Done When
+
+- Prototype exists and reflects the linked requirements.
+- Eval checks are runnable.
+- Proof record and reflection artifacts are present.

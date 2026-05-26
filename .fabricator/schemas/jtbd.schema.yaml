@@ -1,0 +1,14 @@
+title: JTBD
+type: object
+required:
+  - job_id
+  - job_story
+  - user
+  - situation
+  - desired_outcome
+properties:
+  job_id: { type: string }
+  job_story: { type: string }
+  user: { type: string }
+  situation: { type: string }
+  desired_outcome: { type: string }

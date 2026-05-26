@@ -1,0 +1,65 @@
+title: EvalSpec
+type: object
+required:
+  - eval_id
+  - version
+  - run_id
+  - target_type
+  - target_path
+  - purpose
+  - eval_classes
+  - pass_condition
+  - outputs
+  - checks
+properties:
+  eval_id:
+    type: string
+  version:
+    type: string
+  run_id:
+    type: string
+  target_type:
+    type: string
+  target_path:
+    type: string
+  purpose:
+    type: string
+  eval_classes:
+    type: array
+    items:
+      type: string
+  pass_condition:
+    type: string
+  outputs:
+    type: array
+    items:
+      type: string
+  checks:
+    type: array
+    items:
+      type: object
+      required:
+        - id
+        - class
+        - type
+        - target
+        - required
+        - rule
+        - evidence_required
+      properties:
+        id:
+          type: string
+        class:
+          type: string
+        type:
+          type: string
+        target:
+          type: string
+        required:
+          type: boolean
+        rule:
+          oneOf:
+            - type: string
+            - type: object
+        evidence_required:
+          type: string

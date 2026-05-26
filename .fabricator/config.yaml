@@ -1,0 +1,31 @@
+version: 0.1
+default_product_type: single_page_html5_game
+template_root: .fabricator/templates
+schema_root: .fabricator/schemas
+run_root: .fabricator/runs
+generated_dir_name: generated
+prototype_dir_name: prototype
+proof_dir_name: proof
+handoff_dir_name: handoff
+required_generated_artifacts:
+  - PRODUCT_SEED.md
+  - JTBD.md
+  - JOB_HYPOTHESIS.md
+  - HYPOTHESIS.md
+  - ADR.md
+  - PRD.md
+  - SDS.md
+  - TDD.md
+  - CONTEXT_PACK.md
+  - AGENT_TASK.md
+  - EVAL_CHECKLIST.md
+  - EVAL_SPEC.yaml
+  - PROOF_RECORD.md
+  - REFLECTION.md
+  - ADAPTATION_DECISION.yaml
+  - EVAL_RESULT.json
+  - NO_SKILL_PROPOSED.md
+defaults:
+  proof_mode: static_html_scan
+  no_skill_record: NO_SKILL_PROPOSED.md
+  handoff_manifest: MANIFEST.json

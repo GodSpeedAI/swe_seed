@@ -1,0 +1,41 @@
+title: Reflection
+type: object
+required:
+  - reflection_id
+  - evidence
+  - lesson_candidates
+properties:
+  reflection_id:
+    type: string
+  evidence:
+    type: array
+    items:
+      type: object
+      required:
+        - source
+        - summary
+      properties:
+        source:
+          type: string
+        summary:
+          type: string
+        artifact:
+          type: string
+  lesson_candidates:
+    type: array
+    items:
+      type: object
+      required:
+        - claim
+        - confidence
+      properties:
+        claim:
+          type: string
+        confidence:
+          type: string
+        scope:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
