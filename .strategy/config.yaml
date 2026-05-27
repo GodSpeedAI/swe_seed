@@ -1,0 +1,23 @@
+version: 0.1
+layer_mode: standalone_optional
+python_runtime:
+  preference: canonical
+  fallback_virtualenv: .strategy/.venv
+paths:
+  briefs: briefs
+  need_signals: need-signals
+  options: options
+  gaps: gaps
+  research_prompts: research-prompts
+  research_reports: research-reports
+  tests: tests
+  evidence: evidence
+  decisions: decisions
+  research: research
+  backlog: backlog
+required_example_artifacts:
+  - briefs/reverse-engineering-agentic-dev-harness.md
+  - options/option.agentic_dev_harness.yaml
+  - gaps/gap.agentic_dev_harness.purchase_behavior.md
+  - research-prompts/prompt.agentic_dev_purchase_behavior.md
+  - research/strategy-eval.agentic_dev_harness.yaml

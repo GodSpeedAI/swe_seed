@@ -1,0 +1,51 @@
+title: ResearchPromptPacket
+type: object
+required:
+  - research_prompt_packet
+properties:
+  research_prompt_packet:
+    type: object
+    required:
+      - id
+      - strategy_option_id
+      - evidence_gap_report_id
+      - title
+      - research_type
+      - strategic_context
+      - condition_being_tested
+      - missing_information
+      - research_objective
+      - research_questions
+      - source_priorities
+      - required_outputs
+      - anti_bias_instructions
+      - final_report_format
+      - decision_use
+    properties:
+      id: { type: string }
+      strategy_option_id: { type: string }
+      evidence_gap_report_id: { type: string }
+      title: { type: string }
+      research_type: { type: string }
+      strategic_context: { type: string }
+      condition_being_tested: { type: string }
+      missing_information: { type: string }
+      research_objective: { type: string }
+      research_questions:
+        type: array
+        items:
+          type: object
+      source_priorities:
+        type: array
+        items:
+          type: object
+      required_outputs:
+        type: array
+        items:
+          type: string
+      anti_bias_instructions:
+        type: array
+        items:
+          type: string
+      final_report_format: { type: string }
+      decision_use: { type: string }

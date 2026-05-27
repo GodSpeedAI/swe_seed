@@ -1,0 +1,17 @@
+strategy_eval_spec:
+  id: strategy-eval.agentic_dev_harness
+  strategy_option_id: option.agentic_dev_harness
+  decision_status: delegate_research
+  checks:
+    - id: evidence.gaps_identified
+      question: Have critical evidence gaps been identified before decision?
+      pass_criteria: At least one critical gap is recorded.
+      evidence_required: EvidenceGapReport
+    - id: research.prompts_generated
+      question: Were research prompts generated for unresolved critical gaps?
+      pass_criteria: Research prompt packet exists.
+      evidence_required: ResearchPromptPacket
+    - id: decision.evidence_sufficiency
+      question: Is the evidence strong enough for the proposed decision status?
+      pass_criteria: Decision status is not commit while critical gaps remain.
+      evidence_required: StrategyDecisionRecord

@@ -1,0 +1,19 @@
+title: StrategicQuestion
+type: object
+required:
+  - strategic_question
+properties:
+  strategic_question:
+    type: object
+    required:
+      - id
+      - question
+    properties:
+      id:
+        type: string
+      question:
+        type: string
+      decision_scope:
+        type: string
+      owner:
+        type: string

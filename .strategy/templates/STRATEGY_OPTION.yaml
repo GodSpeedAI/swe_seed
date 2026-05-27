@@ -1,0 +1,5 @@
+strategy_option:
+  id: { { option_id } }
+  title: "{{question}}"
+  status: research_needed
+  strategic_question: "{{question}}"

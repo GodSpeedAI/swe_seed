@@ -40,3 +40,15 @@ properties:
     items:
       type: string
     uniqueItems: true
+  strategy_option_id:
+    type: string
+  strategy_decision_record_id:
+    type: string
+  strategy_evidence_ids:
+    type: array
+    items:
+      type: string
+  strategy_evidence_gap_ids:
+    type: array
+    items:
+      type: string

@@ -1,0 +1,25 @@
+title: ResearchReport
+type: object
+required:
+  - research_report
+properties:
+  research_report:
+    type: object
+    required:
+      - id
+      - title
+      - executive_summary
+      - findings
+      - confidence
+      - limitations
+    properties:
+      id: { type: string }
+      title: { type: string }
+      executive_summary: { type: string }
+      methods: { type: array }
+      sources: { type: array }
+      findings: { type: array }
+      evidence_supporting: { type: array }
+      evidence_weakening: { type: array }
+      confidence: { type: string }
+      limitations: { type: array }

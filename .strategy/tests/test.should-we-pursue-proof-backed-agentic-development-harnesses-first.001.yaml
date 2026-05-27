@@ -1,0 +1,9 @@
+strategy_test:
+  id: test.should-we-pursue-proof-backed-agentic-development-harnesses-first.001
+  strategy_option_id: option.should-we-pursue-proof-backed-agentic-development-harnesses-first
+  condition_id: condition.should-we-pursue-proof-backed-agentic-development-harnesses-first.purchase_behavior
+  method: purchase_behavior_research
+  pass_criteria: Direct or adjacent paid solutions validate category spend.
+  fail_criteria: Only curiosity and unpaid workarounds are visible.
+  owner: operator
+  due_date: TBD

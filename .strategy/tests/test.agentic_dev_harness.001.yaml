@@ -1,0 +1,9 @@
+strategy_test:
+  id: test.agentic_dev_harness.001
+  strategy_option_id: option.agentic_dev_harness
+  condition_id: condition.agentic_dev_harness.purchase_behavior
+  method: purchase_behavior_research
+  pass_criteria: Direct or adjacent paid solutions demonstrate money already moves around the job.
+  fail_criteria: Only interest or free workaround evidence exists.
+  owner: operator
+  due_date: TBD

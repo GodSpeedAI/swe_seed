@@ -1,0 +1,58 @@
+title: StrategyOption
+type: object
+required:
+  - strategy_option
+properties:
+  strategy_option:
+    type: object
+    required:
+      - id
+      - title
+      - status
+      - strategic_question
+      - winning_aspiration
+      - where_to_play
+      - how_to_win
+      - capabilities_required
+      - management_systems_required
+      - conditions_that_must_be_true
+      - evidence_gaps
+      - tests
+      - evidence
+      - decision
+    properties:
+      id: { type: string }
+      title: { type: string }
+      status: { type: string }
+      strategic_question: { type: string }
+      winning_aspiration: { type: string }
+      where_to_play:
+        type: object
+      how_to_win:
+        type: object
+      capabilities_required:
+        type: array
+        items:
+          type: object
+      management_systems_required:
+        type: array
+        items:
+          type: object
+      conditions_that_must_be_true:
+        type: array
+        items:
+          type: object
+      evidence_gaps:
+        type: array
+        items:
+          type: object
+      tests:
+        type: array
+        items:
+          type: object
+      evidence:
+        type: array
+        items:
+          type: object
+      decision:
+        type: object

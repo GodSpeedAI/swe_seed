@@ -1,0 +1,16 @@
+title: PurchaseEvidence
+type: object
+required:
+  - purchase_evidence
+properties:
+  purchase_evidence:
+    type: object
+    required:
+      - type
+    properties:
+      type: { type: string }
+      solution: { type: string }
+      buyer: { type: string }
+      job_served: { type: string }
+      price_anchor: { type: string }
+      implication: { type: string }

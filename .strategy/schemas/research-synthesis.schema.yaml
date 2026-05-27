@@ -1,0 +1,41 @@
+title: ResearchSynthesis
+type: object
+required:
+  - research_synthesis
+properties:
+  research_synthesis:
+    type: object
+    required:
+      - id
+      - research_report_ids
+      - facts
+      - interpretations
+      - unanswered_questions
+      - decision_implications
+    properties:
+      id: { type: string }
+      research_report_ids:
+        type: array
+        items:
+          type: string
+      facts:
+        type: array
+        items:
+          type: string
+      interpretations:
+        type: array
+        items:
+          type: string
+      assumptions:
+        type: array
+        items:
+          type: string
+      evidence_strength: { type: string }
+      unanswered_questions:
+        type: array
+        items:
+          type: string
+      decision_implications:
+        type: array
+        items:
+          type: string

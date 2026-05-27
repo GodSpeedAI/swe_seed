@@ -1,0 +1,18 @@
+# Evidence Gap Report
+
+- Gap ID: gap.agentic_dev_harness.purchase_behavior
+- Strategy Option: option.agentic_dev_harness
+- Strategic Question: Should we pursue a first wedge around proof-backed agentic development harnesses?
+
+## Missing Information
+
+- Whether target users already spend money on comparable or adjacent solutions around AI-assisted development reliability.
+
+## Why It Matters
+
+- Without purchase behavior evidence, commitment would confuse intellectual interest with commercial demand.
+
+## Recommended Research
+
+- Run purchase behavior research.
+- Distinguish direct, adjacent, and analogical evidence.

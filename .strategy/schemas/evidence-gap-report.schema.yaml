@@ -1,0 +1,26 @@
+title: EvidenceGapReport
+type: object
+required:
+  - evidence_gap_report
+properties:
+  evidence_gap_report:
+    type: object
+    required:
+      - id
+      - strategy_option_id
+      - strategic_question
+      - gaps
+      - decision_impact
+      - summary
+    properties:
+      id: { type: string }
+      strategy_option_id: { type: string }
+      strategic_question: { type: string }
+      gaps:
+        type: array
+        items:
+          type: object
+      decision_impact:
+        type: object
+      summary:
+        type: string

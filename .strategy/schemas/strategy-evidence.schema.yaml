@@ -1,0 +1,22 @@
+title: StrategyEvidence
+type: object
+required:
+  - strategy_evidence
+properties:
+  strategy_evidence:
+    type: object
+    required:
+      - id
+      - strategy_option_id
+      - source
+      - summary
+      - confidence
+    properties:
+      id: { type: string }
+      strategy_option_id: { type: string }
+      source: { type: string }
+      evidence_type: { type: string }
+      summary: { type: string }
+      supports: { type: array }
+      weakens: { type: array }
+      confidence: { type: string }

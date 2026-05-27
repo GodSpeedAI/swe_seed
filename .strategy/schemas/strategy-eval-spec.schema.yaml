@@ -1,0 +1,29 @@
+title: StrategyEvalSpec
+type: object
+required:
+  - strategy_eval_spec
+properties:
+  strategy_eval_spec:
+    type: object
+    required:
+      - id
+      - strategy_option_id
+      - checks
+    properties:
+      id: { type: string }
+      strategy_option_id: { type: string }
+      decision_status: { type: string }
+      checks:
+        type: array
+        items:
+          type: object
+          required:
+            - id
+            - question
+            - pass_criteria
+            - evidence_required
+          properties:
+            id: { type: string }
+            question: { type: string }
+            pass_criteria: { type: string }
+            evidence_required: { type: string }

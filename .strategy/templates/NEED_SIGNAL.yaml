@@ -1,0 +1,15 @@
+need_signal:
+  id: { { need_signal_id } }
+  captured_at: { { created_at } }
+  exact_language: "{{question}}"
+  situation: unknown
+  struggle: unknown
+  current_workaround: unknown
+  desired_outcome: unknown
+  constraint: unknown
+  system_friction: unknown
+  emotional_intensity: unknown
+  frequency: unknown
+  cost: unknown
+  evidence_source: direct-input
+  confidence: low

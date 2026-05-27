@@ -235,6 +235,22 @@ A generated prototype MUST NOT be treated as complete if proof and reflection ar
 compatibility mirror during migration, but it MUST preserve the same IDs and claims as
 `JOB_HYPOTHESIS.md`.
 
+## Optional Strategy Context
+
+The fabrication layer MAY accept upstream provenance from a standalone Strategy Layer when that
+improves traceability.
+
+Optional fields MAY be carried in `ProductSeed`, `ContextPack`, or `AgentTask`, including:
+
+- `strategy_option_id`
+- `strategy_decision_record_id`
+- `strategy_evidence_ids`
+- `strategy_evidence_gap_ids`
+- `strategy_question`
+
+These fields are optional provenance only. They MUST NOT make fabrication depend on the existence
+of a strategy layer.
+
 ## Semantic Specification Chain
 
 The fabrication layer uses a semantic specification chain to preserve intent from product discovery

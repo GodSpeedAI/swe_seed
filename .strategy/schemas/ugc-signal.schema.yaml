@@ -1,0 +1,18 @@
+title: UGCSignal
+type: object
+required:
+  - ugc_signal
+properties:
+  ugc_signal:
+    type: object
+    required:
+      - id
+      - source
+      - quote
+      - interpretation
+    properties:
+      id: { type: string }
+      source: { type: string }
+      quote: { type: string }
+      interpretation: { type: string }
+      confidence: { type: string }

@@ -1,0 +1,23 @@
+title: StrategyTest
+type: object
+required:
+  - strategy_test
+properties:
+  strategy_test:
+    type: object
+    required:
+      - id
+      - strategy_option_id
+      - condition_id
+      - method
+      - pass_criteria
+      - fail_criteria
+    properties:
+      id: { type: string }
+      strategy_option_id: { type: string }
+      condition_id: { type: string }
+      method: { type: string }
+      pass_criteria: { type: string }
+      fail_criteria: { type: string }
+      owner: { type: string }
+      due_date: { type: string }

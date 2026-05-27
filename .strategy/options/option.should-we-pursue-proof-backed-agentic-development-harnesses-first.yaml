@@ -1,0 +1,77 @@
+strategy_option:
+  id: option.should-we-pursue-proof-backed-agentic-development-harnesses-first
+  title: Proof-backed agentic development harness wedge
+  status: research_needed
+  strategic_question: Should we pursue proof-backed agentic development harnesses first?
+  winning_aspiration: Become the most trusted proof-backed workflow for agentic software delivery.
+  where_to_play:
+    segment: AI-native software teams
+    user_or_buyer: technical leads and builder-operators
+    use_case: proof-backed AI coding workflow governance
+    channel: open-source plus consulting-led adoption
+    geography: remote-first English-speaking teams
+    value_chain_stage: development workflow orchestration
+    constraints:
+      - stay lightweight
+      - no hosted dependency required
+    excluded_segments:
+      - large enterprise PMO transformation
+  how_to_win:
+    value_proposition: Provide file-first proof, traceability, and bounded agent execution instead of generic AI coding assistance.
+    differentiation_or_cost_position: Higher trust through proof discipline rather than lowest-cost automation.
+    unfair_advantage: Deep understanding of harness, fabrication, and proof-first workflows.
+    proof_of_value: Users can point to faster recovery and fewer false completion claims.
+    tradeoffs:
+      - Narrow wedge over broad productivity messaging
+      - Evidence-backed claims over growth theater
+    alternatives_rejected:
+      - generic AI IDE assistant
+      - full enterprise transformation suite
+  capabilities_required:
+    - capability: proof-system design
+      importance: high
+      current_strength: strong
+      obtain_by: build
+      evidence: Current harness and fabrication implementation
+  management_systems_required:
+    - system: decision review cadence
+      purpose: reassess strategy with new evidence
+      metric: evidence gap closure rate
+      cadence: weekly
+      owner: operator
+      evidence: decision record review
+  conditions_that_must_be_true:
+    - id: condition.should-we-pursue-proof-backed-agentic-development-harnesses-first.purchase_behavior
+      condition: Target users already spend money on comparable or adjacent reliability workflows.
+      category: purchase_behavior
+      confidence: low
+      evidence_currently_available: Anecdotal knowledge of AI tooling spend
+      evidence_missing: Direct or adjacent purchase evidence
+      test_required: purchase behavior research
+      research_required: "yes"
+  evidence_gaps:
+    - gap_id: gap.should-we-pursue-proof-backed-agentic-development-harnesses-first.001
+      missing_information: Validated purchase behavior for the target wedge
+      affected_condition_id: condition.should-we-pursue-proof-backed-agentic-development-harnesses-first.purchase_behavior
+      decision_blocked: commit
+      recommended_research_type: purchase_behavior_research
+      required_evidence_level: 3
+  tests:
+    - id: test.should-we-pursue-proof-backed-agentic-development-harnesses-first.001
+      condition_id: condition.should-we-pursue-proof-backed-agentic-development-harnesses-first.purchase_behavior
+      method: purchase_behavior_research
+      pass_criteria: Direct or adjacent paid solutions demonstrate money already moves around the job
+      fail_criteria: Only interest or free workaround evidence exists
+      owner: operator
+      due_date: TBD
+  evidence:
+    - source: internal hypothesis
+      evidence_type: analytical_inference
+      summary: The workflow appears painful and recurring for AI-assisted development teams.
+      supports: condition.should-we-pursue-proof-backed-agentic-development-harnesses-first.purchase_behavior
+      weakens: ""
+      confidence: low
+  decision:
+    status: delegate_research
+    reason: Critical purchase behavior evidence is missing.
+    next_action: Generate and run prompt.should-we-pursue-proof-backed-agentic-development-harnesses-first

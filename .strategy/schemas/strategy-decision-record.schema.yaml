@@ -1,0 +1,33 @@
+title: StrategyDecisionRecord
+type: object
+required:
+  - strategy_decision_record
+properties:
+  strategy_decision_record:
+    type: object
+    required:
+      - id
+      - strategy_option_id
+      - decision_status
+      - strategic_question
+      - decision_summary
+      - highest_evidence_level_reached
+      - next_action
+    properties:
+      id: { type: string }
+      strategy_option_id: { type: string }
+      decision_status: { type: string }
+      strategic_question: { type: string }
+      decision_summary: { type: string }
+      highest_evidence_level_reached: { type: integer }
+      evidence_sufficient_for:
+        type: array
+        items:
+          type: string
+      evidence_not_sufficient_for:
+        type: array
+        items:
+          type: string
+      next_action: { type: string }
+      owner: { type: string }
+      review_date: { type: string }

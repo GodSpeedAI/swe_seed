@@ -87,6 +87,39 @@ fabricate-reflect run_id:
 fabricate-status run_id:
     @python scripts/fabricate.py status "{{run_id}}"
 
+strategy-new question:
+    @python .strategy/strategy.py new "{{question}}"
+
+strategy-capture source:
+    @python .strategy/strategy.py capture "{{source}}"
+
+strategy-generate-options brief_id:
+    @python .strategy/strategy.py generate-options "{{brief_id}}"
+
+strategy-identify-gaps option_id:
+    @python .strategy/strategy.py identify-gaps "{{option_id}}"
+
+strategy-generate-research-prompts option_id:
+    @python .strategy/strategy.py generate-research-prompts "{{option_id}}"
+
+strategy-ingest-research-report report_path:
+    @python .strategy/strategy.py ingest-research-report "{{report_path}}"
+
+strategy-design-tests option_id:
+    @python .strategy/strategy.py design-tests "{{option_id}}"
+
+strategy-record-evidence test_id:
+    @python .strategy/strategy.py record-evidence "{{test_id}}"
+
+strategy-evaluate option_id:
+    @python .strategy/strategy.py evaluate "{{option_id}}"
+
+strategy-decide option_id:
+    @python .strategy/strategy.py decide "{{option_id}}"
+
+strategy-status option_id:
+    @python .strategy/strategy.py status "{{option_id}}"
+
 agent-hooks-trace-last:
     @scripts/agent-hooks trace --last
 

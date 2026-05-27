@@ -60,3 +60,7 @@ properties:
     type: array
     items:
       type: string
+  strategy_option_id:
+    type: string
+  strategy_decision_record_id:
+    type: string

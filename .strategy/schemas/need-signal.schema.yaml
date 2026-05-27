@@ -1,0 +1,42 @@
+title: NeedSignal
+type: object
+required:
+  - need_signal
+properties:
+  need_signal:
+    type: object
+    required:
+      - id
+      - captured_at
+      - exact_language
+      - evidence_source
+      - confidence
+    properties:
+      id:
+        type: string
+      captured_at:
+        type: string
+      exact_language:
+        type: string
+      situation:
+        type: string
+      struggle:
+        type: string
+      current_workaround:
+        type: string
+      desired_outcome:
+        type: string
+      constraint:
+        type: string
+      system_friction:
+        type: string
+      emotional_intensity:
+        type: string
+      frequency:
+        type: string
+      cost:
+        type: string
+      evidence_source:
+        type: string
+      confidence:
+        type: string

@@ -120,6 +120,15 @@ When the fabricator layer is packaged inside SWE Seed, the scaffold MUST also in
 - `scripts/fabricate.py` or an equivalent documented local command surface
 - `docs/fabrication-layer/` operator documentation
 
+SWE Seed MAY also accommodate optional self-contained layers that are not part of the mandatory
+root regeneration contract. When such a layer is packaged, SWE Seed SHOULD expose convenience
+commands and conditional validation without making the rest of the repository depend on that
+layer's presence.
+
+For the Strategy Layer specifically, accommodation MAY include `just strategy-*` aliases and
+conditional validation of `.strategy/`, but the harness and fabricator MUST remain valid if the
+strategy package is absent.
+
 When the fabricator layer is packaged inside SWE Seed, the validation script MUST also guard
 against lower-layer contract drift that a fresh agent could otherwise miss. At minimum it SHOULD
 catch:

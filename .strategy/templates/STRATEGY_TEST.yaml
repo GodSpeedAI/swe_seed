@@ -1,0 +1,9 @@
+strategy_test:
+  id: { { test_id } }
+  strategy_option_id: { { option_id } }
+  condition_id: condition.{{slug}}.purchase_behavior
+  method: purchase_behavior_research
+  pass_criteria: "Direct or adjacent paid evidence exists"
+  fail_criteria: "Only interest and free workaround evidence exists"
+  owner: operator
+  due_date: TBD

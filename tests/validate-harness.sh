@@ -225,6 +225,17 @@ grep -qE '^fabricate-handoff run_id:' justfile
 grep -qE '^fabricate-proof run_id:' justfile
 grep -qE '^fabricate-reflect run_id:' justfile
 grep -qE '^fabricate-status run_id:' justfile
+grep -qE '^strategy-new question:' justfile
+grep -qE '^strategy-capture source:' justfile
+grep -qE '^strategy-generate-options brief_id:' justfile
+grep -qE '^strategy-identify-gaps option_id:' justfile
+grep -qE '^strategy-generate-research-prompts option_id:' justfile
+grep -qE '^strategy-ingest-research-report report_path:' justfile
+grep -qE '^strategy-design-tests option_id:' justfile
+grep -qE '^strategy-record-evidence test_id:' justfile
+grep -qE '^strategy-evaluate option_id:' justfile
+grep -qE '^strategy-decide option_id:' justfile
+grep -qE '^strategy-status option_id:' justfile
 grep -qE '^harness-plan-learning-store backend="both":' justfile
 grep -qE '^agent-hooks-trace-last:' justfile
 grep -qE '^agent-hooks-trace-session session_id:' justfile
@@ -295,6 +306,67 @@ grep -q '## Y-Statement ADR Syntax' FABRICATOR_SPEC_v0.1.0.md
 grep -q '## SDS Structural Requirements' FABRICATOR_SPEC_v0.1.0.md
 grep -q '## Gherkin Behavioral Syntax' FABRICATOR_SPEC_v0.1.0.md
 grep -q 'No Gherkin scenario may be considered satisfied' FABRICATOR_SPEC_v0.1.0.md
+if [[ -f ".strategy/STRATEGY_LAYER_SPEC_v0.1.0.md" ]]; then
+  strategy_required_files=(
+    ".strategy/config.yaml"
+    ".strategy/backlog/strategy-experiment-backlog.md"
+    ".strategy/schemas/need-signal.schema.yaml"
+    ".strategy/schemas/strategic-question.schema.yaml"
+    ".strategy/schemas/strategy-option.schema.yaml"
+    ".strategy/schemas/evidence-gap-report.schema.yaml"
+    ".strategy/schemas/research-prompt-packet.schema.yaml"
+    ".strategy/schemas/research-report.schema.yaml"
+    ".strategy/schemas/strategy-test.schema.yaml"
+    ".strategy/schemas/strategy-evidence.schema.yaml"
+    ".strategy/schemas/strategy-eval-spec.schema.yaml"
+    ".strategy/schemas/strategy-decision-record.schema.yaml"
+    ".strategy/schemas/ugc-signal.schema.yaml"
+    ".strategy/schemas/research-synthesis.schema.yaml"
+    ".strategy/schemas/purchase-evidence.schema.yaml"
+    ".strategy/templates/STRATEGY_BRIEF.md"
+    ".strategy/templates/NEED_SIGNAL.yaml"
+    ".strategy/templates/STRATEGY_OPTION.yaml"
+    ".strategy/templates/EVIDENCE_GAP_REPORT.md"
+    ".strategy/templates/RESEARCH_PROMPT_PACKET.md"
+    ".strategy/templates/RESEARCH_REPORT.md"
+    ".strategy/templates/STRATEGY_TEST.yaml"
+    ".strategy/templates/STRATEGY_EVIDENCE.md"
+    ".strategy/templates/STRATEGY_DECISION_RECORD.md"
+    ".strategy/templates/RESEARCH_SYNTHESIS.md"
+    ".strategy/templates/STRATEGY_EXPERIMENT_BACKLOG.md"
+    ".strategy/templates/PURCHASE_BEHAVIOR_RESEARCH.md"
+    ".strategy/options/option.agentic_dev_harness.yaml"
+    ".strategy/gaps/gap.agentic_dev_harness.purchase_behavior.md"
+    ".strategy/research-prompts/prompt.agentic_dev_purchase_behavior.md"
+    ".strategy/research/strategy-eval.agentic_dev_harness.yaml"
+    ".strategy/briefs/reverse-engineering-agentic-dev-harness.md"
+    ".strategy/strategy.py"
+  )
+  for file in "${strategy_required_files[@]}"; do
+    if [[ ! -f "$file" ]]; then
+      echo "Missing required strategy-layer file: $file" >&2
+      exit 1
+    fi
+  done
+  python .strategy/strategy.py --help >/tmp/swe-seed-strategy-help.log
+  grep -q 'strategy' /tmp/swe-seed-strategy-help.log
+  strategy_tmp=$(mktemp -d)
+  cp -R .strategy "$strategy_tmp/strategy-layer"
+  python "$strategy_tmp/strategy-layer/strategy.py" new "Should we test a research-first strategy wedge?" >/tmp/swe-seed-strategy-new.log
+  grep -q 'created briefs/' /tmp/swe-seed-strategy-new.log
+  python "$strategy_tmp/strategy-layer/strategy.py" generate-options brief.should-we-test-a-research-first-strategy-wedge >/tmp/swe-seed-strategy-generate.log
+  grep -q 'generated options/' /tmp/swe-seed-strategy-generate.log
+  python "$strategy_tmp/strategy-layer/strategy.py" identify-gaps option.should-we-test-a-research-first-strategy-wedge >/tmp/swe-seed-strategy-gaps.log
+  grep -q 'generated gaps/' /tmp/swe-seed-strategy-gaps.log
+  python "$strategy_tmp/strategy-layer/strategy.py" generate-research-prompts option.should-we-test-a-research-first-strategy-wedge >/tmp/swe-seed-strategy-prompts.log
+  grep -q 'generated research-prompts/' /tmp/swe-seed-strategy-prompts.log
+  python "$strategy_tmp/strategy-layer/strategy.py" design-tests option.should-we-test-a-research-first-strategy-wedge >/tmp/swe-seed-strategy-tests.log
+  grep -q 'generated tests/' /tmp/swe-seed-strategy-tests.log
+  python "$strategy_tmp/strategy-layer/strategy.py" decide option.should-we-test-a-research-first-strategy-wedge >/tmp/swe-seed-strategy-decide.log
+  grep -q 'generated decisions/' /tmp/swe-seed-strategy-decide.log
+  python "$strategy_tmp/strategy-layer/strategy.py" status option.should-we-test-a-research-first-strategy-wedge >/tmp/swe-seed-strategy-status.log
+  grep -q '"next_action": "review"' /tmp/swe-seed-strategy-status.log
+fi
 fabricator_seed=$(mktemp --suffix=.fabricator-seed.yaml)
 cat >"$fabricator_seed" <<'YAML'
 run_id: "0001-focus-runner"
