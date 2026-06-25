@@ -1,0 +1,1055 @@
+{
+  "project_name": "SWE_SEED",
+  "audit_date": "2026-06-14",
+  "repo_root": "/home/sprime01/projects/SWE_SEED",
+  "summary": {
+    "outcomes_total": 22,
+    "implemented": 16,
+    "partially_implemented": 3,
+    "declared_only": 2,
+    "test_only": 1,
+    "config_only": 0,
+    "contradicted": 0,
+    "unclear": 0
+  },
+  "outcomes": [
+    {
+      "id": "OUT-001",
+      "name": "Semantic routing to a route card",
+      "statement": "Given a free-text task, the system selects exactly one of 11 job-type route cards (or a safe bootstrap default) and returns the required context, skills, work loop, artifacts, proof, and next action.",
+      "actor_user": "Agent / developer issuing a task",
+      "settlement_criterion": "harness.py route returns JSON with job_type, route_card, work_loop, proof, done_when, next_action matching documented precedence rules",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "README.md",
+          "symbol_or_section": "Quick Start",
+          "note": "documents harness.py route"
+        },
+        {
+          "path": ".agent-harness/config.yaml",
+          "symbol_or_section": "routes.semantic_fallback",
+          "note": "deterministic_token_overlap"
+        },
+        {
+          "path": ".agent-harness/evals/route-conflicts.md",
+          "symbol_or_section": "Conflict Evals",
+          "note": "precedence rules"
+        },
+        {
+          "path": ".agent-harness/routes/*.json",
+          "symbol_or_section": "11 route cards",
+          "note": "triggers, examples, work_loop, proof"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "score_route:1528",
+          "note": "token-overlap scoring"
+        },
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "infer_bootstrap_route:1559",
+          "note": "conservative spec fallback"
+        },
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "build_route_result:1595 / route:1644",
+          "note": "assembles full result + next_action"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "route assertions",
+          "note": "6 routing cases incl. conflict resolution"
+        },
+        {
+          "path": ".agent-harness/traces/route-decisions/20260525T111113Z-*.json",
+          "symbol_or_section": "real captured decision",
+          "note": "decision_basis: deterministic token overlap"
+        }
+      ],
+      "runtime_path": "main() -> route() -> build_route_result() -> score_route() over route_paths() -> write_route_decision() -> stdout",
+      "gaps": [],
+      "reviewer_notes": "Confirm conflict-eval precedence still holds after route-card edits (gated by validate-harness.sh)."
+    },
+    {
+      "id": "OUT-002",
+      "name": "Harness structural-contract validation",
+      "statement": "The system fails locally and in CI if any required harness artifact, route card, skill, memory file, playbook, eval, hook, or BAML contract is missing, malformed, or too thin.",
+      "actor_user": "Operator / CI",
+      "settlement_criterion": "harness.py validate exits non-zero with a specific error list on any contract violation; exits 0 with 'Harness validation passed' when conformant",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "Enterprise Completion Policy:36",
+          "note": "MUST reject incomplete artifacts"
+        },
+        {
+          "path": ".agent-harness/config.yaml",
+          "symbol_or_section": "validation",
+          "note": "required_paths, min_words, required_phrases"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "validate:1167",
+          "note": "~330-line structural validator: specs, BAML, memory, hooks, playbooks, evals, render-target canonical rule"
+        },
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "validate_skill:615 / validate_route:723",
+          "note": "per-artifact validators"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "file-existence + justfile-recipe + BAML greps + live validate",
+          "note": "~220 file checks + ~60 recipe greps"
+        }
+      ],
+      "runtime_path": "just ci -> ci.sh test -> python harness.py validate",
+      "gaps": [],
+      "reviewer_notes": "Validation is structural (presence + phrase counts); does not verify semantic correctness beyond scripted route cases."
+    },
+    {
+      "id": "OUT-003",
+      "name": "Reject incomplete-work markers",
+      "statement": "The system rejects TODO/FIXME/TBD/XXX/stub/placeholder markers in tracked harness artifacts so incomplete work cannot hide behind completion language.",
+      "actor_user": "Operator / CI",
+      "settlement_criterion": "validate fails with 'incomplete-work marker X in <path>:<line>' if any scanned artifact contains a marker (with policy-line exceptions)",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "Enterprise Completion Policy:38",
+          "note": "MUST reject placeholders, stubs, disabled checks"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "validate_no_incomplete_work_markers:792",
+          "note": "scans INCOMPLETE_SCAN_PATHS, word-boundary regex for TODO/FIXME/TBD/XXX, skips policy lines"
+        },
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "INCOMPLETE_WORK_MARKERS ~line 248",
+          "note": "marker list incl. 'placeholder for', 'stub'"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "via harness.py validate",
+          "note": "indirectly gated"
+        }
+      ],
+      "runtime_path": "validate() calls validate_no_incomplete_work_markers() and appends errors",
+      "gaps": [
+        {
+          "type": "architecture/code mismatch",
+          "description": "Scope limited to INCOMPLETE_SCAN_PATHS; generated baml_client/ excluded; downstream adopter code not covered"
+        }
+      ],
+      "reviewer_notes": "Anti-completion-theater gate but only for the harness's own surface."
+    },
+    {
+      "id": "OUT-004",
+      "name": "Skill IR multi-target rendering",
+      "statement": "The system renders a canonical Skill IR (JSON) into Claude SKILL.md, Copilot instructions, hook prompts, and checklists while preserving the same procedure, evidence, and forbidden-behavior contract.",
+      "actor_user": "Skill author / agent",
+      "settlement_criterion": "render-skills regenerates all 7 skills x 4 targets; rendered files declare they are generated and point back to Skill IR",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": ".agent-harness/config.yaml",
+          "symbol_or_section": "render_targets / canonical_render_rule",
+          "note": "Skill IR JSON is canonical; render targets are projections"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "render_skill:1044 / render_skills:1514",
+          "note": "generates Claude/Copilot/hook/checklist with 'Generated from Skill IR' header"
+        },
+        {
+          "path": ".agent-harness/render-targets/{claude,copilot,hooks,checklists}/*",
+          "symbol_or_section": "7 skills x 4 targets",
+          "note": "complete projection set"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "render-target content greps",
+          "note": "checks Bundled resources / Evaluation prompts sections"
+        }
+      ],
+      "runtime_path": "render-skills -> render_skill(skill) -> writes claude/copilot/hooks/checklists",
+      "gaps": [],
+      "reviewer_notes": "Canonical-render rule (Skill IR is source of truth) is enforced structurally."
+    },
+    {
+      "id": "OUT-005",
+      "name": "Auditable route-decision trace",
+      "statement": "The system records a route-decision JSON (task, selected route, confidence, assumption, required context/skills/artifacts, proof, next_action, decision_basis) for each routed task.",
+      "actor_user": "Operator / reviewer",
+      "settlement_criterion": "each route --record (or --capture-hook) writes a route-decision JSON under .agent-harness/traces/route-decisions/",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "docs/specs/verification-system.md",
+          "symbol_or_section": "route decision records",
+          "note": "required for auditable route selection"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "write_route_decision:1629",
+          "note": "writes timestamped route-decision JSON"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": ".agent-harness/traces/route-decisions/",
+          "symbol_or_section": "75+ real JSON files",
+          "note": "checkpoint-smoke + complete-the-production-ready-harness"
+        }
+      ],
+      "runtime_path": "route --record -> write_route_decision -> traces/route-decisions/<ts>-<slug>.json",
+      "gaps": [],
+      "reviewer_notes": "Strong runtime evidence the router is actually used in real sessions."
+    },
+    {
+      "id": "OUT-006",
+      "name": "Per-task traceability/learning trace",
+      "statement": "The system captures a per-task trace (start/checkpoint/resume/finish/distill) that carries stage, summary, artifacts, next_action, unresolved_risks, verification, and completion_claim, and classifies verification status.",
+      "actor_user": "Agent / reviewer",
+      "settlement_criterion": "trace start/append/checkpoint/resume/finish/distill each mutate a trace record JSON; distill produces a learning review",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": ".agent-harness/config.yaml",
+          "symbol_or_section": "observability",
+          "note": "trace_template, route_decisions, records"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "trace_start:1838 / trace_append:1901 / trace_checkpoint:1912 / trace_resume:1966 / trace_finish:1994 / trace_distill:2030",
+          "note": "full trace lifecycle"
+        },
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "classify_verification_status:2013",
+          "note": "missing/partial/verified from verification entries + success markers"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "trace lifecycle block",
+          "note": "exercises start/checkpoint/resume/distill with hook capture"
+        }
+      ],
+      "runtime_path": "trace start -> append/checkpoint -> resume -> finish (stamps claim) -> distill (learning review)",
+      "gaps": [],
+      "reviewer_notes": "Trace is rich and real; distill feeds the learning store."
+    },
+    {
+      "id": "OUT-007",
+      "name": "Proof-before-completion gate",
+      "statement": "The system prevents an agent from claiming a task complete unless the route's proof commands have run and passed (or skipped checks are justified).",
+      "actor_user": "Agent / reviewer",
+      "settlement_criterion": "A completion claim without recorded passing verification is rejected or flagged operator-visibly before the final response",
+      "status": "partially_implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "Enterprise Completion Policy:36-48",
+          "note": "Completion theater is a blocking defect"
+        },
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "Anti-Delusion Gates:407-423",
+          "note": "MUST reject/block/flag unsupported completion claims"
+        },
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "Affordance Control:364-365",
+          "note": "controls MUST be attached to executable behavior; SHOULD NOT exist as advice"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "classify_verification_status:2013",
+          "note": "classifies missing/partial/verified but does not block"
+        },
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "trace_finish:1994",
+          "note": "stamps completion_claim unconditionally; does NOT check proof passed"
+        }
+      ],
+      "test_evidence": [],
+      "runtime_path": "trace finish -> trace_finish stamps claim -> later distill classifies status (after the fact)",
+      "gaps": [
+        {
+          "type": "missing runtime enforcement",
+          "description": "no code path rejects trace_finish or blocks turn.stop when verification is absent/failing"
+        },
+        {
+          "type": "architecture/code mismatch",
+          "description": "spec says controls SHOULD NOT exist as advice; the only turn.stop impl is advisory text"
+        },
+        {
+          "type": "missing test coverage",
+          "description": "no negative test that a claim without proof is rejected"
+        }
+      ],
+      "reviewer_notes": "Highest-leverage gap. Decide whether blocking is delegated to host agent native hooks (document the boundary) or implemented in trace_finish/a new gate."
+    },
+    {
+      "id": "OUT-008",
+      "name": "EvalSpec execution (static checks)",
+      "statement": "The system executes a declared EvalSpec (list of checks) and emits a machine-readable EvalResult with per-check pass/fail and aggregate status.",
+      "actor_user": "Operator / CI / fabrication layer",
+      "settlement_criterion": "harness.py eval run <spec> exits 0/1 and writes/prints an EvalResult JSON whose status reflects required checks",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": ".agent-harness/evals/core-conformance.md",
+          "symbol_or_section": "Eval Case 1",
+          "note": "harness validate as eval"
+        },
+        {
+          "path": ".agent-harness/config.yaml",
+          "symbol_or_section": "eval_required_phrases / eval_min_cases",
+          "note": "eval contract"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "run_eval_spec:994",
+          "note": "validates fields, runs checks, aggregates, writes JSON, exit 0/1"
+        },
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "evaluate_check:863",
+          "note": "supports file_exists, static_required_patterns, static_forbidden_patterns, manual_check"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "eval run block",
+          "note": "3-check smoke EvalSpec -> status pass"
+        }
+      ],
+      "runtime_path": "eval run -> run_eval_spec -> evaluate_check per check -> EvalResult.json",
+      "gaps": [
+        {
+          "type": "missing runtime enforcement",
+          "description": "no dynamic check type that executes a command and asserts exit code/output; evals prove artifact shape not behavior"
+        }
+      ],
+      "reviewer_notes": "Add a command_exit_code check type to prove runtime behavior, not just shape."
+    },
+    {
+      "id": "OUT-009",
+      "name": "Context budget planning",
+      "statement": "The system plans a bounded context budget (required/optional/excluded files, freshness, relevance) for a given task.",
+      "actor_user": "Agent",
+      "settlement_criterion": "harness.py context-plan returns a context_budget object for the task",
+      "status": "implemented",
+      "confidence": "medium",
+      "declared_evidence": [
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "3.8 Context and Attention Control:367",
+          "note": "ContextBudget specifies required/optional/excluded/freshness"
+        },
+        {
+          "path": ".agent-harness/context/budget-policy.yaml",
+          "symbol_or_section": "budget policy",
+          "note": "context discipline config"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/harness.py",
+          "symbol_or_section": "context_plan:1797",
+          "note": "emits context_budget"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "context-plan assertion",
+          "note": "asserts context_budget key present"
+        }
+      ],
+      "runtime_path": "context-plan -> context_plan() -> stdout context_budget",
+      "gaps": [
+        {
+          "type": "missing runtime enforcement",
+          "description": "context budget is produced but nothing enforces that the agent actually reads only those files"
+        }
+      ],
+      "reviewer_notes": "Plan is real; enforcement is advisory. Spec 3.8 says forbidden context MUST be treated as a blocker but no code blocks on it."
+    },
+    {
+      "id": "OUT-010",
+      "name": "Structured learning store",
+      "statement": "The system mirrors distilled traces and learning reviews into a queryable local sqlite store so future agents recover prior session state without replaying transcripts.",
+      "actor_user": "Operator / agent",
+      "settlement_criterion": "sync-learning-store.sh populates sqlite; query-learning-store.sh returns summaries; DB has non-empty trace_records and learning_reviews",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "docs/specs/memory-system.md",
+          "symbol_or_section": "optional structured mirror",
+          "note": "DB explicitly optional/staged; vector layer later"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": ".agent-harness/traces/learning-store.sqlite3",
+          "symbol_or_section": "tables trace_records(78) / learning_reviews(78)",
+          "note": "520KB; cols incl verification_status, candidate_memory_updates_json, provenance_json"
+        },
+        {
+          "path": "scripts/{plan,sync,query,eval}-learning-store.sh",
+          "symbol_or_section": "store lifecycle",
+          "note": "plan/sync/query/eval-readiness"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "learning-store block",
+          "note": "exercises all four scripts; asserts vector_readiness/recommendation"
+        }
+      ],
+      "runtime_path": "sync-learning-store.sh -> populates sqlite -> query/eval scripts read it",
+      "gaps": [
+        {
+          "type": "missing persistence",
+          "description": ".agent-hooks/index/vectors/ is empty; vector retrieval not implemented (staged as future per memory-system.md)"
+        }
+      ],
+      "reviewer_notes": "Empty vector dir is by-design, not a defect. Structured mirror is fully operational."
+    },
+    {
+      "id": "OUT-011",
+      "name": "Lifecycle hook guidance",
+      "statement": "The system connects agent lifecycle events (session.start, prompt.submit, tool.pre, tool.post, turn.stop, session.end) to routing, context, evidence, proof, and learning guidance.",
+      "actor_user": "Agent host",
+      "settlement_criterion": "hook-router.sh handles all 6 events and (with --capture) records normalized payloads through agent_hooks.py",
+      "status": "partially_implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "README.md",
+          "symbol_or_section": "Why It Exists:23",
+          "note": "hooks respond to lifecycle, route prompts, capture evidence"
+        },
+        {
+          "path": ".agent-harness/config.yaml",
+          "symbol_or_section": "hooks.events",
+          "note": "6 events"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": ".agent-harness/hooks/hook-router.sh",
+          "symbol_or_section": "case event",
+          "note": "handles all 6 events; emit_or_capture prints purpose/action/boundary unless --capture"
+        },
+        {
+          "path": ".agent-harness/hooks/hook-router.sh",
+          "symbol_or_section": "capture_event (prompt.submit)",
+          "note": "calls harness.py route and embeds route_preview into captured payload"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "hook-router capture round-trip",
+          "note": "prompt.submit --capture -> agent-hooks inspect assertions"
+        }
+      ],
+      "runtime_path": "host invokes hook-router.sh <event> [--capture] -> emit text OR capture via agent-hooks capture",
+      "gaps": [
+        {
+          "type": "missing runtime enforcement",
+          "description": "default path (emit) only prints guidance; does not modify agent action"
+        },
+        {
+          "type": "overclaimed maturity",
+          "description": "README implies active steering; implementation is advisory unless --capture and host acts on output"
+        }
+      ],
+      "reviewer_notes": "Capture path genuinely integrates route output into payloads. Default emit path is advisory."
+    },
+    {
+      "id": "OUT-012",
+      "name": "Block unauthorized/risky tool calls",
+      "statement": "The system blocks unauthorized or destructive tool calls (e.g. risky shell commands) before execution.",
+      "actor_user": "Agent host / security",
+      "settlement_criterion": "PreToolUse equivalent denies/blocks the call (non-zero exit or deny payload) before the tool runs",
+      "status": "declared_only",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "README.md",
+          "symbol_or_section": "Why It Exists:23 / Safety Boundaries",
+          "note": "check risky tool use before it happens"
+        },
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "3.7 Affordance Control:357",
+          "note": "make unsafe actions blocked or approval-gated"
+        },
+        {
+          "path": ".agent-harness/config.yaml",
+          "symbol_or_section": "security.secret_patterns",
+          "note": "patterns exist for redaction"
+        }
+      ],
+      "implementation_evidence": [],
+      "test_evidence": [],
+      "runtime_path": "none - no blocking code",
+      "gaps": [
+        {
+          "type": "missing runtime enforcement",
+          "description": "agent_hooks.py has no PreToolUse/deny handler; hook-router.sh tool.pre emits text only; no exit(2)/denylist anywhere"
+        },
+        {
+          "type": "missing security boundary",
+          "description": "secret_patterns used for redaction not blocking; no command denylist"
+        }
+      ],
+      "reviewer_notes": "README 'block' language is unsupported by code. Either implement a denylist gate or correct the README to 'advise'."
+    },
+    {
+      "id": "OUT-013",
+      "name": "Block premature completion at turn end",
+      "statement": "The system blocks premature completion language at turn end unless proof was recorded.",
+      "actor_user": "Agent host",
+      "settlement_criterion": "turn.stop scans the agent response for completion language and blocks/flags when proof is absent",
+      "status": "declared_only",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "README.md",
+          "symbol_or_section": "Why It Exists:23,56",
+          "note": "block premature completion language at turn end"
+        },
+        {
+          "path": "HARNESS_SPEC.md",
+          "symbol_or_section": "Anti-Delusion Gates:407-423",
+          "note": "MUST reject/block/flag confidence without proof"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": ".agent-harness/hooks/hook-router.sh",
+          "symbol_or_section": "turn.stop case",
+          "note": "prints 'Compare the route card proof... If proof is missing, report the gap' - does NOT scan or block"
+        }
+      ],
+      "test_evidence": [],
+      "runtime_path": "host invokes hook-router.sh turn.stop -> prints guidance text -> host may or may not act",
+      "gaps": [
+        {
+          "type": "missing runtime enforcement",
+          "description": "no scan of response text; no comparison against route proof; no block"
+        },
+        {
+          "type": "architecture/code mismatch",
+          "description": "spec mandates MUST block; implementation is a reminder string"
+        }
+      ],
+      "reviewer_notes": "Pair with OUT-007. The completion-gate value prop rests entirely on advisory text within this repo."
+    },
+    {
+      "id": "OUT-014",
+      "name": "Auditable evidence trail capture",
+      "statement": "The system captures normalized payloads, stdout/stderr artifacts, JSONL logs, and a rusql index after governed events, with secret redaction.",
+      "actor_user": "Operator / reviewer",
+      "settlement_criterion": "agent-hooks capture writes native/normalized/result JSON + stdout/stderr artifacts; events append to date-rotated JSONL; index rebuild builds rusql",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": ".agent-hooks/config.yaml",
+          "symbol_or_section": "paths / logging / redaction",
+          "note": "layout + schema_version 1.0 + redaction patterns"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/agent_hooks.py",
+          "symbol_or_section": "command_capture:356 / append_event:255 / write_json:216 / write_text:222",
+          "note": "writes payloads + artifacts"
+        },
+        {
+          "path": ".agent-hooks/index/hooks.rusql",
+          "symbol_or_section": "266KB sqlite index",
+          "note": "command_index_rebuild:482"
+        },
+        {
+          "path": "scripts/agent_hooks.py",
+          "symbol_or_section": "redact:195",
+          "note": "key-substring + value-pattern redaction"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "agent-hooks block",
+          "note": "capture/trace/inspect/replay/doctor/compact/index/export round-trip"
+        },
+        {
+          "path": ".agent-hooks/payloads + artifacts",
+          "symbol_or_section": "hundreds of real captured events",
+          "note": "2026-05-25/26/06-11"
+        }
+      ],
+      "runtime_path": "capture stdin JSON -> normalize -> redact -> write payload JSONs + artifacts -> append JSONL log",
+      "gaps": [],
+      "reviewer_notes": "Strongest runtime evidence in the repo. Redaction configured for known secret shapes."
+    },
+    {
+      "id": "OUT-015",
+      "name": "OTel and JUnit export",
+      "statement": "The system exports observability data to OpenTelemetry-compatible JSON and JUnit XML.",
+      "actor_user": "Operator / CI",
+      "settlement_criterion": "agent-hooks export otel emits resource/spans JSON; export junit emits <testsuite> XML",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": ".agent-hooks/config.yaml",
+          "symbol_or_section": "exports",
+          "note": "otel_format opentelemetry-compatible-json; junit_suite_name agent-hooks-observability"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/agent_hooks.py",
+          "symbol_or_section": "command_export_otel:546 / command_export_junit:584",
+          "note": "export formatters"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "export assertions",
+          "note": "asserts 'resource' (otel) and '<testsuite' (junit)"
+        }
+      ],
+      "runtime_path": "export otel|junit -> iterate events -> emit format",
+      "gaps": [],
+      "reviewer_notes": "Real, asserted export paths."
+    },
+    {
+      "id": "OUT-016",
+      "name": "Product seed to fabrication packet",
+      "statement": "The system converts a bounded product seed into a fabrication packet (PRODUCT_SEED, JTBD, JOB_HYPOTHESIS, HYPOTHESIS, ADR, PRD, SDS, TDD, CONTEXT_PACK, AGENT_TASK, EVAL_CHECKLIST, EVAL_SPEC) plus a prototype.",
+      "actor_user": "Product engineer / agent",
+      "settlement_criterion": "fabricate generate <run_id> renders all required_generated_artifacts into .fabricator/runs/<id>/generated/",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "docs/fabrication-layer/README.md",
+          "symbol_or_section": "Reference flow",
+          "note": "new->generate->validate->handoff->proof->reflect"
+        },
+        {
+          "path": ".fabricator/config.yaml",
+          "symbol_or_section": "required_generated_artifacts",
+          "note": "17 required artifacts"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/fabricate.py",
+          "symbol_or_section": "command_generate:1052 / write_generated_artifacts:839",
+          "note": "renders all artifacts"
+        },
+        {
+          "path": "scripts/fabricate.py",
+          "symbol_or_section": "render_template:281",
+          "note": "CUSTOM {{placeholder}} regex substitution, NOT Jinja2/BAML/LLM"
+        },
+        {
+          "path": "scripts/fabricate.py",
+          "symbol_or_section": "build_job_story:363 / build_requirements:379 / build_components:404 / build_scenarios:421 / build_checks:450",
+          "note": "deterministic builders"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "fabricate block",
+          "note": "full new/generate/validate/handoff/proof/reflect/status asserted"
+        },
+        {
+          "path": ".fabricator/runs/0001-focus-runner/",
+          "symbol_or_section": "real completed run",
+          "note": "all artifacts present"
+        }
+      ],
+      "runtime_path": "new (seed) -> generate (render templates + prototype) -> validate -> handoff -> proof -> reflect -> status",
+      "gaps": [
+        {
+          "type": "overclaimed maturity",
+          "description": "docs/explanations/baml-generation-model.md implies BAML/LLM generation; actual renderer is deterministic {{placeholder}} substitution; BAML contracts drive type/release gates not generation"
+        }
+      ],
+      "reviewer_notes": "Generation is real and deterministic. The 'BAML generation model' label overstates the mechanism."
+    },
+    {
+      "id": "OUT-017",
+      "name": "Proof-gated fabrication completion",
+      "statement": "The system requires fabrication proof before marking a run complete and gates adaptation/learning candidate promotion on proof pass.",
+      "actor_user": "Product engineer / reviewer",
+      "settlement_criterion": "fabricate proof runs checks; ADAPTATION_DECISION.yaml status is candidate iff proof passes else blocked; status aggregates proof+artifacts",
+      "status": "partially_implemented",
+      "confidence": "medium",
+      "declared_evidence": [
+        {
+          "path": "docs/fabrication-layer/explanations/proof-before-completion.md",
+          "symbol_or_section": "done when",
+          "note": "validate passes, handoff exists, proof writes result, PROOF_RECORD/REFLECTION present"
+        },
+        {
+          "path": "FABRICATOR_SPEC_v0.1.0.md",
+          "symbol_or_section": "proof",
+          "note": "proof contract"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/fabricate.py",
+          "symbol_or_section": "static_proof_checks:878",
+          "note": "REAL pattern assertions on index.html BUT hardcoded to Focus Runner tokens"
+        },
+        {
+          "path": "scripts/fabricate.py",
+          "symbol_or_section": "write_proof_outputs:897",
+          "note": "ADAPTATION_DECISION status candidate|blocked gated on proof; reflection notes static-analysis risk"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "fabricate proof assertion",
+          "note": "status pass"
+        },
+        {
+          "path": ".fabricator/runs/0001-focus-runner/proof/EVAL_RESULT.json",
+          "symbol_or_section": "real proof result",
+          "note": "proof_mode static_html_scan, 5 checks pass"
+        }
+      ],
+      "runtime_path": "proof -> static_proof_checks(prototype/index.html) -> EVAL_RESULT.json + PROOF_RECORD.md + REFLECTION.md + ADAPTATION_DECISION.yaml",
+      "gaps": [
+        {
+          "type": "architecture/code mismatch",
+          "description": "proof is static pattern matching hardcoded to one example game; not a general product-to-prototype proof"
+        },
+        {
+          "type": "missing runtime enforcement",
+          "description": "handoff (step 5) is documented before proof (step 6); nothing in command_handoff requires proof to have passed first"
+        }
+      ],
+      "reviewer_notes": "Proof is genuine but narrow. Generalize static_proof_checks or document the layer as a single-example reference."
+    },
+    {
+      "id": "OUT-018",
+      "name": "Strategy question to evidence-backed decision",
+      "statement": "The system converts a strategic question into an evidence-backed decision through brief -> option -> gaps -> research prompts -> tests -> evidence -> evaluation -> decision, blocking commitment while critical evidence gaps remain.",
+      "actor_user": "Strategist",
+      "settlement_criterion": "strategy.py 11 subcommands run end-to-end; decide writes a decision record; status reports next_action",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": ".strategy/STRATEGY_LAYER_SPEC_v0.1.0.md",
+          "symbol_or_section": "spec",
+          "note": "layer contract"
+        },
+        {
+          "path": ".strategy/config.yaml",
+          "symbol_or_section": "config",
+          "note": "paths + required example artifacts"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": ".strategy/strategy.py",
+          "symbol_or_section": "command_new/capture/generate_options/identify_gaps/generate_research_prompts/ingest_research_report/design_tests/record_evidence/evaluate/decide/status",
+          "note": "all 11 subcommands"
+        },
+        {
+          "path": ".strategy/decisions/decision.agentic_dev_harness.md",
+          "symbol_or_section": "decision record",
+          "note": "Status delegate_research; reason: purchase behavior evidence unresolved"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "strategy block",
+          "note": "runs new/generate-options/identify-gaps/generate-research-prompts/design-tests/decide/status in temp dir; asserts next_action review"
+        }
+      ],
+      "runtime_path": "new -> generate-options -> identify-gaps -> generate-research-prompts -> (ingest-report) -> design-tests -> (record-evidence) -> evaluate -> decide -> status",
+      "gaps": [],
+      "reviewer_notes": "Honest: refuses to commit while gaps open. option_data partially pre-baked for the agentic_dev_harness example."
+    },
+    {
+      "id": "OUT-019",
+      "name": "Agentic capability loop typed contracts",
+      "statement": "The system provides a typed, event-sourced agentic capability loop (WorkRequested -> ContextRequired -> ContextPacketCreated -> AuthorityChecked -> ProofCompleted -> SettlementRecorded) with cross-language contracts generated from a canonical SEA manifest, with cross-repo hash consistency.",
+      "actor_user": "Platform integrator (cross-repo GodSpeed stack)",
+      "settlement_criterion": "adapters emit/consume typed events; contracts materialize in Python/TS/Rust; SEA regeneration is equivalent; hashes match across repos",
+      "status": "test_only",
+      "confidence": "medium",
+      "declared_evidence": [
+        {
+          "path": ".agent-harness/reports/godspeed_stack_agentic_loop_wiring_report.md",
+          "symbol_or_section": "wiring report",
+          "note": "self-documented; NOT in README/AGENTS/HARNESS_SPEC/SWE_SEED_SPEC"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "agentic_capability_loop/adapters.py",
+          "symbol_or_section": "emit_work_requested/emit_context_required/emit_route_selected/emit_proof_started/emit_proof_completed + consume_*",
+          "note": "event emit/consume; NOT imported by harness.py/fabricate.py/agent_hooks.py/strategy.py (orphan)"
+        },
+        {
+          "path": "agentic_capability_loop/adapters.py",
+          "symbol_or_section": "_load_hash ~line 29-89",
+          "note": "domain_model_hash falls back to naive SHA256 of literal string 'agentic_capability_loop'"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/test_agentic_capability_loop.py",
+          "symbol_or_section": "TestFullLoopHappyPath",
+          "note": "10-step happy path; real assertions on event shapes"
+        },
+        {
+          "path": "tests/test_agentic_capability_contracts.py",
+          "symbol_or_section": "test_generate_contracts_materializes_all_manifest_events / test_sea_compilation_regenerates_equivalent_manifest",
+          "note": "Py TypedDict / TS interface / Rust struct materialization; SEA regen equivalence"
+        },
+        {
+          "path": "tests/test_agentic_capability_hardening.py",
+          "symbol_or_section": "test_authority_service_emits... / test_live_swe_seed_harness_validate... (@pytest.mark.live_proof)",
+          "note": "authority deny + coherence break; live proof event shape"
+        },
+        {
+          "path": "tests/test_cross_repo_hash_consistency.py",
+          "symbol_or_section": "test_all_adapter_hashes_match_sea_file_content",
+          "note": "hash consistency"
+        }
+      ],
+      "runtime_path": "NOT wired to harness CLI; pytest-only; tests reference external repos (Context Kernel, SEA-Forge, GodSpeed-Agent, DomainForge)",
+      "gaps": [
+        {
+          "type": "missing integration wiring",
+          "description": "adapters not imported by any main runtime module"
+        },
+        {
+          "type": "missing test coverage",
+          "description": "pytest is NOT invoked by just ci / ci.sh / validate-harness.sh / package.json / ci.yml"
+        },
+        {
+          "type": "duplicated/conflicting implementation",
+          "description": "per wiring report: domain_model_hash is naive placeholder; downstream Rust ContextAgent trait defined but unimplemented; tests use Python stubs"
+        }
+      ],
+      "reviewer_notes": "Decide in-scope status. If in: wire adapters to a harness command, add pytest to just ci, replace placeholder hash, document in README. If out: move out of this repo."
+    },
+    {
+      "id": "OUT-020",
+      "name": "Local CI as default proof, mirrors remote",
+      "statement": "The system provides one local CI command (just ci) that is the default proof and mirrors the remote CI exactly.",
+      "actor_user": "Developer / CI",
+      "settlement_criterion": "just ci runs doctor + format + lint + test; .github/workflows/ci.yml runs the identical just ci",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": "README.md",
+          "symbol_or_section": "Quick Start",
+          "note": "just ci is the default local proof; CI calls same contract"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/ci.sh",
+          "symbol_or_section": "run_test / all",
+          "note": "doctor + prettier + ruff + harness validate + validate-harness.sh"
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "symbol_or_section": "Run local CI mirror",
+          "note": "run: just ci"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "ci.yml greps",
+          "note": "asserts just ci / pnpm / uv in ci.yml"
+        }
+      ],
+      "runtime_path": "just ci -> ci.sh -> doctor + format + lint + test",
+      "gaps": [],
+      "reviewer_notes": "Local-remote parity is real. Note: pytest is NOT in this path (see OUT-019)."
+    },
+    {
+      "id": "OUT-021",
+      "name": "Secrets management without leakage",
+      "statement": "The system encrypts/decrypts/rotates secrets via SOPS+age and prevents leakage into traces, memory, examples, or rendered instructions.",
+      "actor_user": "Operator",
+      "settlement_criterion": "secrets-encrypt/decrypt/edit/rotate-key scripts work; .gitignore excludes secret files; redaction patterns configured",
+      "status": "implemented",
+      "confidence": "medium",
+      "declared_evidence": [
+        {
+          "path": "README.md",
+          "symbol_or_section": "Safety Boundaries",
+          "note": "does not store secrets in traces/memory/examples/rendered instructions"
+        },
+        {
+          "path": ".sops.yaml",
+          "symbol_or_section": "sops config",
+          "note": "age config"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": "scripts/secrets-{encrypt,decrypt,edit,rotate-key}.sh",
+          "symbol_or_section": "secrets scripts",
+          "note": "SOPS+age wrappers"
+        },
+        {
+          "path": "scripts/secrets-encrypt.sh",
+          "symbol_or_section": "placeholder guard",
+          "note": "errors if .sops.yaml has placeholder age key"
+        },
+        {
+          "path": ".gitignore",
+          "symbol_or_section": "secret ignores",
+          "note": "*.dec.*, *.plain.*, sops, .secrets/"
+        },
+        {
+          "path": ".agent-hooks/config.yaml + .agent-harness/config.yaml",
+          "symbol_or_section": "redaction/secret_patterns",
+          "note": "redaction configured"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "gitignore + justfile secrets greps",
+          "note": "asserts secret ignore rules + secrets recipes"
+        }
+      ],
+      "runtime_path": "secrets-encrypt.sh -> sops encrypt; redaction applied in agent_hooks.py capture",
+      "gaps": [],
+      "reviewer_notes": "Real but not deeply exercised (no test encrypts/decrypts a fixture). Redaction patterns cover common secret shapes."
+    },
+    {
+      "id": "OUT-022",
+      "name": "BAML typed contracts and regeneration",
+      "statement": "The system defines typed BAML source contracts for SWE_SEED/harness/fabricator artifacts and regenerates client code; release gates verify required contract types.",
+      "actor_user": "Spec author / CI",
+      "settlement_criterion": "baml-cli generate exits 0; release-criteria greps find required classes/functions; generated client is gitignored",
+      "status": "implemented",
+      "confidence": "high",
+      "declared_evidence": [
+        {
+          "path": ".agent-harness/baml/V0_1_RELEASE_CRITERIA.md",
+          "symbol_or_section": "Required Capabilities / Release Gates",
+          "note": "baml-py pinned, required contract types, release grep gates"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "path": ".agent-harness/baml/baml_src/{swe_seed,harness,fabricator}.baml",
+          "symbol_or_section": "typed contracts",
+          "note": "ProductHypothesis, JobStory, EARSPattern, EARSRequirement, YStatement, SDSComponent, GherkinScenario, TraceabilityLink + Generate functions"
+        },
+        {
+          "path": ".agent-harness/baml/baml_client/",
+          "symbol_or_section": "generated client",
+          "note": "gitignored generated projection"
+        }
+      ],
+      "test_evidence": [
+        {
+          "path": "tests/validate-harness.sh",
+          "symbol_or_section": "BAML block",
+          "note": "uv run baml-cli generate + ~25 structural greps on .baml files"
+        }
+      ],
+      "runtime_path": "baml-cli generate --from baml_src -> baml_client/ (gitignored); release greps verify source contracts",
+      "gaps": [],
+      "reviewer_notes": "BAML drives type contracts + release gates. Note: BAML does NOT drive fabrication generation (see OUT-016 gap)."
+    }
+  ],
+  "top_risks": [
+    "Completion-gate is advisory not enforced: trace_finish stamps any claim; turn.stop emits text; agent_hooks.py has no blocking handler (OUT-007/013)",
+    "'Block unauthorized file writes' / risky tool calls (README) has no enforcing code (OUT-012)",
+    "Fabrication proof is static pattern-matching hardcoded to one example game; 'BAML generation model' overstates deterministic template substitution (OUT-016/017)",
+    "agentic_capability_loop + 5-file pytest suite orphaned from CI and the harness CLI; known weak links (placeholder hash, stubbed Rust services) (OUT-019)",
+    "Eval executor is static-only (file_exists/pattern/manual); no dynamic runtime-behavior checks (OUT-008)"
+  ],
+  "first_files_to_inspect": [
+    "scripts/harness.py (trace_finish:1994, classify_verification_status:2013, route:1644, validate:1167, run_eval_spec:994)",
+    ".agent-harness/hooks/hook-router.sh (emit_or_capture, turn.stop, tool.pre branches)",
+    "scripts/agent_hooks.py (confirm no blocking handler; capture/query/export only)",
+    "HARNESS_SPEC.md (3.7 Affordance Control, 3.10 Anti-Delusion Gates, Enterprise Completion Policy line 36)",
+    "scripts/fabricate.py (render_template:281, static_proof_checks:878, command_handoff:1068)",
+    "tests/validate-harness.sh (what is gated vs the ungated pytest files)",
+    "agentic_capability_loop/adapters.py + .agent-harness/reports/godspeed_stack_agentic_loop_wiring_report.md"
+  ],
+  "open_architectural_questions": [
+    "Is completion-blocking intended to live in the host agent native hook runtime (SWE_SEED only advises) or in SWE_SEED code? Boundary undefined.",
+    "Should pytest be added to just ci, or are the capability-loop tests out-of-scope for this repo?",
+    "Is the fabrication layer a general engine or a single-example reference? Docs imply general; proof code is specific.",
+    "Should BAML contracts drive fabrication generation (currently they drive only type/release gates)?",
+    "Who owns the 'block' semantics - hook-router.sh, agent_hooks.py, or the host agent native runtime?"
+  ],
+  "recommended_next_prompt": "Adversarially audit SWE_SEED's completion-gate and hook-enforcement claims. For each README/spec promise - 'block unauthorized file writes before execution', 'block premature completion language at turn end', 'completion theater is a blocking defect', 'controls SHOULD NOT exist as advice' - trace the exact code path that enforces it (file:line). Where no enforcing path exists, classify the gap (declared_only vs partially_implemented) and propose the smallest change that converts advisory emit into executable enforcement, including which layer should own it (hook-router.sh, agent_hooks.py, trace_finish, or the host agent native runtime). Do not modify code; produce a gap-closure plan with a falsifiable test for each converted gate. Use .agents/reports/outcome_code_map_SWE_SEED_2026-06-14.md as the evidence base."
+}

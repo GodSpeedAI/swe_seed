@@ -10,3 +10,8 @@ dependencies = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.pytest.ini_options]
+markers = [
+    "live_proof: runs the live SWE_SEED harness proof command",
+]

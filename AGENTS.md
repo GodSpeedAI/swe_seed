@@ -2,6 +2,12 @@
 
 Read this file before making material changes.
 
+## Normative Language
+
+The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT, RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as described in RFC 2119.
+
+Implementation-defined means the behavior is part of the implementation contract, but this specification does not prescribe one universal policy. Implementations MUST document the selected behavior.
+
 ## Routing Is Mandatory
 
 Do not treat job types as labels to remember. A job type only matters because it selects a route card that tells you what to do next.
