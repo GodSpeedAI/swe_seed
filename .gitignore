@@ -37,4 +37,12 @@ secrets/*.decrypted.*
 # workfiles
 tmp/
 
+# generated swe-seed artifacts (manifests, provenance, boundary reports)
+.swe-seed/
+
+# rust build output
+/target/
+
 reference/
+
+.tmp/
