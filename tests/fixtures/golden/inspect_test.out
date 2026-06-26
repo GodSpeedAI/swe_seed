@@ -1,0 +1,103 @@
+{
+  "query": "test",
+  "skills": [
+    {
+      "id": "test-with-proof",
+      "path": ".agent-harness/skills/30-test/test-with-proof.json",
+      "status": "active"
+    },
+    {
+      "id": "debug-discipline",
+      "path": ".agent-harness/skills/40-debug/debug-discipline.json",
+      "status": "active"
+    },
+    {
+      "id": "review-for-risk",
+      "path": ".agent-harness/skills/45-review/review-for-risk.json",
+      "status": "active"
+    }
+  ],
+  "routes": [
+    {
+      "id": "bugfix",
+      "job_type": "bugfix",
+      "path": ".agent-harness/routes/bugfix.json",
+      "proof": [
+        "just ci"
+      ],
+      "next_action": "establish reliable reproduction or document the missing artifact or access"
+    },
+    {
+      "id": "documentation",
+      "job_type": "documentation",
+      "path": ".agent-harness/routes/documentation.json",
+      "proof": [
+        "just ci"
+      ],
+      "next_action": "identify the reader and action the doc must support"
+    },
+    {
+      "id": "harness_improvement",
+      "job_type": "harness_improvement",
+      "path": ".agent-harness/routes/harness_improvement.json",
+      "proof": [
+        "python scripts/harness.py validate",
+        "bash tests/validate-harness.sh",
+        "just ci"
+      ],
+      "next_action": "identify the harness gap and desired behavior"
+    },
+    {
+      "id": "refactor",
+      "job_type": "refactor",
+      "path": ".agent-harness/routes/refactor.json",
+      "proof": [
+        "just ci"
+      ],
+      "next_action": "identify preserved behavior and the reason structure should change"
+    },
+    {
+      "id": "review",
+      "job_type": "review",
+      "path": ".agent-harness/routes/review.json",
+      "proof": [
+        "python scripts/harness.py validate"
+      ],
+      "next_action": "identify the changed contract or intended outcome"
+    },
+    {
+      "id": "test",
+      "job_type": "test",
+      "path": ".agent-harness/routes/test.json",
+      "proof": [
+        "just ci"
+      ],
+      "next_action": "identify behavior under test"
+    }
+  ],
+  "render_targets": [
+    ".agent-harness/render-targets/copilot/test-with-proof.instructions.md",
+    ".agent-harness/render-targets/hooks/test-with-proof.prompt.md",
+    ".agent-harness/render-targets/checklists/test-with-proof.md",
+    ".agent-harness/render-targets/claude/test/test-with-proof/SKILL.md",
+    ".agent-harness/render-targets/copilot/debug-discipline.instructions.md",
+    ".agent-harness/render-targets/hooks/debug-discipline.prompt.md",
+    ".agent-harness/render-targets/checklists/debug-discipline.md",
+    ".agent-harness/render-targets/claude/debug/debug-discipline/SKILL.md",
+    ".agent-harness/render-targets/copilot/review-for-risk.instructions.md",
+    ".agent-harness/render-targets/hooks/review-for-risk.prompt.md",
+    ".agent-harness/render-targets/checklists/review-for-risk.md",
+    ".agent-harness/render-targets/claude/review/review-for-risk/SKILL.md"
+  ],
+  "evals": [
+    ".agent-harness/evals/core-conformance.md",
+    ".agent-harness/evals/route-conflicts.md"
+  ],
+  "memory": [
+    ".agent-harness/memory/decisions.md",
+    ".agent-harness/memory/failure-patterns.md"
+  ],
+  "context": [
+    ".agent-harness/context/context-mode-normalization.md"
+  ]
+}

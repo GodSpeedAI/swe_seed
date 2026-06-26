@@ -65,6 +65,26 @@ Use think in code for bulk analysis: write or run a small script, shell pipeline
 
 Preserve session continuity through trace records, route decisions, memory updates, and compact restart notes. The next agent should recover the task state from durable artifacts instead of relying on the conversation transcript.
 
+## Local Agent Memory
+
+Use `.agents/` as local, working memory for active agent handoffs. These files are ignored by git and are not source-of-truth specs, but agents MUST keep them current enough that the next agent can recover the latest outcome, blocker, and next action without reading the full transcript.
+
+Before material work, read any existing local memory that can change the next action:
+
+- `.agents/CURRENT_STATUS.md` for the current outcome, route, working state, proof status, blockers, and next action.
+- `.agents/OPEN_QUESTIONS.md` for load-bearing questions that cannot be answered from the codebase alone.
+- `.agents/DEBT.md` for out-of-scope issues already noticed.
+- `.agents/lessons/` for durable lessons from prior coding challenges or repeated mistakes.
+
+After material work, update local memory as follows:
+
+- Update `.agents/CURRENT_STATUS.md` when the pursued outcome, route, changed artifacts, proof status, blocker, or next action changes. Keep it short enough to serve as a handoff, not a transcript.
+- Update `.agents/OPEN_QUESTIONS.md` only for questions that block or materially change the outcome and cannot be resolved from code, docs, tests, or command output. Include a recommendation, known options or tradeoffs, and the decision needed from a human.
+- Update `.agents/DEBT.md` for problems, risks, or cleanup noticed while working that are real but out of scope for the current task. Include evidence, impact, and a suggested follow-up.
+- Add a note under `.agents/lessons/` only when the lesson is generalizable across future work in this codebase. Do not record one-off surprises, personal preferences, raw logs, or chat transcripts. Lessons that recur MAY later be promoted into `AGENTS.md` or `.agent-harness/memory/`.
+
+All local memory entries MUST be concrete, concise, source-backed when practical, and free of secrets. If a required `.agents/` file or directory is missing, create the smallest useful file or directory before relying on it.
+
 ## Source of Truth
 
 Use `HARNESS_SPEC.md` and `docs/specs/` for harness requirements. Use project specs when a task names a feature or product behavior.

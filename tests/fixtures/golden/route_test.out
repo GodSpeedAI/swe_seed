@@ -1,0 +1,37 @@
+{
+  "job_type": "test",
+  "route_card": ".agent-harness/routes/test.json",
+  "confidence": "low",
+  "assumption": "No strong semantic match; selected safest default route.",
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    ".agent-harness/playbooks/30-debug-from-symptom.md",
+    "docs/specs/verification-system.md"
+  ],
+  "required_skills": [
+    "test-with-proof",
+    "verify-before-completion"
+  ],
+  "work_loop": [
+    "identify behavior under test",
+    "write a failing or contract-revealing check",
+    "run the check and confirm the expected signal",
+    "make the check pass without unrelated behavior changes",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "test or validation change",
+    "red/green evidence when applicable",
+    "verification evidence"
+  ],
+  "proof": [
+    "just ci"
+  ],
+  "done_when": [
+    "verification catches the intended behavior",
+    "the proof command includes the new check",
+    "proof commands pass"
+  ],
+  "next_action": "Read required context, then execute work_loop[0]: identify behavior under test"
+}

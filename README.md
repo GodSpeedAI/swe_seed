@@ -38,7 +38,32 @@ SWE_SEED is both a reference implementation and a portable specification.
 - `.agent-harness/reflections/` keeps learning review packets and improvement proposals separate from active instructions.
 - `scripts/harness.py` exposes routing, validation, context planning, skill rendering, and trace commands.
 - `justfile` gives humans, agents, and CI one command surface.
-- `HARNESS_SPEC.md` and `docs/specs/` define the contract for rebuilding or adapting the harness.
+- `SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, and `FABRICATOR_SPEC_v0.1.0.md` are the root layer contracts; `.agents/specs/` and `docs/specs/` hold the detailed design.
+
+## Layered Architecture
+
+SWE_SEED is a three-layer stack. Each layer is governed by the one above it, and ownership flows downward only.
+
+```
+SweSeed     (SWE_SEED_SPEC_v0.2.0.md)   governance, capability assembly, layer boundaries
+  Harness   (HARNESS_SPEC.md)           routing, proof, context, hooks, traces, learning
+    Fabricator (FABRICATOR_SPEC_v0.1.0.md)  product to prototype semantic chain
+```
+
+- The **SweSeed** layer centralizes and governs capabilities, assembles a capability package, and validates layer boundaries.
+- The **Harness** layer routes each request to a route card, gates completion on proof, manages context budgets, hooks, traces, and the learning loop.
+- The **Fabricator** layer runs a bounded product-to-prototype pass over a traceable semantic chain.
+
+`LayerName` is `{ SweSeed, Harness, Fabricator }`. The data model for all three layers is defined as `.baml` contracts under `.agent-harness/baml/baml_src/` and consumed as data, with no language model called at run time.
+
+## Design Specs and the Rust Rewrite
+
+The design lives in `.agents/`:
+
+- `.agents/specs/0002`–`0019` define each subsystem. `0012` reconciles these specs with the existing harness and is authoritative on any vocabulary conflict.
+- `.agents/plans/0001-swe-seed-v0-1-implementation.md` is the plan of record: a full rewrite of all three layers in Rust, building to the specs, with golden-file parity against the current Python harness, after which the Python implementation is removed.
+
+The current `scripts/harness.py` (plus `agent_hooks.py`, `fabricate.py`) is the Python reference implementation that the Rust rewrite reproduces and supersedes.
 
 ## The Approach
 

@@ -251,6 +251,10 @@ grep -q 'pnpm/action-setup' .github/workflows/ci.yml
 grep -q 'astral-sh/setup-uv' .github/workflows/ci.yml
 grep -q 'AGENTS.md' .github/copilot-instructions.md
 grep -q '.agent-harness/routes/' AGENTS.md
+grep -q '.agents/lessons' AGENTS.md
+grep -q '.agents/CURRENT_STATUS.md' AGENTS.md
+grep -q '.agents/OPEN_QUESTIONS.md' AGENTS.md
+grep -q '.agents/DEBT.md' AGENTS.md
 grep -q '\.secrets/' .gitignore
 grep -q '\*\.dec\.\*' .gitignore
 grep -q '\*\.plain\.\*' .gitignore
