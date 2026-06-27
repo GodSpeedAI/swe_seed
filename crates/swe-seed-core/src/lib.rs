@@ -8,4 +8,7 @@
 pub mod config;
 pub mod contracts;
 pub mod provenance;
+pub mod route;
 pub mod seed;
+pub mod trace;
+pub mod util;

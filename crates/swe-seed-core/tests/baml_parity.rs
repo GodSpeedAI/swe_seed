@@ -13,11 +13,13 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use swe_seed_core::contracts::{parse_baml_dir, BamlParity, BamlShape, BamlType};
+use swe_seed_core::route::RouteCard;
 use swe_seed_core::seed::{
     ArtifactMetadata, BoundaryFinding, BoundaryReport, LayerCapability, LayerName,
     ProjectSeed, ReviewRequirement, SeedArtifactStatus, SeedNeed, SeedPackageManifest,
     SeedRegenerationInput, SeedRegenerationPlan, SeedSourceRef, SeedValidationRequirement,
 };
+use swe_seed_core::trace::TraceSchema;
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -28,6 +30,21 @@ fn root() -> PathBuf {
 
 fn parse() -> Vec<BamlType> {
     parse_baml_dir(&root().join(".agent-harness/baml/baml_src")).expect("parse baml dir")
+}
+
+/// Fail fast if two parsed types share a name (across or within files). A name
+/// collision must surface instead of silently overwriting a `BamlType` in a
+/// name-keyed map and masking a mismatch.
+fn assert_unique_names(types: &[BamlType]) {
+    let mut seen: HashMap<&str, &str> = HashMap::new();
+    for t in types {
+        if let Some(prev) = seen.insert(t.name.as_str(), t.source_file.as_str()) {
+            panic!(
+                "duplicate .baml type name '{}' in both {} and {}",
+                t.name, prev, t.source_file
+            );
+        }
+    }
 }
 
 /// The full set of Rust types currently registered for parity.
@@ -59,6 +76,8 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
             SeedRegenerationPlan::baml_name(),
             SeedRegenerationPlan::baml_shape(),
         ),
+        (RouteCard::baml_name(), RouteCard::baml_shape()),
+        (TraceSchema::baml_name(), TraceSchema::baml_shape()),
     ]
 }
 
@@ -102,20 +121,13 @@ fn assert_shape_match(name: &str, shape: &BamlShape, baml: &BamlType) {
 }
 
 #[test]
-fn baml_parity_swe_seed_layer() {
+fn baml_parity_registered_match_baml() {
     let types = parse();
+    assert_unique_names(&types);
 
-    let by_file: HashMap<&str, Vec<&BamlType>> = {
-        let mut m: HashMap<&str, Vec<&BamlType>> = HashMap::new();
-        for t in &types {
-            m.entry(t.source_file.as_str()).or_default().push(t);
-        }
-        m
-    };
-    let swe: HashMap<&str, &BamlType> = by_file["swe_seed"]
-        .iter()
-        .map(|t| (t.name.as_str(), *t))
-        .collect();
+    // Every registered type is matched against its .baml counterpart across ALL
+    // files (swe_seed + harness + fabricator), not just one layer.
+    let all: HashMap<&str, &BamlType> = types.iter().map(|t| (t.name.as_str(), t)).collect();
 
     let reg_list = registered();
     // Registered baml names must be unique; a silent HashMap overwrite would
@@ -127,27 +139,39 @@ fn baml_parity_swe_seed_layer() {
             "duplicate baml_name '{n}' returned by registered()"
         );
     }
-    let reg: HashMap<&str, BamlShape> = reg_list.into_iter().map(|(n, s)| (n, s)).collect();
 
-    // 1. Every swe_seed.baml type must be registered (no coverage gap).
-    let unregistered: Vec<&str> = swe.keys().filter(|n| !reg.contains_key(*n)).copied().collect();
+    for (name, shape) in &reg_list {
+        let baml = all
+            .get(*name)
+            .unwrap_or_else(|| panic!("registered type {name} has no .baml counterpart"));
+        assert_shape_match(name, shape, baml);
+    }
+}
+
+#[test]
+fn baml_parity_swe_seed_layer_fully_covered() {
+    let types = parse();
+    assert_unique_names(&types);
+    let by_file: HashMap<&str, Vec<&BamlType>> = {
+        let mut m: HashMap<&str, Vec<&BamlType>> = HashMap::new();
+        for t in &types {
+            m.entry(t.source_file.as_str()).or_default().push(t);
+        }
+        m
+    };
+    let swe: HashMap<&str, &BamlType> = by_file["swe_seed"]
+        .iter()
+        .map(|t| (t.name.as_str(), *t))
+        .collect();
+    let reg: std::collections::HashSet<&str> =
+        registered().into_iter().map(|(n, _)| n).collect();
+
+    // Every swe_seed.baml class/enum must be registered (no coverage gap).
+    let unregistered: Vec<&str> = swe.keys().filter(|n| !reg.contains(*n)).copied().collect();
     assert!(
         unregistered.is_empty(),
         "swe_seed.baml types without a Rust parity impl: {unregistered:?}"
     );
-
-    // 2. Every registered type maps to a swe_seed.baml type.
-    for name in reg.keys() {
-        assert!(
-            swe.contains_key(name),
-            "registered type {name} has no swe_seed.baml counterpart"
-        );
-    }
-
-    // 3. Shape (field names + types, enum variants) parity for every type.
-    for (name, shape) in &reg {
-        assert_shape_match(name, shape, swe[name]);
-    }
 }
 
 #[test]
@@ -196,4 +220,31 @@ fn baml_parity_coverage_gaps() {
         "baml_parity: {} pending type(s) across harness/fabricator (later phases): {gaps:?}",
         gaps.len()
     );
+}
+
+#[test]
+fn duplicate_baml_names_fail_fast() {
+    use swe_seed_core::contracts::BamlKind;
+    let mk = |name: &str, src: &str| BamlType {
+        name: name.into(),
+        source_file: src.into(),
+        kind: BamlKind::Enum,
+        fields: Vec::new(),
+        field_types: Vec::new(),
+        variants: Vec::new(),
+    };
+    // Cross-file duplicate name → fail.
+    let cross = vec![mk("Dup", "swe_seed"), mk("Dup", "harness")];
+    assert!(
+        std::panic::catch_unwind(|| assert_unique_names(&cross)).is_err(),
+        "cross-file duplicate name must fail fast"
+    );
+    // Within-file duplicate name → fail.
+    let within = vec![mk("Dup", "swe_seed"), mk("Dup", "swe_seed")];
+    assert!(
+        std::panic::catch_unwind(|| assert_unique_names(&within)).is_err(),
+        "within-file duplicate name must fail fast"
+    );
+    // No duplicates → ok.
+    assert_unique_names(&[mk("A", "swe_seed"), mk("B", "harness")]);
 }
