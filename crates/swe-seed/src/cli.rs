@@ -46,6 +46,38 @@ enum Command {
         #[command(subcommand)]
         action: TraceAction,
     },
+    /// Run an eval spec (spec 0013)
+    Eval {
+        #[command(subcommand)]
+        action: EvalAction,
+    },
+    /// Validate an eval spec (structure + frozen integrity)
+    Validate {
+        /// Path to the eval spec (defaults to the core fixture)
+        spec: Option<String>,
+    },
+    /// Aggregate validate + eval + boundary (spec 0008)
+    Doctor {
+        /// Emit a stable JSON report
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum EvalAction {
+    /// Run an eval spec; exit non-zero iff the eval fails
+    Run {
+        /// Path to the eval spec (TOML or JSON)
+        #[arg(long)]
+        spec: String,
+        /// Allow `command_check` (spec-controlled shell execution). Default off.
+        #[arg(long)]
+        trusted: bool,
+        /// Optional output path for the result JSON
+        #[arg(long)]
+        output: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -143,6 +175,9 @@ pub fn run() -> Result<ExitCode> {
         Command::Provenance { action } => run_provenance(action, &root),
         Command::Route { task, record } => run_route(&root, &task, record),
         Command::Trace { action } => run_trace(action, &root),
+        Command::Eval { action } => run_eval_cmd(action, &root),
+        Command::Validate { spec } => run_validate(&root, spec),
+        Command::Doctor { json } => run_doctor_cmd(&root, json),
     }
 }
 
@@ -293,4 +328,70 @@ fn run_trace(action: TraceAction, root: &std::path::Path) -> Result<ExitCode> {
     };
     println!("{}", serde_json::to_string_pretty(&value)?);
     Ok(ExitCode::SUCCESS)
+}
+
+fn run_eval_cmd(action: EvalAction, root: &std::path::Path) -> Result<ExitCode> {
+    use swe_seed_core::eval::{load_eval_spec, run_eval, EvalStatus};
+    let EvalAction::Run {
+        spec,
+        trusted,
+        output,
+    } = action;
+    let spec_path = root.join(&spec);
+    let loaded = load_eval_spec(&spec_path)?;
+    let result = run_eval(root, &spec_path, &loaded, trusted)?;
+    let rendered = format!("{}\n", serde_json::to_string_pretty(&result)?);
+    if let Some(out) = output {
+        let out_path = root.join(&out);
+        if let Some(p) = out_path.parent() {
+            std::fs::create_dir_all(p).ok();
+        }
+        std::fs::write(&out_path, &rendered)?;
+    }
+    print!("{rendered}");
+    Ok(if result.status == EvalStatus::Pass {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
+    })
+}
+
+fn run_validate(root: &std::path::Path, spec: Option<String>) -> Result<ExitCode> {
+    use swe_seed_core::doctor::CORE_EVAL_SPEC;
+    use swe_seed_core::eval::{load_eval_spec, spec::check_frozen};
+    let rel = spec.unwrap_or_else(|| CORE_EVAL_SPEC.to_string());
+    let spec_path = root.join(&rel);
+    let loaded = match load_eval_spec(&spec_path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("validate: {rel}: {e:#}");
+            return Ok(ExitCode::from(1));
+        }
+    };
+    if let Err(e) = check_frozen(root, &spec_path, &loaded) {
+        eprintln!("validate: {rel}: {e:#}");
+        return Ok(ExitCode::from(1));
+    }
+    println!("validate: {rel} ok ({} checks)", loaded.checks.len());
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_doctor_cmd(root: &std::path::Path, json: bool) -> Result<ExitCode> {
+    use swe_seed_core::doctor::{run_doctor, DoctorStatus};
+    let report = run_doctor(root);
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        for c in &report.checks {
+            println!("{:?}\t{}\t{}", c.status, c.name, c.detail);
+        }
+        println!("{:?}\toverall", report.overall);
+    }
+    Ok(if report.overall == DoctorStatus::Fail {
+        // Plan 0008: exit non-zero iff any check fails. Warn is surfaced in the
+        // report but does not fail the run.
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    })
 }

@@ -7,6 +7,8 @@
 
 pub mod config;
 pub mod contracts;
+pub mod doctor;
+pub mod eval;
 pub mod provenance;
 pub mod route;
 pub mod seed;

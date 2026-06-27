@@ -13,6 +13,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use swe_seed_core::contracts::{parse_baml_dir, BamlParity, BamlShape, BamlType};
+use swe_seed_core::eval::{
+    EvalCheck, EvalCheckResult, EvalClass, EvalResult, EvalSpec, EvalStatus, ProofRecord, SourceRef,
+};
 use swe_seed_core::route::RouteCard;
 use swe_seed_core::seed::{
     ArtifactMetadata, BoundaryFinding, BoundaryReport, LayerCapability, LayerName,
@@ -78,6 +81,14 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
         ),
         (RouteCard::baml_name(), RouteCard::baml_shape()),
         (TraceSchema::baml_name(), TraceSchema::baml_shape()),
+        (EvalClass::baml_name(), EvalClass::baml_shape()),
+        (EvalStatus::baml_name(), EvalStatus::baml_shape()),
+        (SourceRef::baml_name(), SourceRef::baml_shape()),
+        (EvalCheck::baml_name(), EvalCheck::baml_shape()),
+        (EvalSpec::baml_name(), EvalSpec::baml_shape()),
+        (EvalCheckResult::baml_name(), EvalCheckResult::baml_shape()),
+        (EvalResult::baml_name(), EvalResult::baml_shape()),
+        (ProofRecord::baml_name(), ProofRecord::baml_shape()),
     ]
 }
 

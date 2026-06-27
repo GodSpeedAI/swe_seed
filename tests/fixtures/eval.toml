@@ -1,0 +1,61 @@
+# Core conformance EvalSpec — exercised by `swe-seed eval run` and `doctor`.
+# Covers all four eval classes (spec 0013) with deterministic, side-effect-free
+# checks that pass on a clean SWE_SEED checkout.
+id = "core-conformance"
+version = "0.1.0"
+run_id = "doctor"
+target_type = "repository"
+target_path = "."
+purpose = "Phase 3 core conformance across the four eval classes"
+eval_classes = [
+    "ProcessCompliance",
+    "ProductOutcome",
+    "LearningQuality",
+    "AdaptationEligibility",
+]
+frozen_after_handoff = false
+pass_condition = "all required checks pass"
+outputs = ["eval-result.json"]
+
+[[checks]]
+id = "agents-md-exists"
+eval_class = "ProcessCompliance"
+check_type = "file_exists"
+target = "AGENTS.md"
+required = true
+rule = ""
+evidence_required = "AGENTS.md present at repo root"
+
+[[checks]]
+id = "readme-exists"
+eval_class = "ProductOutcome"
+check_type = "file_exists"
+target = "README.md"
+required = true
+rule = ""
+evidence_required = "README.md present"
+
+[[checks]]
+id = "agents-md-names-required-job-types"
+eval_class = "LearningQuality"
+check_type = "static_required_patterns"
+target = "AGENTS.md"
+required = true
+rule = """
+implementation
+bugfix
+research
+"""
+evidence_required = "AGENTS.md lists required job types"
+
+[[checks]]
+id = "no-blocked-ship-markers"
+eval_class = "AdaptationEligibility"
+check_type = "static_forbidden_patterns"
+target = "AGENTS.md"
+required = true
+rule = """
+DO_NOT_SHIP
+COMPLETION_THEATER
+"""
+evidence_required = "no blocked-ship markers in governance contract"
