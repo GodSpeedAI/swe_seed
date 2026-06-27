@@ -13,9 +13,11 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use swe_seed_core::contracts::{parse_baml_dir, BamlParity, BamlShape, BamlType};
+use swe_seed_core::context::{ContextBudget, ContextPack};
 use swe_seed_core::eval::{
     EvalCheck, EvalCheckResult, EvalClass, EvalResult, EvalSpec, EvalStatus, ProofRecord, SourceRef,
 };
+use swe_seed_core::hooks::{HookPolicy, PermissionPolicy};
 use swe_seed_core::route::RouteCard;
 use swe_seed_core::seed::{
     ArtifactMetadata, BoundaryFinding, BoundaryReport, LayerCapability, LayerName,
@@ -89,6 +91,10 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
         (EvalCheckResult::baml_name(), EvalCheckResult::baml_shape()),
         (EvalResult::baml_name(), EvalResult::baml_shape()),
         (ProofRecord::baml_name(), ProofRecord::baml_shape()),
+        (ContextBudget::baml_name(), ContextBudget::baml_shape()),
+        (ContextPack::baml_name(), ContextPack::baml_shape()),
+        (HookPolicy::baml_name(), HookPolicy::baml_shape()),
+        (PermissionPolicy::baml_name(), PermissionPolicy::baml_shape()),
     ]
 }
 

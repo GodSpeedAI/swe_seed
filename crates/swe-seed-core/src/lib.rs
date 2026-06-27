@@ -6,9 +6,11 @@
 //! and fail-closed provenance verification.
 
 pub mod config;
+pub mod context;
 pub mod contracts;
 pub mod doctor;
 pub mod eval;
+pub mod hooks;
 pub mod provenance;
 pub mod route;
 pub mod seed;
