@@ -13,6 +13,8 @@ pub mod eval;
 pub mod hooks;
 pub mod provenance;
 pub mod route;
+pub mod security;
 pub mod seed;
+pub mod skill;
 pub mod trace;
 pub mod util;

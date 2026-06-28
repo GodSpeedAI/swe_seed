@@ -24,6 +24,7 @@ use swe_seed_core::seed::{
     ProjectSeed, ReviewRequirement, SeedArtifactStatus, SeedNeed, SeedPackageManifest,
     SeedRegenerationInput, SeedRegenerationPlan, SeedSourceRef, SeedValidationRequirement,
 };
+use swe_seed_core::skill::SkillIR;
 use swe_seed_core::trace::TraceSchema;
 
 fn root() -> PathBuf {
@@ -95,6 +96,7 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
         (ContextPack::baml_name(), ContextPack::baml_shape()),
         (HookPolicy::baml_name(), HookPolicy::baml_shape()),
         (PermissionPolicy::baml_name(), PermissionPolicy::baml_shape()),
+        (SkillIR::baml_name(), SkillIR::baml_shape()),
     ]
 }
 
