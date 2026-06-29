@@ -1,6 +1,5 @@
 Generated from Skill IR: review-for-risk@1
-Do not edit this generated file directly unless this repository intentionally allows generated-surface edits.
-Update the Skill IR source instead.
+Do not edit this generated file directly; update the Skill IR source instead.
 
 # Review For Risk Checklist
 
@@ -24,15 +23,6 @@ Use this checklist when triggers match: review, audit, inspect, critique, risk.
 - findings with concrete evidence or an explicit no-findings statement
 - residual risk note
 
-## Bundled resources
-
-- `.agent-harness/playbooks/40-review-for-risk.md` (reference): extend the compact review procedure with the longer actual-path and claim-vs-verification workflow Use when the review needs the full scrutinize process.
-- `.agent-harness/memory/failure-patterns.md` (reference): bias the review toward known harness failure modes instead of cosmetic commentary Use when the change touches routing, proof, memory, hooks, or validation.
-
-## Evaluation prompts
-
-- `harness-risk-review`: Review a harness change for behavioral regressions and missing proof. Findings must be evidence-backed and ordered by severity. Check for: names the actual path reviewed; keeps findings separate from optional improvements; states residual risk or test gaps.
-
 ## Forbidden behavior
 
 - reviewing only the diff when behavior depends on surrounding code
@@ -45,5 +35,3 @@ Use this checklist when triggers match: review, audit, inspect, critique, risk.
 - findings are actionable and evidence-backed
 - the actual path reviewed is named
 - residual risk is explicit
-
-Before final response, every checked item must be backed by observed evidence or a documented skipped-check reason.
