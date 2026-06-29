@@ -30,7 +30,7 @@ impl BamlParity for SourceRef {
 
 /// harness.baml `EvalCheck`. `rule` is a single string interpreted per
 /// `check_type` (keeps the type 1:1 with `.baml`).
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EvalCheck {
     pub id: String,
     pub eval_class: EvalClass,

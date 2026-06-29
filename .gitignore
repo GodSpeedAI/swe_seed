@@ -16,6 +16,9 @@ node_modules/
 .agent-harness/traces/route-decisions/*.json
 .agent-harness/baml/baml_client/
 
+# generated learning artifacts (records, proposals, regressions, decisions, runs)
+.agent-harness/learning/
+
 # generated fabrication runs
 .fabricator/runs/*
 !.fabricator/runs/README.md

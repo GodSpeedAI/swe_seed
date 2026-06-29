@@ -18,6 +18,10 @@ use swe_seed_core::eval::{
     EvalCheck, EvalCheckResult, EvalClass, EvalResult, EvalSpec, EvalStatus, ProofRecord, SourceRef,
 };
 use swe_seed_core::hooks::{HookPolicy, PermissionPolicy};
+use swe_seed_core::learning::{
+    AdaptationDecision, LearningCandidate, LearningDisposition, LearningRecord, ReflectionTemplate,
+    RegressionCase, SkillProposal,
+};
 use swe_seed_core::route::RouteCard;
 use swe_seed_core::seed::{
     ArtifactMetadata, BoundaryFinding, BoundaryReport, LayerCapability, LayerName,
@@ -97,6 +101,22 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
         (HookPolicy::baml_name(), HookPolicy::baml_shape()),
         (PermissionPolicy::baml_name(), PermissionPolicy::baml_shape()),
         (SkillIR::baml_name(), SkillIR::baml_shape()),
+        (
+            LearningDisposition::baml_name(),
+            LearningDisposition::baml_shape(),
+        ),
+        (LearningRecord::baml_name(), LearningRecord::baml_shape()),
+        (
+            ReflectionTemplate::baml_name(),
+            ReflectionTemplate::baml_shape(),
+        ),
+        (LearningCandidate::baml_name(), LearningCandidate::baml_shape()),
+        (SkillProposal::baml_name(), SkillProposal::baml_shape()),
+        (RegressionCase::baml_name(), RegressionCase::baml_shape()),
+        (
+            AdaptationDecision::baml_name(),
+            AdaptationDecision::baml_shape(),
+        ),
     ]
 }
 

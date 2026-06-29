@@ -11,6 +11,7 @@ pub mod contracts;
 pub mod doctor;
 pub mod eval;
 pub mod hooks;
+pub mod learning;
 pub mod provenance;
 pub mod route;
 pub mod security;

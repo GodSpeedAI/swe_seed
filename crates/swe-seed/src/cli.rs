@@ -76,6 +76,15 @@ enum Command {
         #[command(subcommand)]
         action: SkillAction,
     },
+    /// Reflect a finished trace into a proposed LearningRecord (spec 0016)
+    Reflect { trace: String },
+    /// Promote a learning record into a SkillProposal / RegressionCase (spec 0016)
+    Learn {
+        #[command(subcommand)]
+        action: LearnAction,
+    },
+    /// Build an AdaptationDecision from a run's eval results (spec 0016)
+    Adapt { run_id: String },
 }
 
 #[derive(Subcommand)]
@@ -88,6 +97,20 @@ enum SkillAction {
     Approve { finding_id: String },
     /// List discovered skills with scan status
     List,
+}
+
+#[derive(Subcommand)]
+enum LearnAction {
+    /// Promote a LearningRecord into a SkillProposal or RegressionCase
+    Promote {
+        record: String,
+        /// Path to a candidate SkillProposal JSON (required for SkillProposal dispositions)
+        #[arg(long)]
+        proposal: Option<String>,
+        /// Path to a candidate RegressionCase JSON (required for RegressionCase dispositions)
+        #[arg(long)]
+        regression: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -241,6 +264,9 @@ pub fn run() -> Result<ExitCode> {
         Command::AgentHooks { action } => run_agent_hooks(action, &root),
         Command::RenderSkills => run_render_skills(&root),
         Command::Skill { action } => run_skill(action, &root),
+        Command::Reflect { trace } => run_reflect(&root, &trace),
+        Command::Learn { action } => run_learn(action, &root),
+        Command::Adapt { run_id } => run_adapt(&root, &run_id),
     }
 }
 
@@ -648,4 +674,150 @@ fn run_skill(action: SkillAction, root: &std::path::Path) -> Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
     }
+}
+
+/// `.agent-harness/learning` — durable store for records/proposals/regressions
+/// and per-run eval results consumed by `adapt`.
+fn learning_dir(root: &std::path::Path) -> std::path::PathBuf {
+    root.join(".agent-harness").join("learning")
+}
+
+fn run_reflect(root: &std::path::Path, trace: &str) -> Result<ExitCode> {
+    use swe_seed_core::learning::{default_template, reflect};
+    use swe_seed_core::trace::lifecycle::resolve_trace_path;
+    use swe_seed_core::trace::TraceRecord;
+
+    let trace_path = resolve_trace_path(root, trace);
+    let record = TraceRecord::load(&trace_path)?;
+    let learned = reflect(&default_template(), &record, &trace_path.display().to_string())
+        .map_err(|e| anyhow::anyhow!(e))?;
+    let out_dir = learning_dir(root).join("records");
+    std::fs::create_dir_all(&out_dir)?;
+    let out = out_dir.join(format!("{}.json", learned.id));
+    std::fs::write(&out, format!("{}\n", serde_json::to_string_pretty(&learned)?))?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&serde_json::json!({
+            "learning_record": learned.id,
+            "disposition": format!("{:?}", learned.disposition),
+            "path": out.strip_prefix(root).unwrap_or(&out).display().to_string(),
+        }))?
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_learn(action: LearnAction, root: &std::path::Path) -> Result<ExitCode> {
+    use swe_seed_core::learning::{
+        validate_learning_record, validate_proposal, validate_regression, LearningDisposition,
+        LearningRecord, RegressionCase, SkillProposal,
+    };
+    let LearnAction::Promote {
+        record,
+        proposal,
+        regression,
+    } = action;
+    let record_path = root.join(&record);
+    let loaded: LearningRecord = serde_json::from_slice(&std::fs::read(&record_path)?)
+        .map_err(|e| anyhow::anyhow!("parse {}: {e}", record_path.display()))?;
+
+    // Validate the record itself before any candidate is considered: a corrupt
+    // or evidence-less record must not unlock a promotion write.
+    validate_learning_record(&loaded).map_err(|e| {
+        anyhow::anyhow!("learning record {} failed validation: {e}", loaded.id)
+    })?;
+
+    match loaded.disposition {
+        LearningDisposition::ApprovedLesson => {
+            // A published lesson needs no candidate artifact beyond the record.
+            println!("published lesson '{}' ({})", loaded.id, loaded.summary);
+            Ok(ExitCode::SUCCESS)
+        }
+        LearningDisposition::NoChange | LearningDisposition::RejectedLesson => {
+            println!(
+                "nothing to promote: disposition is {:?}",
+                loaded.disposition
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        LearningDisposition::SkillProposal => {
+            let Some(p) = proposal else {
+                eprintln!("SkillProposal disposition requires --proposal <path>");
+                return Ok(ExitCode::from(1));
+            };
+            let proposal_path = root.join(&p);
+            let cand: SkillProposal = serde_json::from_slice(&std::fs::read(&proposal_path)?)
+                .map_err(|e| anyhow::anyhow!("parse {}: {e}", proposal_path.display()))?;
+            validate_proposal(&cand).map_err(|e| anyhow::anyhow!(e))?;
+            let out_dir = learning_dir(root).join("proposals");
+            std::fs::create_dir_all(&out_dir)?;
+            let out = out_dir.join(format!("{}.json", cand.id));
+            std::fs::write(&out, format!("{}\n", serde_json::to_string_pretty(&cand)?))?;
+            println!(
+                "promoted SkillProposal '{}' -> {}",
+                cand.id,
+                out.strip_prefix(root).unwrap_or(&out).display()
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        LearningDisposition::RegressionCase => {
+            let Some(r) = regression else {
+                eprintln!("RegressionCase disposition requires --regression <path>");
+                return Ok(ExitCode::from(1));
+            };
+            let reg_path = root.join(&r);
+            let cand: RegressionCase = serde_json::from_slice(&std::fs::read(&reg_path)?)
+                .map_err(|e| anyhow::anyhow!("parse {}: {e}", reg_path.display()))?;
+            validate_regression(&cand).map_err(|e| anyhow::anyhow!(e))?;
+            let out_dir = learning_dir(root).join("regressions");
+            std::fs::create_dir_all(&out_dir)?;
+            let out = out_dir.join(format!("{}.json", cand.id));
+            std::fs::write(&out, format!("{}\n", serde_json::to_string_pretty(&cand)?))?;
+            println!(
+                "promoted RegressionCase '{}' (linked_eval_check={}) -> {}",
+                cand.id,
+                cand.linked_eval_check,
+                out.strip_prefix(root).unwrap_or(&out).display()
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        LearningDisposition::HarnessADR => {
+            // HarnessADR promotion is a doctrine write, out of scope for v0.1's
+            // learning CLI (no doctrine store yet). Surface honestly.
+            eprintln!("HarnessADR promotion is not implemented in v0.1; record only");
+            Ok(ExitCode::from(1))
+        }
+    }
+}
+
+fn run_adapt(root: &std::path::Path, run_id: &str) -> Result<ExitCode> {
+    use swe_seed_core::eval::EvalResult;
+    use swe_seed_core::learning::build_adaptation_decision;
+
+    // Collect this run's eval results (written by `eval run --output` or by the
+    // caller under `.agent-harness/learning/runs/<run-id>/`). Missing results →
+    // every class is Inconclusive and the decision fails closed (blocks).
+    let run_dir = learning_dir(root).join("runs").join(run_id);
+    let mut results: Vec<EvalResult> = Vec::new();
+    if run_dir.is_dir() {
+        for entry in std::fs::read_dir(&run_dir)? {
+            let path = entry?.path();
+            if path.extension().and_then(|s| s.to_str()) != Some("json") {
+                continue;
+            }
+            match serde_json::from_slice::<EvalResult>(&std::fs::read(&path)?) {
+                Ok(r) => results.push(r),
+                Err(e) => {
+                    eprintln!("adapt: skipping unparseable {}: {e}", path.display());
+                }
+            }
+        }
+    }
+
+    let decision = build_adaptation_decision(run_id, &results);
+    let out_dir = learning_dir(root).join("decisions");
+    std::fs::create_dir_all(&out_dir)?;
+    let out = out_dir.join(format!("{}.json", decision.decision_id));
+    std::fs::write(&out, format!("{}\n", serde_json::to_string_pretty(&decision)?))?;
+    println!("{}", serde_json::to_string_pretty(&decision)?);
+    Ok(ExitCode::SUCCESS)
 }
