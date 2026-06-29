@@ -8,4 +8,4 @@ pub mod verify;
 
 pub use hash::content_hash;
 pub use record::ProvenanceRecord;
-pub use verify::{verify_dir, verify_record, ProvenanceProblem};
+pub use verify::{verify_dir, verify_manifest_records, verify_record, ProvenanceProblem};

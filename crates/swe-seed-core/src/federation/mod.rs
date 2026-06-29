@@ -18,8 +18,8 @@ pub use emit::{
     emit_work_requested, Dispatch, PROOF_TYPE_LIVE, PROOF_TYPE_SIMULATION,
 };
 pub use envelope::{
-    fallback_hash, make_event, resolve_domain_model_hash, resolve_from, Envelope, HashSource,
-    ResolvedHash, NAMESPACE,
+    fallback_hash, make_event, resolve_domain_model_hash, resolve_from, resolve_from_root,
+    Envelope, HashSource, ResolvedHash, NAMESPACE,
 };
 pub use flags::{
     authority_gate, standalone, AuthorityConfig, AuthorityMode, AuthorityVerdict, ContextConfig,

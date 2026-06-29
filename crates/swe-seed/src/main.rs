@@ -1,7 +1,18 @@
 use std::process::ExitCode;
 
 mod cli;
+mod context_cli;
+mod doctor_cli;
+mod eval_cli;
+mod fabricate_cli;
+mod federation_cli;
+mod hooks_cli;
 mod host_cli;
+mod learning_cli;
+mod provenance_cli;
+mod seed_cli;
+mod skill_cli;
+mod trace_cli;
 
 fn main() -> ExitCode {
     match cli::run() {

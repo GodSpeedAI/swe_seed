@@ -1,182 +1,168 @@
-~~Replaying 10 AI prompts from your last review on registry-provenance-core.~~
+Replaying 9 AI prompts from your last review on registry-provenance-core.
 
 ────────────────────────────────────────────────────────────────────────
-  ~~major [Functional Correctness]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/github_copilot.rs:44crates/swe-seed-core/src/adapters/github_copilot.rs:44-53]8;;~~
 
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
+~~  major [Data Integrity & Integration]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/learning_cli.rs:93crates/swe-seed/src/learning_cli.rs:93-98]8;;~~
 
-  ~~In @crates/swe-seed-core/src/adapters/github_copilot.rs around lines 44 -~~
-  ~~53, The GitHub Copilot adapter is returning AdapterSupport::Partial for~~
-  ~~every non-FULL event in support_for(), but the support() projection~~
-  ~~only advertises FULL events, creating inconsistent host reporting.~~
-  ~~Update support() in github_copilot.rs to include the same partial~~
-  ~~events that support_for() treats as partial, or change support_for()~~
-  ~~so it only returns supported events; keep the behavior aligned across the~~
-  ~~support_for() and support() logic.~~
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
 
-
-────────────────────────────────────────────────────────────────────────
-  ~~major [Functional Correctness]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/mod.rs:99crates/swe-seed-core/src/adapters/mod.rs:99-120]8;;~~
-
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
-
-  ~~In @crates/swe-seed-core/src/adapters/mod.rs around lines 99 - 120,~~
-  ~~detect_host_drift currently only compares files in~~
-  ~~project_host(host).files, so stale snapshot-managed files removed from the~~
-  ~~current plan can be missed. Update detect_host_drift to also inspect the~~
-  ~~snapshot’s managed file list (from snapshot::read_snapshot /~~
-  ~~expected_bytes data) and mark any snapshot-only paths still present on~~
-  ~~disk as drifted, then keep HostDriftReport.status in sync with the~~
-  ~~combined drifted set.~~
-
+~~  In @crates/swe-seed/src/learning_cli.rs around lines 93 - 98, The~~
+~~  adaptation-decision keying is inconsistent between the read path in~~
+~~  load_adaptation_decision and the write path in the adapt/propose flow, so~~
+~~  promote may look for a different file than adapt created. Centralize the~~
+~~  adaptation decision path/key construction into one shared helper and use~~
+~~  the same explicit identifier everywhere in learning_cli.rs, including the~~
+~~  load_adaptation_decision, adapt, and promotion-related code paths, instead~~
+~~  of mixing loaded.id, run_id, and decision.decision_id.~~
 
 ────────────────────────────────────────────────────────────────────────
-  ~~major [Functional Correctness]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/opencode.rs:38crates/swe-seed-core/src/adapters/opencode.rs:38-46]8;;~~
 
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
+~~  major [Data Integrity & Integration]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/hooks_cli.rs:67crates/swe-seed/src/hooks_cli.rs:67-72]8;;~~
 
-  ~~In @crates/swe-seed-core/src/adapters/opencode.rs around lines 38 - 46,~~
-  ~~The OpenCode adapter’s projected plan is dropping Partial support~~
-  ~~information, so support_for() and project() disagree. Update~~
-  ~~project() in opencode.rs to preserve unmapped events from~~
-  ~~support_for() as part of the generated ProjectionPlan instead of~~
-  ~~serializing only the FULL mappings, and make sure the plan reflects both~~
-  ~~AdapterSupport::Full and AdapterSupport::Partial consistently.~~
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
 
-
-────────────────────────────────────────────────────────────────────────
-  ~~minor [Functional Correctness]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/cli.rs:567crates/swe-seed/src/cli.rs:567-585]8;;~~
-
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
-
-  ~~In @crates/swe-seed/src/cli.rs around lines 567 - 585, The doctor summary~~
-  ~~in cli.rs is printing only report.overall, which can disagree with the~~
-  ~~actual exit status when a selected host is drifted. Update the summary~~
-  ~~logic in the branch that prints per-check and per-host results so the~~
-  ~~final “overall” line reflects the combined doctor outcome (report.overall~~
-  ~~plus host_failed) using the existing doctor/report handling in cli.rs,~~
-  ~~rather than always printing report.overall alone.~~
-
+~~  In @crates/swe-seed/src/hooks_cli.rs around lines 67 - 72, The stdin~~
+~~  handling in hooks_cli currently ignores unreadable input or invalid JSON~~
+~~  and falls back to an empty payload, which silently loses hook data. Update~~
+~~  the payload parsing path around the stdin read/serde_json::from_str logic~~
+~~  to surface read/parse failures instead of defaulting to the existing~~
+~~  payload, and make sure the capture flow preserves or reports the original~~
+~~  payload when input cannot be decoded. Keep the fix localized to the stdin~~
+~~  ingestion branch used before event capture so downstream export/index~~
+~~  output is not missing attributes.~~
 
 ────────────────────────────────────────────────────────────────────────
-  ~~major [Data Integrity & Integration]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/marker.rs:10crates/swe-seed-core/src/adapters/marker.rs:10-25]8;;~~
 
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
+~~  major [Data Integrity & Integration]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/learning_cli.rs:57crates/swe-seed/src/learning_cli.rs:57-60]8;;~~
 
-  ~~In @crates/swe-seed-core/src/adapters/marker.rs around lines 10 - 25,~~
-  ~~merge_json currently only merges overlapping keys, so dropped managed~~
-  ~~top-level keys remain in the persisted JSON and the user file never~~
-  ~~converges. Update merge_json and the merge_object flow to track the~~
-  ~~previously managed key set and remove any keys no longer present in the~~
-  ~~new projected Value before writing the result, or switch to replacing a~~
-  ~~dedicated managed subtree atomically so old managed fields cannot survive~~
-  ~~across syncs.~~
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
 
-
-────────────────────────────────────────────────────────────────────────
-  ~~major [Functional Correctness]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/codex.rs:32crates/swe-seed-core/src/adapters/codex.rs:32-39]8;;~~
-
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
-
-  ~~In @crates/swe-seed-core/src/adapters/codex.rs around lines 32 - 39, The~~
-  ~~projected support table is inconsistent with CodexAdapter::support_for():~~
-  ~~non-FULL events are marked Partial there, but ProjectionPlan.support~~
-  ~~currently only lists Full events, so typed-plan consumers will treat the~~
-  ~~partial events as unsupported. Update the ProjectionPlan construction in~~
-  ~~codex.rs to include the same partial CanonicalHookEvent entries that~~
-  ~~support_for() returns as AdapterSupport::Partial, keeping the plan aligned~~
-  ~~with the adapter’s declared coverage.~~
-
+~~  In @crates/swe-seed/src/learning_cli.rs around lines 57 - 60, The promote~~
+~~  flow in learning_cli should not persist artifacts after only shape~~
+~~  validation; SkillProposal and RegressionCase must also be checked~~
+~~  against the loaded LearningRecord provenance. Update the branches that~~
+~~  currently use validate_proposal and validate_regression to route~~
+~~  through the core LearningCandidate / can_promote_candidate contract~~
+~~  (via promotion_gate where appropriate) before writing promoted~~
+~~  artifacts, so only candidates belonging to loaded can be promoted. Keep~~
+~~  the existing validation, but add the compatibility check using the~~
+~~  relevant LearningRecord, SkillProposal, and RegressionCase symbols~~
+~~  before persistence.~~
 
 ────────────────────────────────────────────────────────────────────────
-  ~~major [Data Integrity & Integration]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/mod.rs:131crates/swe-seed-core/src/adapters/mod.rs:131-141]8;;~~
 
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
+~~  major [Security & Privacy]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/provenance_cli.rs:63crates/swe-seed/src/provenance_cli.rs:63-65]8;;~~
 
-  ~~In @crates/swe-seed-core/src/adapters/mod.rs around lines 131 - 141, The~~
-  ~~snapshot read logic in the file handling branch is treating every~~
-  ~~std::fs::read failure as if the file were missing, which hides real errors~~
-  ~~and can mark existing files as absent. Update the read path in the~~
-  ~~snapshot-building code (the match on std::fs::read in the adapter module,~~
-  ~~including the related branch in the same flow) to only map NotFound to~~
-  ~~SnapshotEntry with existed=false, and propagate all other I/O errors~~
-  ~~upward instead of converting them into an empty entry. Keep the existing~~
-  ~~SnapshotEntry construction for successful reads, but preserve error~~
-  ~~details for non-missing failures so the baseline stays accurate.~~
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
 
-
-────────────────────────────────────────────────────────────────────────
-  ~~major [Functional Correctness]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/antigravity.rs:20crates/swe-seed-core/src/adapters/antigravity.rs:20-29]8;;~~
-
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
-
-  ~~In @crates/swe-seed-core/src/adapters/antigravity.rs around lines 20 - 29,~~
-  ~~Keep ProjectionPlan.support in sync with~~
-  ~~AntigravityAdapter::support_for(): support_for() marks~~
-  ~~CanonicalHookEvent::Stop as Partial, but project() currently only exposes~~
-  ~~PreToolUse, so any constructed ProjectionPlan under-reports coverage.~~
-  ~~Update AntigravityAdapter::project() to compute and publish support that~~
-  ~~matches the adapter’s declared event support, using the same support_for()~~
-  ~~logic or equivalent coverage calculation, and ensure the~~
-  ~~ProjectionPlan.support field reflects all supported events.~~
-
+~~  In @crates/swe-seed/src/provenance_cli.rs around lines 63 - 65, The~~
+~~  ProvenanceAction::Show branch currently builds the JSON path directly from~~
+~~  id via dir.join(format!("{id}.json")), which allows path traversal and~~
+~~  absolute-path escape. Update the show-id handling in provenance_cli.rs to~~
+~~  validate or normalize the capability id before constructing the path,~~
+~~  rejecting any id containing separators, parent-directory components, or~~
+~~  other path parts. Ensure the safe-id check happens before std::fs::read is~~
+~~  called so provenance show can only read files inside the provenance~~
+~~  directory.~~
 
 ────────────────────────────────────────────────────────────────────────
-  ~~major [Data Integrity & Integration]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/host.rs:12crates/swe-seed-core/src/adapters/host.rs:12-20]8;;~~
 
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
+~~  major [Functional Correctness]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/provenance_cli.rs:20crates/swe-seed/src/provenance_cli.rs:20-27]8;;~~
 
-  ~~In @crates/swe-seed-core/src/adapters/host.rs around lines 12 - 20,~~
-  ~~HostId’s serde representation is inconsistent with its as_str and~~
-  ~~FromStr contract, so JSON uses Rust variant names instead of the~~
-  ~~expected wire values. Update the HostId enum in host.rs so~~
-  ~~serialization/deserialization follows the same lowercase/kebab-case~~
-  ~~strings used by as_str and FromStr, and ensure the affected~~
-  ~~ProjectionPlan/ProjectionSnapshot/drift report paths keep using that~~
-  ~~same format through the HostId type.~~
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
 
+~~  In @crates/swe-seed/src/provenance_cli.rs around lines 20 - 27, The Verify~~
+~~  path in provenance_cli::ProvenanceAction::Verify is reusing an existing~~
+~~  manifest from .swe-seed, which can make verification run against stale~~
+~~  data. Update the verify flow to build a fresh manifest from the current~~
+~~  tree state instead of calling seed::manifest::read_manifest when~~
+~~  DEFAULT_MANIFEST_PATH exists. Keep the change localized to the verify~~
+~~  branch and continue passing the resulting manifest into~~
+~~  provenance::verify_manifest_records.~~
 
 ────────────────────────────────────────────────────────────────────────
-  ~~major [Functional Correctness]~~
-  ~~→ ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed-core/src/adapters/ci.rs:28crates/swe-seed-core/src/adapters/ci.rs:28-40]8;;~~
 
-  ~~▶ Prompt for AI agent~~
-  ~~Verify each finding against current code. Fix only still-valid issues,~~
-  ~~skip the rest with a brief reason, keep changes minimal, and validate.~~
+~~  minor [Functional Correctness]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/skill_cli.rs:52crates/swe-seed/src/skill_cli.rs:52-68]8;;~~
 
-  ~~In @crates/swe-seed-core/src/adapters/ci.rs around lines 28 - 40, The CI~~
-  ~~adapter’s projection metadata is inconsistent with its support reporting:~~
-  ~~support_for() in the CI adapter marks both CanonicalHookEvent::PreToolUse~~
-  ~~and CanonicalHookEvent::PostToolUse as partially supported, but the~~
-  ~~projected support list only advertises PreToolUse. Update the CI adapter’s~~
-  ~~projection/support construction so ProjectionPlan.support includes the~~
-  ~~same partial events that support_for() reports, keeping the metadata~~
-  ~~contract aligned.~~
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
 
+~~  In @crates/swe-seed/src/skill_cli.rs around lines 52 - 68, The~~
+~~  SkillAction::Scan search loop in skill_cli::run is failing early because~~
+~~  fetch and normalize errors are propagated while scanning for a matching~~
+~~  SkillIR.id. Update the search logic to skip unreadable or invalid entries~~
+~~  during discover(root)? traversal, similar to SkillAction::List, so~~
+~~  unrelated malformed skills do not stop a scan request for another id. Keep~~
+~~  the final error behavior only for the matched path when~~
+~~  run_skillspector(&path) is invoked, and use the existing found/id matching~~
+~~  flow to locate the right skill.~~
+
+────────────────────────────────────────────────────────────────────────
+
+~~  major [Functional Correctness]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/seed_cli.rs:30crates/swe-seed/src/seed_cli.rs:30-37]8;;~~
+
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
+
+~~  In @crates/swe-seed/src/seed_cli.rs around lines 30 - 37,~~
+~~  SeedAction::ValidateBoundaries is reading a persisted manifest when~~
+~~  seed::manifest::DEFAULT_MANIFEST_PATH exists, which can make validation~~
+~~  run against stale project state. Update the seed_cli::run branch for~~
+~~  ValidateBoundaries to assemble a fresh manifest by default, or make~~
+~~  seed::manifest::read_manifest an explicit opt-in path so validation~~
+~~  reflects the current repo contents.~~
+
+────────────────────────────────────────────────────────────────────────
+
+~~  major [Data Integrity & Integration]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/crates/swe-seed/src/federation_cli.rs:46crates/swe-seed/src/federation_cli.rs:46-59]8;;~~
+
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
+
+~~  In @crates/swe-seed/src/federation_cli.rs around lines 46 - 59, The~~
+~~  federation CLI is resolving state from the process cwd instead of the~~
+~~  provided root, so both handlers are computing and reporting the wrong~~
+~~  domain_model_hash when --root points elsewhere. Update the resolver calls~~
+~~  in the affected command handlers, especially run_run and the other~~
+~~  root-aware call site, to use the root-scoped resolver from the core layer~~
+~~  before building the emitted envelope or JSON/output payload. Ensure the~~
+~~  envelope in run_run is stamped from the resolved hash tied to root, not~~
+~~  resolve_domain_model_hash().~~
+
+────────────────────────────────────────────────────────────────────────
+
+~~  minor [Maintainability & Code Quality]~~
+~~  → ]8;;vscode://file//home/sprime01/projects/SWE_SEED/tests/validate-harness.sh:253tests/validate-harness.sh:253-257]8;;~~
+
+~~  ▶ Prompt for AI agent~~
+~~  Verify each finding against current code. Fix only still-valid issues,~~
+~~  skip the rest with a brief reason, keep changes minimal, and validate.~~
+
+~~  In @tests/validate-harness.sh around lines 253 - 257, The LOC guard in~~
+~~  validate-harness.sh is undercounting Rust items because the awk filter~~
+~~  skips every line starting with #, which incorrectly excludes Rust~~
+~~  attributes from crates/swe-seed/src/cli.rs. Update the pure LOC~~
+~~  calculation so it still ignores shell comments but counts Rust attribute~~
+~~  lines like #[derive(...)] and #[command(...)] / #[arg(...)] when scanning~~
+~~  cli.rs, and keep the threshold check tied to the cli_pure_loc variable.~~

@@ -5,10 +5,12 @@ use std::path::Path;
 use anyhow::{Context, Result};
 
 use super::record::ProvenanceRecord;
+use crate::seed::SeedPackageManifest;
 
 /// A single verification failure for one record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProvenanceProblem {
+    MissingRecord,
     MissingSourceHash,
     MalformedSourceHash,
     MissingLicenseTag,
@@ -19,6 +21,7 @@ pub enum ProvenanceProblem {
 impl ProvenanceProblem {
     pub fn message(&self) -> String {
         match self {
+            ProvenanceProblem::MissingRecord => "missing provenance record".into(),
             ProvenanceProblem::MissingSourceHash => "missing source_hash".into(),
             ProvenanceProblem::MalformedSourceHash => {
                 "malformed source_hash (expected 'sha256:<hex>')".into()
@@ -98,6 +101,22 @@ pub fn verify_dir(dir: &Path) -> Result<(Vec<ProvenanceRecord>, Vec<(String, Pro
             problems.push((rec.capability_id.clone(), p));
         }
         records.push(rec);
+    }
+    Ok((records, problems))
+}
+
+pub fn verify_manifest_records(
+    dir: &Path,
+    manifest: &SeedPackageManifest,
+) -> Result<(Vec<ProvenanceRecord>, Vec<(String, ProvenanceProblem)>)> {
+    let (records, mut problems) = verify_dir(dir)?;
+    for capability in &manifest.capabilities {
+        let has_record = records
+            .iter()
+            .any(|record| record.capability_id == capability.id);
+        if !has_record {
+            problems.push((capability.id.clone(), ProvenanceProblem::MissingRecord));
+        }
     }
     Ok((records, problems))
 }

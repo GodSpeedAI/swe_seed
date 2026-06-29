@@ -1,7 +1,10 @@
 //! Fail-closed provenance verification (spec 0009). verify fails on missing
 //! source_hash/license_tag, code_copied=true, or a non-clear license status.
 
-use swe_seed_core::provenance::{verify_dir, verify_record, ProvenanceProblem, ProvenanceRecord};
+use swe_seed_core::provenance::{
+    verify_dir, verify_manifest_records, verify_record, ProvenanceProblem, ProvenanceRecord,
+};
+use swe_seed_core::seed;
 
 fn clean_record() -> ProvenanceRecord {
     ProvenanceRecord {
@@ -113,4 +116,37 @@ fn verify_dir_collects_problems_and_records() {
     let (records, problems) = verify_dir(&nope).unwrap();
     assert!(records.is_empty());
     assert!(problems.is_empty());
+}
+
+#[test]
+fn strict_manifest_verification_fails_when_active_capability_records_are_missing() {
+    // Given: an assembled manifest with active capabilities and an empty provenance directory.
+    let dir = std::env::temp_dir().join(format!(
+        "swe-seed-prov-strict-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let manifest = seed::assemble_default();
+
+    // When: provenance is verified against the manifest.
+    let (_records, problems) = verify_manifest_records(&dir, &manifest).unwrap();
+
+    // Then: missing capability records are reported instead of passing vacuously.
+    assert!(
+        problems
+            .iter()
+            .any(|(id, problem)| id == "provenance" && *problem == ProvenanceProblem::MissingRecord),
+        "expected a missing provenance capability record, got {problems:?}"
+    );
+    assert!(
+        problems.len() >= manifest.capabilities.len(),
+        "every active capability should require a provenance record"
+    );
+
+    std::fs::remove_dir_all(&dir).unwrap();
 }

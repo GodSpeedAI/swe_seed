@@ -249,6 +249,13 @@ grep -qE '^agent-hooks-export-junit output="":' justfile
 grep -q 'just ci' .github/workflows/ci.yml
 grep -q 'pnpm/action-setup' .github/workflows/ci.yml
 grep -q 'astral-sh/setup-uv' .github/workflows/ci.yml
+
+cli_pure_loc="$(awk '!/^[[:space:]]*$/ && !/^[[:space:]]*\/\//' crates/swe-seed/src/cli.rs | wc -l | tr -d ' ')"
+if (( cli_pure_loc > 250 )); then
+  echo "crates/swe-seed/src/cli.rs exceeds 250 pure LOC: ${cli_pure_loc}" >&2
+  exit 1
+fi
+
 grep -q 'AGENTS.md' .github/copilot-instructions.md
 grep -q '.agent-harness/routes/' AGENTS.md
 grep -q '.agents/lessons' AGENTS.md

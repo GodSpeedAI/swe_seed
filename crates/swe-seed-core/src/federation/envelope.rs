@@ -67,6 +67,25 @@ pub fn resolve_domain_model_hash() -> ResolvedHash {
     resolve_from(sea_root.as_deref(), sea_manifest.as_deref(), true)
 }
 
+pub fn resolve_from_root(root: &Path) -> ResolvedHash {
+    let sea_root = std::env::var("SEA_ROOT").ok();
+    let sea_manifest = std::env::var("SEA_MANIFEST_PATH").ok();
+    let from_env = resolve_from(sea_root.as_deref(), sea_manifest.as_deref(), false);
+    if from_env.source != HashSource::Fallback {
+        return from_env;
+    }
+    for candidate in [root.join("SEA").join(MANIFEST_REL), root.join(MANIFEST_REL)] {
+        if let Some(hash) = read_manifest_hash(&candidate) {
+            return ResolvedHash {
+                hash,
+                source: HashSource::MarkerWalk,
+                warned: false,
+            };
+        }
+    }
+    from_env
+}
+
 /// Pure resolution entry point (testable, no process-env read). Same order as
 /// the Python adapter; pass `walk=false` to skip the cwd marker walk.
 pub fn resolve_from(
