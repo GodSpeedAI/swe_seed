@@ -1,6 +1,7 @@
 use std::process::ExitCode;
 
 mod cli;
+mod host_cli;
 
 fn main() -> ExitCode {
     match cli::run() {

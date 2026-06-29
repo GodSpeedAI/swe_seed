@@ -11,6 +11,8 @@ use std::process::ExitCode;
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 
+use crate::host_cli::{self, HostSelection};
+
 #[derive(Parser)]
 #[command(
     name = "swe-seed",
@@ -61,7 +63,26 @@ enum Command {
         /// Emit a stable JSON report
         #[arg(long)]
         json: bool,
+        /// Include host projection drift checks for one host or all hosts
+        #[arg(long, value_enum)]
+        host: Option<HostSelection>,
     },
+    /// Project SWE_SEED policy/hooks into host runtime files (spec 0004)
+    Sync {
+        #[arg(long, value_enum)]
+        host: HostSelection,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        prune: bool,
+    },
+    /// Restore host runtime files from the last SWE_SEED snapshot
+    Rollback {
+        #[arg(long, value_enum)]
+        host: HostSelection,
+    },
+    /// List supported host adapters and capability matrices
+    Hosts,
     /// Plan context intake for a task (spec 0015)
     ContextPlan { task: String },
     /// Normalized hook runtime (spec 0005)
@@ -302,7 +323,14 @@ pub fn run() -> Result<ExitCode> {
         Command::Trace { action } => run_trace(action, &root),
         Command::Eval { action } => run_eval_cmd(action, &root),
         Command::Validate { spec } => run_validate(&root, spec),
-        Command::Doctor { json } => run_doctor_cmd(&root, json),
+        Command::Doctor { json, host } => run_doctor_cmd(&root, json, host),
+        Command::Sync {
+            host,
+            dry_run,
+            prune,
+        } => host_cli::run_sync(&root, host, dry_run, prune),
+        Command::Rollback { host } => host_cli::run_rollback(&root, host),
+        Command::Hosts => host_cli::run_hosts(),
         Command::ContextPlan { task } => run_context_plan(&root, &task),
         Command::AgentHooks { action } => run_agent_hooks(action, &root),
         Command::RenderSkills => run_render_skills(&root),
@@ -512,18 +540,55 @@ fn run_validate(root: &std::path::Path, spec: Option<String>) -> Result<ExitCode
     Ok(ExitCode::SUCCESS)
 }
 
-fn run_doctor_cmd(root: &std::path::Path, json: bool) -> Result<ExitCode> {
+fn run_doctor_cmd(
+    root: &std::path::Path,
+    json: bool,
+    host: Option<HostSelection>,
+) -> Result<ExitCode> {
+    use swe_seed_core::adapters::DriftStatus;
     use swe_seed_core::doctor::{run_doctor, DoctorStatus};
     let report = run_doctor(root);
+    let mut host_reports = Vec::new();
+    let mut host_failed = false;
+    if let Some(selection) = host {
+        for drift in host_cli::host_drift_reports(root, selection)? {
+            host_failed |= drift.status == DriftStatus::Drifted;
+            host_reports.push(drift);
+        }
+    }
+    let combined_overall = if report.overall == DoctorStatus::Fail || host_failed {
+        DoctorStatus::Fail
+    } else {
+        report.overall.clone()
+    };
     if json {
-        println!("{}", serde_json::to_string_pretty(&report)?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "core": report,
+                "hosts": host_reports,
+                "overall": combined_overall,
+            }))?
+        );
     } else {
         for c in &report.checks {
             println!("{:?}\t{}\t{}", c.status, c.name, c.detail);
         }
-        println!("{:?}\toverall", report.overall);
+        for host_report in &host_reports {
+            println!(
+                "{:?}\thost:{}\t{}",
+                host_report.status,
+                host_report.host_id,
+                if host_report.drifted_files.is_empty() {
+                    "clean".to_string()
+                } else {
+                    host_report.drifted_files.join(",")
+                }
+            );
+        }
+        println!("{:?}\toverall", combined_overall);
     }
-    Ok(if report.overall == DoctorStatus::Fail {
+    Ok(if combined_overall == DoctorStatus::Fail {
         // Plan 0008: exit non-zero iff any check fails. Warn is surfaced in the
         // report but does not fail the run.
         ExitCode::from(1)

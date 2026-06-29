@@ -2,12 +2,17 @@
 //! secret redaction + OTEL/JUnit export + compaction, plus the 5 required
 //! v0.1 lifecycle events and the HookPolicy/PermissionPolicy gate.
 
+pub mod decision;
+pub mod events;
 pub mod export;
 pub mod index;
 pub mod policy;
+pub mod port;
 pub mod redact;
 pub mod runtime;
+pub mod runtime_map;
 
+pub use events::{CanonicalHookEvent, ALL_CANONICAL_HOOK_EVENTS};
 pub use policy::{
     gate_action, ActionGate, HookPolicy, PermissionPolicy, REQUIRED_LIFECYCLE_EVENTS,
 };

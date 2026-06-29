@@ -5,6 +5,7 @@
 //! seed-package assembly, boundary validation, idempotent regeneration,
 //! and fail-closed provenance verification.
 
+pub mod adapters;
 pub mod config;
 pub mod context;
 pub mod contracts;
