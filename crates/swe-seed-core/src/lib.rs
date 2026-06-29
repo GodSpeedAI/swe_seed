@@ -10,6 +10,7 @@ pub mod context;
 pub mod contracts;
 pub mod doctor;
 pub mod eval;
+pub mod fabricator;
 pub mod hooks;
 pub mod learning;
 pub mod provenance;

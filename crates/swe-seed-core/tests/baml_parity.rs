@@ -17,6 +17,12 @@ use swe_seed_core::context::{ContextBudget, ContextPack};
 use swe_seed_core::eval::{
     EvalCheck, EvalCheckResult, EvalClass, EvalResult, EvalSpec, EvalStatus, ProofRecord, SourceRef,
 };
+use swe_seed_core::fabricator::{
+    AgentTask, EARSPattern, EARSRequirement, FabricatorArtifactStatus, FabricatorEvalCheck,
+    FabricatorEvalClass, FabricatorEvalSpec, FabricatorProofRecord, FabricatorSourceRef,
+    GherkinScenario, JobStory, PRD, ProductADR, ProductHypothesis, ProductSeed, SDS,
+    SDSComponent, SemanticChainValidationReport, TDDPlan, TraceabilityLink, YStatement,
+};
 use swe_seed_core::hooks::{HookPolicy, PermissionPolicy};
 use swe_seed_core::learning::{
     AdaptationDecision, LearningCandidate, LearningDisposition, LearningRecord, ReflectionTemplate,
@@ -116,6 +122,52 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
         (
             AdaptationDecision::baml_name(),
             AdaptationDecision::baml_shape(),
+        ),
+        // Fabricator layer (spec 0017).
+        (
+            FabricatorArtifactStatus::baml_name(),
+            FabricatorArtifactStatus::baml_shape(),
+        ),
+        (
+            FabricatorEvalClass::baml_name(),
+            FabricatorEvalClass::baml_shape(),
+        ),
+        (EARSPattern::baml_name(), EARSPattern::baml_shape()),
+        (
+            FabricatorSourceRef::baml_name(),
+            FabricatorSourceRef::baml_shape(),
+        ),
+        (TraceabilityLink::baml_name(), TraceabilityLink::baml_shape()),
+        (JobStory::baml_name(), JobStory::baml_shape()),
+        (ProductSeed::baml_name(), ProductSeed::baml_shape()),
+        (
+            ProductHypothesis::baml_name(),
+            ProductHypothesis::baml_shape(),
+        ),
+        (EARSRequirement::baml_name(), EARSRequirement::baml_shape()),
+        (YStatement::baml_name(), YStatement::baml_shape()),
+        (ProductADR::baml_name(), ProductADR::baml_shape()),
+        (SDSComponent::baml_name(), SDSComponent::baml_shape()),
+        (GherkinScenario::baml_name(), GherkinScenario::baml_shape()),
+        (PRD::baml_name(), PRD::baml_shape()),
+        (SDS::baml_name(), SDS::baml_shape()),
+        (TDDPlan::baml_name(), TDDPlan::baml_shape()),
+        (AgentTask::baml_name(), AgentTask::baml_shape()),
+        (
+            FabricatorEvalCheck::baml_name(),
+            FabricatorEvalCheck::baml_shape(),
+        ),
+        (
+            FabricatorEvalSpec::baml_name(),
+            FabricatorEvalSpec::baml_shape(),
+        ),
+        (
+            FabricatorProofRecord::baml_name(),
+            FabricatorProofRecord::baml_shape(),
+        ),
+        (
+            SemanticChainValidationReport::baml_name(),
+            SemanticChainValidationReport::baml_shape(),
         ),
     ]
 }

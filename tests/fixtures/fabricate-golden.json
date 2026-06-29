@@ -1,0 +1,303 @@
+{
+  "run_id": "golden-fabricate",
+  "product_seed": {
+    "id": "golden-fabricate-seed",
+    "version": "0.1.0",
+    "status": "Active",
+    "target_user": "end user",
+    "product_idea": "sample need",
+    "constraints": [
+      "bounded single-pass prototype"
+    ],
+    "non_goals": [
+      "no autonomous looping"
+    ],
+    "desired_prototype_outcome": "a proven prototype addressing: sample need",
+    "proof_required": [
+      "chain integrity passes"
+    ],
+    "linked_artifacts": []
+  },
+  "job_story": {
+    "id": "golden-fabricate-jtbd",
+    "when_clause": "when addressing sample need",
+    "action_clause": "I want to use a bounded fabricate run",
+    "outcome_clause": "so I can get a proven prototype",
+    "source_refs": [
+      "golden-fabricate-seed"
+    ]
+  },
+  "hypothesis": {
+    "id": "golden-fabricate-hyp",
+    "version": "0.1.0",
+    "product_seed_id": "golden-fabricate-seed",
+    "hypothesis_statement": "we believe sample need can be addressed by a bounded prototype",
+    "target_job": "sample need",
+    "target_user_segment": "end user",
+    "situation_context": "fabricate run",
+    "pains": [],
+    "desired_gains": [],
+    "value_proposition": "a proven path from need to prototype for sample need",
+    "alternatives_today": [],
+    "channels": [],
+    "adoption_triggers": [],
+    "adoption_barriers": [],
+    "measurable_success": [
+      "chain integrity passes"
+    ],
+    "riskiest_assumptions": [
+      "sample need is addressable by a bounded run"
+    ],
+    "source_refs": [
+      "golden-fabricate-seed"
+    ]
+  },
+  "prd": {
+    "id": "golden-fabricate-prd",
+    "version": "0.1.0",
+    "product_seed_id": "golden-fabricate-seed",
+    "user": "end user",
+    "job_story_ids": [
+      "golden-fabricate-jtbd"
+    ],
+    "requirements": [
+      {
+        "id": "golden-fabricate-req-1",
+        "pattern": "Ubiquitous",
+        "system_name": "prototype",
+        "response": "address sample need",
+        "source_refs": [
+          "golden-fabricate-prd"
+        ],
+        "ears_text": "The prototype shall address sample need.",
+        "testable": true
+      }
+    ],
+    "acceptance_criteria": [
+      "the prototype addresses sample need"
+    ],
+    "non_goals": []
+  },
+  "adr": {
+    "id": "golden-fabricate-adr",
+    "version": "0.1.0",
+    "product_seed_id": "golden-fabricate-seed",
+    "decision": "construct the chain deterministically (contracts-as-data)",
+    "alternatives": [
+      "manual generation"
+    ],
+    "constraints": [
+      "bounded single pass"
+    ],
+    "consequences": [
+      "no runtime LLM"
+    ],
+    "rollback_path": "delete the run directory",
+    "y_statements": [
+      {
+        "id": "golden-fabricate-y-1",
+        "context": "addressing sample need",
+        "constraint": "bounded single pass",
+        "chosen_option": "deterministic chain construction",
+        "neglected_alternatives": [
+          "manual ad-hoc generation"
+        ],
+        "benefit": "traceable, replayable",
+        "accepted_cost": "no runtime LLM",
+        "linked_requirement_ids": [
+          "golden-fabricate-req-1"
+        ],
+        "y_text": "In the context of sample need, facing a bounded pass, we chose deterministic chain construction, neglecting manual generation, to gain traceability, accepting no runtime LLM."
+      }
+    ],
+    "linked_job_ids": [
+      "golden-fabricate-jtbd"
+    ],
+    "linked_requirement_ids": [
+      "golden-fabricate-req-1"
+    ]
+  },
+  "sds": {
+    "id": "golden-fabricate-sds",
+    "version": "0.1.0",
+    "prd_id": "golden-fabricate-prd",
+    "c4_level": [],
+    "mermaid_diagrams": [],
+    "architecture": [
+      "single prototype component"
+    ],
+    "files": [
+      "prototype"
+    ],
+    "interfaces": [],
+    "constraints": [
+      "bounded single pass"
+    ],
+    "components": [
+      {
+        "id": "golden-fabricate-comp-1",
+        "responsibility": "deliver the behavior for sample need",
+        "inputs": [
+          "product need"
+        ],
+        "outputs": [
+          "prototype"
+        ],
+        "state_owned": [],
+        "failure_modes": [
+          "chain integrity broken"
+        ],
+        "linked_requirement_ids": [
+          "golden-fabricate-req-1"
+        ],
+        "linked_scenario_ids": [
+          "golden-fabricate-scn-1"
+        ]
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "golden-fabricate-scn-1",
+        "name": "address sample need",
+        "given_steps": [
+          "a bounded fabricate run"
+        ],
+        "when_steps": [
+          "the prototype is exercised"
+        ],
+        "then_steps": [
+          "the need 'sample need' is addressed"
+        ],
+        "linked_requirement_ids": [
+          "golden-fabricate-req-1"
+        ]
+      }
+    ]
+  },
+  "tdd_plan": {
+    "id": "golden-fabricate-tdd",
+    "version": "0.1.0",
+    "sds_id": "golden-fabricate-sds",
+    "tests": [
+      "chain integrity passes"
+    ],
+    "proof_commands": [
+      "swe-seed fabricate validate-chain"
+    ],
+    "manual_checks": [],
+    "scenarios": []
+  },
+  "agent_task": {
+    "id": "golden-fabricate-task",
+    "version": "0.1.0",
+    "target_path": "prototype",
+    "instructions": [
+      "implement the prototype for sample need"
+    ],
+    "required_context": [
+      ".fabricator/runs/golden-fabricate"
+    ],
+    "excluded_context": [],
+    "proof_required": [
+      "chain integrity passes"
+    ],
+    "eval_spec_ids": [
+      "golden-fabricate-eval"
+    ],
+    "linked_traceability_ids": []
+  },
+  "eval_spec": {
+    "id": "golden-fabricate-eval",
+    "version": "0.1.0",
+    "run_id": "golden-fabricate",
+    "target_type": "AgentTask",
+    "target_path": "golden-fabricate-task",
+    "purpose": "verify the prototype addresses sample need",
+    "eval_classes": [
+      "ProductOutcome",
+      "ProcessCompliance",
+      "LearningQuality",
+      "AdaptationEligibility"
+    ],
+    "checks": [
+      {
+        "id": "golden-fabricate-chk-1",
+        "eval_class": "ProductOutcome",
+        "type": "chain_integrity",
+        "target": ".fabricator/runs/golden-fabricate",
+        "required": true,
+        "rule": "SemanticChainValidationReport.passed == true",
+        "evidence_required": [
+          "chain report"
+        ],
+        "linked_requirement_ids": [
+          "golden-fabricate-req-1"
+        ],
+        "linked_scenario_ids": [
+          "golden-fabricate-scn-1"
+        ],
+        "linked_component_ids": [
+          "golden-fabricate-comp-1"
+        ],
+        "linked_y_statement_ids": [
+          "golden-fabricate-y-1"
+        ]
+      }
+    ],
+    "pass_condition": "all required checks pass",
+    "outputs": [
+      "prototype"
+    ]
+  },
+  "proof_record": {
+    "id": "golden-fabricate-proof",
+    "run_id": "golden-fabricate",
+    "eval_id": "golden-fabricate-eval",
+    "status": "Pending",
+    "evidence": [],
+    "created_at": "fixture",
+    "satisfied_check_ids": []
+  },
+  "links": [
+    {
+      "upstream_id": "golden-fabricate-seed",
+      "downstream_id": "golden-fabricate-jtbd",
+      "relation": "derives"
+    },
+    {
+      "upstream_id": "golden-fabricate-seed",
+      "downstream_id": "golden-fabricate-hyp",
+      "relation": "derives"
+    },
+    {
+      "upstream_id": "golden-fabricate-jtbd",
+      "downstream_id": "golden-fabricate-prd",
+      "relation": "feeds"
+    },
+    {
+      "upstream_id": "golden-fabricate-seed",
+      "downstream_id": "golden-fabricate-adr",
+      "relation": "constrains"
+    },
+    {
+      "upstream_id": "golden-fabricate-prd",
+      "downstream_id": "golden-fabricate-sds",
+      "relation": "implements"
+    },
+    {
+      "upstream_id": "golden-fabricate-sds",
+      "downstream_id": "golden-fabricate-tdd",
+      "relation": "plans"
+    },
+    {
+      "upstream_id": "golden-fabricate-eval",
+      "downstream_id": "golden-fabricate-task",
+      "relation": "verifies"
+    },
+    {
+      "upstream_id": "golden-fabricate-eval",
+      "downstream_id": "golden-fabricate-proof",
+      "relation": "proves"
+    }
+  ]
+}
