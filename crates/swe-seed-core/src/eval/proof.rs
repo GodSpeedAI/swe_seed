@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::contracts::parity::{BamlParity, BamlShape};
 use super::check::SourceRef;
+use crate::contracts::parity::{BamlParity, BamlShape};
 
 /// harness.baml `ProofRecord`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,7 +24,14 @@ impl BamlParity for ProofRecord {
     }
     fn baml_shape() -> BamlShape {
         BamlShape::Class {
-            fields: vec!["id", "run_id", "claims", "evidence", "skipped_checks", "unresolved_risks"],
+            fields: vec![
+                "id",
+                "run_id",
+                "claims",
+                "evidence",
+                "skipped_checks",
+                "unresolved_risks",
+            ],
             field_types: vec![
                 "string",
                 "string",

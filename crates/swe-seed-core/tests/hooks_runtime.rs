@@ -8,22 +8,21 @@ use std::path::PathBuf;
 use serde_json::json;
 
 use swe_seed_core::hooks::{
-    index::{count_rows, rebuild_index},
     export::{export_junit, export_otel},
+    index::{count_rows, rebuild_index},
     runtime::{append_event, compact_logs, iter_events},
     RedactionConfig,
 };
 
 fn temp_log_root() -> PathBuf {
-    std::env::temp_dir()
-        .join(format!(
-            "swe-seed-hooks-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ))
+    std::env::temp_dir().join(format!(
+        "swe-seed-hooks-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ))
 }
 
 fn redaction_cfg() -> RedactionConfig {
@@ -36,10 +35,7 @@ fn redaction_cfg() -> RedactionConfig {
             "authorization".into(),
             "cookie".into(),
         ],
-        value_patterns: vec![
-            r"sk-[a-zA-Z0-9]{20,}".into(),
-            r"ghp_[a-zA-Z0-9]{36}".into(),
-        ],
+        value_patterns: vec![r"sk-[a-zA-Z0-9]{20,}".into(), r"ghp_[a-zA-Z0-9]{36}".into()],
     }
 }
 
@@ -82,7 +78,10 @@ fn secrets_do_not_survive_in_the_log() {
     assert_eq!(attrs["api_key"], "[REDACTED]");
     assert_eq!(attrs["nested"]["password"], "[REDACTED]");
     assert!(
-        !attrs["note"].as_str().unwrap().contains("sk-abcdef01234567890123456789"),
+        !attrs["note"]
+            .as_str()
+            .unwrap()
+            .contains("sk-abcdef01234567890123456789"),
         "value-pattern survived readback"
     );
 
@@ -125,10 +124,14 @@ fn compaction_gzips_oversized_logs() {
     let log_dir = root.join("logs");
     // Make a large event line and force a non-today filename so compaction sees it.
     let big = "x".repeat(4096);
-    let mut env = json!({"event":"PostToolUse","hook_id":"h","status":"ok","event_id":"e1","payload": big});
+    let mut env =
+        json!({"event":"PostToolUse","hook_id":"h","status":"ok","event_id":"e1","payload": big});
     append_event(&log_dir, &mut env, &redaction_cfg()).unwrap();
     // Rename today's log to a past date so compact_logs (which skips today) processes it.
-    let mut files: Vec<_> = fs::read_dir(&log_dir).unwrap().filter_map(|e| e.ok()).collect();
+    let mut files: Vec<_> = fs::read_dir(&log_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .collect();
     assert_eq!(files.len(), 1);
     let today_path = files.remove(0).path();
     let old_path = log_dir.join("events-2000-01-01.jsonl");

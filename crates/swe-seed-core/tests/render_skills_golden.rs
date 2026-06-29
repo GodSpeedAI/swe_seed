@@ -42,7 +42,11 @@ fn render_is_deterministic_across_runs() {
     for (a, b) in r1.iter().zip(r2.iter()) {
         assert_eq!(a.kind, b.kind);
         assert_eq!(a.rel_path, b.rel_path);
-        assert_eq!(a.content, b.content, "non-deterministic content for {}", a.kind);
+        assert_eq!(
+            a.content, b.content,
+            "non-deterministic content for {}",
+            a.kind
+        );
     }
 }
 
@@ -57,16 +61,37 @@ fn render_targets_carry_skill_content() {
     assert!(kinds.contains(&"checklist"));
 
     for t in &targets {
-        assert!(t.content.contains("fixture-skill"), "{} missing skill id", t.kind);
-        assert!(t.content.contains("add the narrowest failing check"), "{} missing procedure", t.kind);
-        assert!(t.content.contains("failing check"), "{} missing evidence", t.kind);
+        assert!(
+            t.content.contains("fixture-skill"),
+            "{} missing skill id",
+            t.kind
+        );
+        assert!(
+            t.content.contains("add the narrowest failing check"),
+            "{} missing procedure",
+            t.kind
+        );
+        assert!(
+            t.content.contains("failing check"),
+            "{} missing evidence",
+            t.kind
+        );
     }
 
     // Target paths follow the host layout.
     let claude = targets.iter().find(|t| t.kind == "claude_skill").unwrap();
-    assert!(claude.rel_path.to_string_lossy().contains("claude/test/fixture-skill/SKILL.md"));
-    let copilot = targets.iter().find(|t| t.kind == "copilot_instruction").unwrap();
-    assert!(copilot.rel_path.to_string_lossy().ends_with("copilot/fixture-skill.instructions.md"));
+    assert!(claude
+        .rel_path
+        .to_string_lossy()
+        .contains("claude/test/fixture-skill/SKILL.md"));
+    let copilot = targets
+        .iter()
+        .find(|t| t.kind == "copilot_instruction")
+        .unwrap();
+    assert!(copilot
+        .rel_path
+        .to_string_lossy()
+        .ends_with("copilot/fixture-skill.instructions.md"));
 }
 
 #[test]
@@ -77,12 +102,18 @@ fn render_skill_writes_to_disk_deterministically() {
     let dir_a = std::env::temp_dir().join(format!(
         "swe-seed-golden-a-{}-{}",
         std::process::id(),
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
     ));
     let dir_b = std::env::temp_dir().join(format!(
         "swe-seed-golden-b-{}-{}",
         std::process::id(),
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
     ));
 
     for dir in [&dir_a, &dir_b] {
@@ -117,14 +148,20 @@ fn malicious_identifiers_cannot_escape_render_hierarchy() {
     let targets = render_skill(&malicious);
     for t in &targets {
         let p = t.rel_path.to_string_lossy();
-        assert!(p.starts_with(".agent-harness/render-targets/"), "escaped hierarchy: {p}");
+        assert!(
+            p.starts_with(".agent-harness/render-targets/"),
+            "escaped hierarchy: {p}"
+        );
         assert!(!p.contains("../"), "traversal segment survived: {p}");
         assert!(!p.contains("/etc/"), "absolute segment survived: {p}");
     }
     // The claude path uses the sanitized basename, not the raw category.
     let claude = targets.iter().find(|t| t.kind == "claude_skill").unwrap();
     let p = claude.rel_path.to_string_lossy();
-    assert!(p.contains("claude/pwned/escape/SKILL.md") || p.contains("claude/unsafe"), "claude path: {p}");
+    assert!(
+        p.contains("claude/pwned/escape/SKILL.md") || p.contains("claude/unsafe"),
+        "claude path: {p}"
+    );
     // Front matter is YAML-safe (no raw newlines/--- break the block).
     assert!(claude.content.contains("name: "));
 }

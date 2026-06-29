@@ -228,19 +228,8 @@ fn infer_bootstrap_route<'a>(task: &str, cards: &'a [RouteCard]) -> Option<&'a R
         "plan",
     ];
     let direct_change_terms: &[&str] = &[
-        "fix",
-        "debug",
-        "review",
-        "audit",
-        "refactor",
-        "release",
-        "document",
-        "docs",
-        "test",
-        "tests",
-        "harness",
-        "router",
-        "skill",
+        "fix", "debug", "review", "audit", "refactor", "release", "document", "docs", "test",
+        "tests", "harness", "router", "skill",
     ];
     let has = |set: &[&str]| set.iter().any(|t| task_tokens.contains(*t));
     if !has(build_verbs) || has(clarification_nouns) || has(direct_change_terms) {
@@ -280,14 +269,13 @@ pub fn build_route_result(root: &Path, task: &str) -> Result<RouteResult> {
     } else {
         Some("No strong semantic match; selected safest default route.".to_string())
     };
-    let next_first = selected
-        .work_loop
-        .first()
-        .map(|s| s.as_str())
-        .unwrap_or("");
+    let next_first = selected.work_loop.first().map(|s| s.as_str()).unwrap_or("");
     Ok(RouteResult {
         job_type: selected.job_type.clone(),
-        route_card: rel(root, &routes_dir(root).join(format!("{}.json", selected.id))),
+        route_card: rel(
+            root,
+            &routes_dir(root).join(format!("{}.json", selected.id)),
+        ),
         confidence: confidence.to_string(),
         assumption,
         required_context: selected.required_context.clone(),
@@ -320,7 +308,10 @@ pub fn write_route_decision(root: &Path, task: &str, result: &RouteResult) -> Re
         "decision_basis": "deterministic token overlap against route-card triggers, examples, and job type",
     });
     let path = dir.join(format!("{trace_id}.json"));
-    std::fs::write(&path, format!("{}\n", serde_json::to_string_pretty(&decision)?))
-        .with_context(|| format!("write {}", path.display()))?;
+    std::fs::write(
+        &path,
+        format!("{}\n", serde_json::to_string_pretty(&decision)?),
+    )
+    .with_context(|| format!("write {}", path.display()))?;
     Ok(rel(root, &path))
 }

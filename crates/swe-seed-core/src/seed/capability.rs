@@ -21,7 +21,14 @@ impl BamlParity for LayerCapability {
     }
     fn baml_shape() -> BamlShape {
         BamlShape::Class {
-            fields: vec!["id", "owner", "source_spec", "artifact_paths", "purpose", "required"],
+            fields: vec![
+                "id",
+                "owner",
+                "source_spec",
+                "artifact_paths",
+                "purpose",
+                "required",
+            ],
             field_types: vec![
                 "string",
                 "LayerName",
@@ -72,7 +79,10 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
             "provenance",
             SweSeed,
             ".agents/specs/0009-license-and-provenance-boundaries.md",
-            &["crates/swe-seed-core/src/provenance", ".swe-seed/provenance/"],
+            &[
+                "crates/swe-seed-core/src/provenance",
+                ".swe-seed/provenance/",
+            ],
             "license + clean-room provenance records",
             true,
         ),
@@ -129,7 +139,10 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
             "context-plane",
             Harness,
             ".agents/specs/0015-context-budget-plane.md",
-            &["crates/swe-seed-core/src/context", ".agent-harness/context/"],
+            &[
+                "crates/swe-seed-core/src/context",
+                ".agent-harness/context/",
+            ],
             "bounded context budget + pack",
             true,
         ),

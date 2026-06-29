@@ -53,6 +53,7 @@ swe-seed seed assemble                 # build the SeedPackageManifest
 swe-seed seed validate-boundaries      # produce a BoundaryReport (also run by doctor)
 swe-seed seed regenerate               # produce an idempotent SeedRegenerationPlan
 swe-seed provenance verify             # fail closed on missing hash or license
+just fabricate-new <seed>              # run scripts/fabricate.py new
 ```
 
 ## Detailed specs
@@ -62,6 +63,18 @@ swe-seed provenance verify             # fail closed on missing hash or license
 - `.agents/specs/0018-layer-boundary-governance.md` — boundary governance.
 - `.agents/specs/0009-license-and-provenance-boundaries.md` — provenance and clean room.
 - `.agents/plans/0001-swe-seed-v0-1-implementation.md` — Rust rewrite plan of record.
+
+## Semantic Specification Chain
+
+The detailed semantic chain contract lives in `.agents/specs/SWE_SEED_SPEC_v0.2.0.md`.
+This root spec keeps the stable entry point required by harness validation and points to the
+expanded source-of-truth section.
+
+### Semantic Chain Validation
+
+Semantic Chain Validation is specified in the detailed SweSeed and Fabricator specs. The root
+contract keeps the validation marker so harness smoke checks can confirm that chain validation
+remains part of the release gate.
 
 ## Status
 

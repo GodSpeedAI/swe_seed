@@ -35,13 +35,7 @@ impl BamlParity for RegressionCase {
                 "linked_eval_check",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string",
-                "string",
-                "string",
-                "string",
-                "string",
+                "string", "string", "string", "string", "string", "string", "string",
             ],
         }
     }

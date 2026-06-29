@@ -19,8 +19,8 @@ fn root() -> PathBuf {
 
 /// The captured Python route-decision record for "checkpoint smoke".
 fn golden_record() -> Value {
-    let path = root()
-        .join(".agent-harness/traces/route-decisions/20260617T002316Z-checkpoint-smoke.json");
+    let path =
+        root().join(".agent-harness/traces/route-decisions/20260617T002316Z-checkpoint-smoke.json");
     let bytes = std::fs::read(&path).expect("read golden");
     serde_json::from_slice(&bytes).expect("parse golden")
 }
@@ -63,8 +63,7 @@ fn checkpoint_smoke_routes_to_test_low_confidence() {
 fn all_required_job_types_resolve() {
     // Outcome 4: every one of the 11 required job types has a resolvable card.
     let cards = swe_seed_core::route::load_routes(&root()).expect("load routes");
-    let have: std::collections::HashSet<&str> =
-        cards.iter().map(|c| c.job_type.as_str()).collect();
+    let have: std::collections::HashSet<&str> = cards.iter().map(|c| c.job_type.as_str()).collect();
     for jt in REQUIRED_JOB_TYPES {
         assert!(
             have.contains(*jt),

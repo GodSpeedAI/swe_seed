@@ -87,8 +87,7 @@ pub fn assemble_default() -> SeedPackageManifest {
 /// Write a manifest as pretty JSON. Creates parent dirs.
 pub fn write_manifest(manifest: &SeedPackageManifest, path: &Path) -> Result<PathBuf> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .with_context(|| format!("create {}", parent.display()))?;
+        std::fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
     }
     let json = serde_json::to_string_pretty(manifest)?;
     std::fs::write(path, json).with_context(|| format!("write {}", path.display()))?;

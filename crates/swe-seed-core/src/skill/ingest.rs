@@ -7,12 +7,12 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde_json::Value;
 
+use super::ir::SkillIR;
 use crate::provenance::content_hash;
 use crate::security::{
     exceptions::Exceptions, gate::scan_blocks_projection, scan_result::ScanResult,
     skillspector::run_skillspector,
 };
-use super::ir::SkillIR;
 
 /// An ingested skill: its normalized IR, provenance hash, scan result, source path.
 #[derive(Debug, Clone)]
@@ -99,7 +99,11 @@ pub fn pipeline(root: &Path, exceptions: &Exceptions) -> Result<(Vec<SkillRecord
 
 /// Pipeline with an injected scanner (`scanner(&path) -> ScanResult`) so tests
 /// are deterministic regardless of whether SkillSpector is installed.
-pub fn pipeline_scanning<S>(root: &Path, exceptions: &Exceptions, scanner: S) -> Result<(Vec<SkillRecord>, Vec<String>)>
+pub fn pipeline_scanning<S>(
+    root: &Path,
+    exceptions: &Exceptions,
+    scanner: S,
+) -> Result<(Vec<SkillRecord>, Vec<String>)>
 where
     S: Fn(&Path) -> ScanResult,
 {

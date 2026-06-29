@@ -5,9 +5,9 @@ use std::path::Path;
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 
+use super::check::{EvalCheck, SourceRef};
 use crate::contracts::parity::{BamlParity, BamlShape};
 use crate::provenance::content_hash;
-use super::check::{EvalCheck, SourceRef};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct EvalSpec {
@@ -70,7 +70,9 @@ pub fn load_eval_spec(path: &Path) -> Result<EvalSpec> {
     let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
     let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
     let spec: EvalSpec = match ext {
-        "json" => serde_json::from_slice(&bytes).with_context(|| format!("parse {}", path.display()))?,
+        "json" => {
+            serde_json::from_slice(&bytes).with_context(|| format!("parse {}", path.display()))?
+        }
         _ => {
             let text = std::str::from_utf8(&bytes)
                 .with_context(|| format!("non-utf8 spec {}", path.display()))?;
@@ -83,7 +85,10 @@ pub fn load_eval_spec(path: &Path) -> Result<EvalSpec> {
 
 fn validate_structure(spec: &EvalSpec, path: &Path) -> Result<()> {
     if spec.checks.is_empty() {
-        bail!("{}: EvalSpec checks must be a non-empty list", path.display());
+        bail!(
+            "{}: EvalSpec checks must be a non-empty list",
+            path.display()
+        );
     }
     Ok(())
 }
@@ -95,7 +100,8 @@ pub fn check_frozen(root: &Path, spec_path: &Path, spec: &EvalSpec) -> Result<()
     if !spec.frozen_after_handoff {
         return Ok(());
     }
-    let bytes = std::fs::read(spec_path).with_context(|| format!("read {}", spec_path.display()))?;
+    let bytes =
+        std::fs::read(spec_path).with_context(|| format!("read {}", spec_path.display()))?;
     let current = content_hash(&bytes);
     let dir = root.join(".swe-seed").join("eval-handoff");
     // Collision-resistant key: a hash of the raw spec id. (A lossy char-map
@@ -115,7 +121,8 @@ pub fn check_frozen(root: &Path, spec_path: &Path, spec: &EvalSpec) -> Result<()
         }
     } else {
         std::fs::create_dir_all(&dir).with_context(|| format!("create {}", dir.display()))?;
-        std::fs::write(&sidecar, &current).with_context(|| format!("write {}", sidecar.display()))?;
+        std::fs::write(&sidecar, &current)
+            .with_context(|| format!("write {}", sidecar.display()))?;
     }
     Ok(())
 }

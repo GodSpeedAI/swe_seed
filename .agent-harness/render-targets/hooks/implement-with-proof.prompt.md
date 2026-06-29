@@ -1,15 +1,16 @@
 Generated from Skill IR: implement-with-proof@1
-Do not edit this generated file directly; update the Skill IR source instead.
+Do not edit this generated file directly unless this repository intentionally allows generated-surface edits.
+Update the Skill IR source instead.
 
 # Implement With Proof Hook Prompt
 
 ## Use this when
 
-Use this hook prompt when lifecycle context matches: implement, build, add behavior, feature, change behavior.
+Use this hook prompt when lifecycle context indicates: implement, build, add behavior, feature, change behavior.
 
 ## What to do
 
-Require the agent to pursue: change behavior with the smallest implementation delta that is tied to failing and passing proof.
+Require the agent to pursue this outcome: change behavior with the smallest implementation delta that is tied to failing and passing proof.
 
 1. Add or update the narrowest validation that should fail for the missing behavior.
 2. Run the check and confirm the expected failure signal.
@@ -24,6 +25,15 @@ Require the agent to pursue: change behavior with the smallest implementation de
 - proof-command output
 - changed-artifact summary
 
+## Bundled resources
+
+- `.agent-harness/playbooks/20-change-with-proof.md` (reference): extend the compact implementation procedure with the full red-green-proof loop Use when the task changes behavior and needs a disciplined validation sequence.
+- `.agent-harness/traces/traceability-template.yaml` (asset): capture changed artifacts, validation, and next actions when the implementation spans multiple steps Use when the work needs durable traceability or handoff.
+
+## Evaluation prompts
+
+- `small-feature-proof`: Implement a small harness behavior change and prove it with the narrowest available failing and passing check. Check for: adds or updates a falsifiable check first; keeps the implementation delta focused; reads the proof output before claiming completion.
+
 ## Forbidden behavior
 
 - editing before there is a falsifiable check when one is available
@@ -37,4 +47,4 @@ Require the agent to pursue: change behavior with the smallest implementation de
 - proof commands pass and are read
 - unresolved risks are either absent or explicitly stated
 
-Hook should warn or block when evidence is skipped or completion is claimed without proof.
+Hook behavior should warn or block only when the agent is about to skip evidence, guess at root cause, or claim completion without proof.

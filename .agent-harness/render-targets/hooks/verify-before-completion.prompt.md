@@ -1,15 +1,16 @@
 Generated from Skill IR: verify-before-completion@1
-Do not edit this generated file directly; update the Skill IR source instead.
+Do not edit this generated file directly unless this repository intentionally allows generated-surface edits.
+Update the Skill IR source instead.
 
 # Verify Before Completion Hook Prompt
 
 ## Use this when
 
-Use this hook prompt when lifecycle context matches: complete, done, finish, ready, ship.
+Use this hook prompt when lifecycle context indicates: complete, done, finish, ready, ship.
 
 ## What to do
 
-Require the agent to pursue: block premature completion claims until the stated proof obligations have been run and read.
+Require the agent to pursue this outcome: block premature completion claims until the stated proof obligations have been run and read.
 
 1. List the proof commands or evidence required by the current route or contract.
 2. Check whether each required proof surface has fresh observed output.
@@ -24,6 +25,15 @@ Require the agent to pursue: block premature completion claims until the stated 
 - unresolved risk note
 - completion gate decision
 
+## Bundled resources
+
+- `docs/specs/verification-system.md` (reference): tie completion decisions to the repository proof model rather than to conversational confidence Use when the operator needs to confirm what proof is required for the current claim.
+- `.agent-harness/routes/release.json` (reference): reuse the release route's explicit proof-before-release discipline for other high-stakes completion claims Use when the current work is release-adjacent or otherwise sensitive to false completion.
+
+## Evaluation prompts
+
+- `block-false-completion`: The agent is about to say the work is done, but proof output is missing. Apply a completion gate and return the correct next action. Check for: names the missing proof surface; blocks premature completion language; uses observed evidence instead of confidence.
+
 ## Forbidden behavior
 
 - claiming completion from effort or intent
@@ -37,4 +47,4 @@ Require the agent to pursue: block premature completion claims until the stated 
 - missing proof is surfaced as a gap, not hidden by summary
 - unresolved risks are either cleared or disclosed
 
-Hook should warn or block when evidence is skipped or completion is claimed without proof.
+Hook behavior should warn or block only when the agent is about to skip evidence, guess at root cause, or claim completion without proof.

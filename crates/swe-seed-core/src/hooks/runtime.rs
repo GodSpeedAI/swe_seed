@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde_json::Value;
 
-use crate::util::{slugify, utc_now};
 use super::redact::{redact_value, RedactionConfig};
+use crate::util::{slugify, utc_now};
 
 fn today_log(log_dir: &Path) -> PathBuf {
     let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
@@ -16,7 +16,11 @@ fn today_log(log_dir: &Path) -> PathBuf {
 
 /// Append an event envelope to today's JSONL log, applying redaction first.
 /// Returns `(log_path, event_id)`. Assigns `event_id`/`timestamp` if missing.
-pub fn append_event(log_dir: &Path, envelope: &mut Value, cfg: &RedactionConfig) -> Result<(PathBuf, String)> {
+pub fn append_event(
+    log_dir: &Path,
+    envelope: &mut Value,
+    cfg: &RedactionConfig,
+) -> Result<(PathBuf, String)> {
     redact_value(envelope, cfg);
 
     let event_id = envelope
@@ -24,9 +28,16 @@ pub fn append_event(log_dir: &Path, envelope: &mut Value, cfg: &RedactionConfig)
         .and_then(Value::as_str)
         .map(|s| s.to_string())
         .unwrap_or_else(|| {
-            let id = format!("evt-{}-{}", chrono::Utc::now().timestamp(), slugify(
-                envelope.get("event").and_then(Value::as_str).unwrap_or("event"),
-            ));
+            let id = format!(
+                "evt-{}-{}",
+                chrono::Utc::now().timestamp(),
+                slugify(
+                    envelope
+                        .get("event")
+                        .and_then(Value::as_str)
+                        .unwrap_or("event"),
+                )
+            );
             if let Some(obj) = envelope.as_object_mut() {
                 obj.insert("event_id".into(), Value::String(id.clone()));
             }
@@ -57,9 +68,10 @@ pub fn iter_events(log_dir: &Path) -> Result<Vec<(Value, PathBuf)>> {
     if let Ok(entries) = std::fs::read_dir(log_dir) {
         for e in entries.flatten() {
             let p = e.path();
-            if p.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
-                n.starts_with("events-") && (n.ends_with(".jsonl"))
-            }) {
+            if p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("events-") && (n.ends_with(".jsonl")))
+            {
                 files.push(p);
             }
         }
@@ -91,9 +103,10 @@ pub fn compact_logs(log_dir: &Path, min_bytes: u64) -> Result<Vec<PathBuf>> {
     if let Ok(entries) = std::fs::read_dir(log_dir) {
         for e in entries.flatten() {
             let p = e.path();
-            if p.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
-                n.starts_with("events-") && n.ends_with(".jsonl")
-            }) {
+            if p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("events-") && n.ends_with(".jsonl"))
+            {
                 files.push(p);
             }
         }

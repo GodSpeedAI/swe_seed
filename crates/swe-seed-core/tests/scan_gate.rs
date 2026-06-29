@@ -6,7 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use swe_seed_core::security::{
-    exceptions_store_path, gate::{can_activate, scan_blocks_projection},
+    exceptions_store_path,
+    gate::{can_activate, scan_blocks_projection},
     scan_result::{ScanFinding, ScanResult, ScanStatus},
     skillspector::{parse_skillspector_output, run_skillspector_with, skillspector_available},
     Exceptions,
@@ -23,10 +24,15 @@ fn real_root() -> PathBuf {
 fn skillspector_is_pending_when_not_installed() {
     // Deterministic: force the "not installed" path via the availability flag.
     // The external SkillSpector gate must never fabricate a Clean pass.
-    let path = real_root().join(".agent-harness/skills/20-implementation/implement-with-proof.json");
+    let path =
+        real_root().join(".agent-harness/skills/20-implementation/implement-with-proof.json");
     let scan = run_skillspector_with(&path, false);
     assert_eq!(scan.status, ScanStatus::Pending, "no faked pass: {scan:?}");
-    assert!(scan.detail.contains("not installed"), "detail should explain: {}", scan.detail);
+    assert!(
+        scan.detail.contains("not installed"),
+        "detail should explain: {}",
+        scan.detail
+    );
     // A Pending scan never blocks projection.
     assert!(!scan_blocks_projection(&scan, &Exceptions::new()));
     // (The host may actually have the binary; that path is exercised below by
@@ -40,9 +46,13 @@ fn trusted_skillpector_output_maps_to_status() {
     // so a genuine Clean can activate (never faked: only recognized output).
     let mut ok = std::process::Command::new("true").output().unwrap();
     ok.stdout = br#"{"status":"clean","findings":[]}"#.to_vec();
-    assert_eq!(parse_skillspector_output("s", &ok).status, ScanStatus::Clean);
+    assert_eq!(
+        parse_skillspector_output("s", &ok).status,
+        ScanStatus::Clean
+    );
 
-    ok.stdout = br#"{"status":"warning","findings":[{"id":"x","severity":"low","message":"m"}]}"#.to_vec();
+    ok.stdout =
+        br#"{"status":"warning","findings":[{"id":"x","severity":"low","message":"m"}]}"#.to_vec();
     let warned = parse_skillspector_output("s", &ok);
     assert_eq!(warned.status, ScanStatus::Warning);
     assert_eq!(warned.findings.len(), 1);
@@ -54,11 +64,17 @@ fn trusted_skillpector_output_maps_to_status() {
 
     // Unrecognized status value → Pending (no faked pass).
     ok.stdout = br#"{"status":"bogus"}"#.to_vec();
-    assert_eq!(parse_skillspector_output("s", &ok).status, ScanStatus::Pending);
+    assert_eq!(
+        parse_skillspector_output("s", &ok).status,
+        ScanStatus::Pending
+    );
 
     // Non-JSON / empty stdout → Pending.
     ok.stdout = b"not json".to_vec();
-    assert_eq!(parse_skillspector_output("s", &ok).status, ScanStatus::Pending);
+    assert_eq!(
+        parse_skillspector_output("s", &ok).status,
+        ScanStatus::Pending
+    );
 }
 
 #[test]
@@ -100,7 +116,10 @@ fn exceptions_persist_and_lift_blocks() {
         detail: "".into(),
     };
     assert!(scan_blocks_projection(&critical, &Exceptions::new()));
-    assert!(!scan_blocks_projection(&critical, &reloaded), "waived finding must not block");
+    assert!(
+        !scan_blocks_projection(&critical, &reloaded),
+        "waived finding must not block"
+    );
 
     let _ = std::fs::remove_file(&store);
 }
@@ -121,7 +140,10 @@ fn blocking_statuses_are_isolated_from_terminal_passes() {
     assert!(mk(ScanStatus::Error).status.is_blocking());
     assert!(!mk(ScanStatus::Pending).status.is_terminal());
     assert!(mk(ScanStatus::Clean).status.is_terminal());
-    assert!(mk(ScanStatus::Warning).status.is_terminal() && !mk(ScanStatus::Warning).status.is_blocking());
+    assert!(
+        mk(ScanStatus::Warning).status.is_terminal()
+            && !mk(ScanStatus::Warning).status.is_blocking()
+    );
 }
 
 #[test]
@@ -148,7 +170,11 @@ fn activation_gate_is_honest_about_state() {
 
     // Critical + hash → no activation.
     rec.scan.status = ScanStatus::Critical;
-    rec.scan.findings.push(ScanFinding { id: "f".into(), severity: "high".into(), message: "m".into() });
+    rec.scan.findings.push(ScanFinding {
+        id: "f".into(),
+        severity: "high".into(),
+        message: "m".into(),
+    });
     assert!(!can_activate(&rec, &Exceptions::new()));
 
     // Clean + hash → activates. Waiving the (now-absent) finding is irrelevant.

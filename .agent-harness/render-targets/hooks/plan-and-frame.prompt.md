@@ -1,15 +1,16 @@
 Generated from Skill IR: plan-and-frame@1
-Do not edit this generated file directly; update the Skill IR source instead.
+Do not edit this generated file directly unless this repository intentionally allows generated-surface edits.
+Update the Skill IR source instead.
 
 # Plan And Frame Hook Prompt
 
 ## Use this when
 
-Use this hook prompt when lifecycle context matches: plan, scope, requirements, acceptance criteria, unclear target.
+Use this hook prompt when lifecycle context indicates: plan, scope, requirements, acceptance criteria, unclear target.
 
 ## What to do
 
-Require the agent to pursue: turn a routed task into a concrete, proof-bearing next action before editing.
+Require the agent to pursue this outcome: turn a routed task into a concrete, proof-bearing next action before editing.
 
 1. Write the intended outcome in one sentence.
 2. Identify the governing artifact that must change, such as spec, code, docs, route card, validation, or hook.
@@ -25,6 +26,15 @@ Require the agent to pursue: turn a routed task into a concrete, proof-bearing n
 - smallest useful delta
 - spec-first or implementation-first decision
 
+## Bundled resources
+
+- `.agent-harness/playbooks/10-frame-outcome.md` (reference): extend the compact framing procedure with the full outcome-and-proof workflow Use when the task is broad, the acceptance criteria are unclear, or the agent needs to decide whether spec changes come first.
+- `.agent-harness/memory/constraints.md` (reference): keep planning tied to cheap levers and outcome production instead of decorative structure Use when the proposed change risks adding ceremony without improving proof quality or recovery.
+
+## Evaluation prompts
+
+- `broad-harness-request`: A user asks to improve the harness without naming a failing behavior. Frame the outcome and choose the smallest useful delta before editing. Check for: names a concrete outcome; identifies a falsifiable proof surface; chooses a minimal delta rather than broad exploration.
+
 ## Forbidden behavior
 
 - starting implementation without naming the proof surface
@@ -38,4 +48,4 @@ Require the agent to pursue: turn a routed task into a concrete, proof-bearing n
 - the chosen artifact aligns with the requested outcome
 - implementation does not begin before the task is framed
 
-Hook should warn or block when evidence is skipped or completion is claimed without proof.
+Hook behavior should warn or block only when the agent is about to skip evidence, guess at root cause, or claim completion without proof.

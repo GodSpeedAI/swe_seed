@@ -64,7 +64,8 @@ pub fn self_project_seed() -> ProjectSeed {
             requires_human_review: super::ReviewRequirement::Optional,
             linked_artifacts: Vec::new(),
         },
-        repository_purpose: "Sovereign multi-layer agent harness: SweSeed → Harness → Fabricator.".into(),
+        repository_purpose: "Sovereign multi-layer agent harness: SweSeed → Harness → Fabricator."
+            .into(),
         toolchain: vec!["cargo".into(), "just".into(), "python".into()],
         command_contract: vec![
             "cargo build".into(),

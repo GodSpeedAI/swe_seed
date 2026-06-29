@@ -136,8 +136,11 @@ pub fn validate_boundaries(manifest: &SeedPackageManifest) -> BoundaryReport {
     }
 
     // Required-capability presence vs the registry.
-    let present: std::collections::HashSet<&str> =
-        manifest.capabilities.iter().map(|c| c.id.as_str()).collect();
+    let present: std::collections::HashSet<&str> = manifest
+        .capabilities
+        .iter()
+        .map(|c| c.id.as_str())
+        .collect();
     for reg in builtin_capabilities() {
         if reg.required && !present.contains(reg.id.as_str()) {
             findings.push(BoundaryFinding {

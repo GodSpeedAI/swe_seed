@@ -62,13 +62,19 @@ fn no_change_allowed_false_requires_explicit_disposition() {
         id: "learn-x".into(),
         disposition: LearningDisposition::NoChange,
         summary: "nothing reusable".into(),
-        evidence: vec![SourceRef { path: "t.json".into(), summary: "trace".into() }],
+        evidence: vec![SourceRef {
+            path: "t.json".into(),
+            summary: "trace".into(),
+        }],
         decision_reason: reason.into(),
         follow_up_artifact: None,
         validation: vec![],
     };
 
-    assert!(validate_reflection(&template, &mk("")).is_err(), "silent skip rejected");
+    assert!(
+        validate_reflection(&template, &mk("")).is_err(),
+        "silent skip rejected"
+    );
     assert!(validate_reflection(&template, &mk("no claim; nothing to learn")).is_ok());
 
     // An unfinished trace (no completion claim) still reflects explicitly.
@@ -76,7 +82,10 @@ fn no_change_allowed_false_requires_explicit_disposition() {
     trace.completion_claim = None;
     let record = reflect(&default_template(), &trace, "t.json").unwrap();
     assert_eq!(record.disposition, LearningDisposition::NoChange);
-    assert!(!record.decision_reason.is_empty(), "no silent skip from reflect");
+    assert!(
+        !record.decision_reason.is_empty(),
+        "no silent skip from reflect"
+    );
 }
 
 #[test]
@@ -87,7 +96,10 @@ fn proposal_without_rollback_is_rejected() {
             id: "prop-1".into(),
             proposed_skill_id: "skill-x".into(),
             observed_problem: "routing ties are broken non-deterministically".into(),
-            evidence: vec![SourceRef { path: "traces/r.json".into(), summary: "run".into() }],
+            evidence: vec![SourceRef {
+                path: "traces/r.json".into(),
+                summary: "run".into(),
+            }],
             proposed_behavior: vec!["tiebreak by reverse-alpha".into()],
             evals: vec![swe_seed_core::eval::EvalCheck {
                 id: "chk".into(),
@@ -127,7 +139,10 @@ fn candidate_promotion_requires_evidence_and_linked_regression() {
             source_run_id: "run".into(),
             candidate_type: "SkillProposal".into(),
             claim: "route ties need a stable tiebreak".into(),
-            evidence: vec![SourceRef { path: "t.json".into(), summary: "trace".into() }],
+            evidence: vec![SourceRef {
+                path: "t.json".into(),
+                summary: "trace".into(),
+            }],
             scope: "routing".into(),
             confidence: "high".into(),
             promotion_status: "proposed".into(),
@@ -135,22 +150,36 @@ fn candidate_promotion_requires_evidence_and_linked_regression() {
         }
     }
 
-    assert!(matches!(can_promote_candidate(&candidate(None)), PromotionOutcome::Allow { .. }));
+    assert!(matches!(
+        can_promote_candidate(&candidate(None)),
+        PromotionOutcome::Allow { .. }
+    ));
 
     let mut no_evidence = candidate(None);
     no_evidence.evidence.clear();
-    assert!(matches!(can_promote_candidate(&no_evidence), PromotionOutcome::Block { .. }));
+    assert!(matches!(
+        can_promote_candidate(&no_evidence),
+        PromotionOutcome::Block { .. }
+    ));
 
     // Required regression declared but blank → blocked.
-    assert!(matches!(can_promote_candidate(&candidate(Some("   "))), PromotionOutcome::Block { .. }));
+    assert!(matches!(
+        can_promote_candidate(&candidate(Some("   "))),
+        PromotionOutcome::Block { .. }
+    ));
     // Required regression declared and linked → allowed.
-    assert!(matches!(can_promote_candidate(&candidate(Some("reg-1"))), PromotionOutcome::Allow { .. }));
+    assert!(matches!(
+        can_promote_candidate(&candidate(Some("reg-1"))),
+        PromotionOutcome::Allow { .. }
+    ));
 
     // Empty candidate_type → blocked (no unusable Allow target).
     let mut no_type = candidate(None);
     no_type.candidate_type = "  ".into();
     match can_promote_candidate(&no_type) {
-        PromotionOutcome::Block { reason } => assert!(reason.contains("candidate_type"), "{reason}"),
+        PromotionOutcome::Block { reason } => {
+            assert!(reason.contains("candidate_type"), "{reason}")
+        }
         other => panic!("empty candidate_type must block, got {other:?}"),
     }
 }

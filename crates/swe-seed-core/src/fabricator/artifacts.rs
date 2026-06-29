@@ -26,7 +26,14 @@ impl BamlParity for FabricatorArtifactStatus {
     }
     fn baml_shape() -> BamlShape {
         BamlShape::Enum {
-            variants: vec!["Draft", "Proposed", "Approved", "Active", "Rejected", "Deprecated"],
+            variants: vec![
+                "Draft",
+                "Proposed",
+                "Approved",
+                "Active",
+                "Rejected",
+                "Deprecated",
+            ],
         }
     }
 }
@@ -167,13 +174,7 @@ impl BamlParity for JobStory {
                 "waiver_reason",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string",
-                "string",
-                "string[]",
-                "bool?",
-                "string?",
+                "string", "string", "string", "string", "string[]", "bool?", "string?",
             ],
         }
     }
@@ -292,24 +293,9 @@ impl BamlParity for ProductHypothesis {
                 "source_refs",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string",
-                "string?",
-                "string",
-                "string",
-                "string",
-                "string",
-                "string[]",
-                "string[]",
-                "string",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
+                "string", "string", "string", "string?", "string", "string", "string", "string",
+                "string[]", "string[]", "string", "string[]", "string[]", "string[]", "string[]",
+                "string[]", "string[]", "string[]",
             ],
         }
     }
@@ -418,14 +404,7 @@ impl BamlParity for YStatement {
                 "y_text",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string",
-                "string",
-                "string[]",
-                "string",
-                "string",
-                "string[]",
+                "string", "string", "string", "string", "string[]", "string", "string", "string[]",
                 "string",
             ],
         }
@@ -526,13 +505,7 @@ impl BamlParity for SDSComponent {
                 "linked_scenario_ids",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
+                "string", "string", "string[]", "string[]", "string[]", "string[]", "string[]",
                 "string[]",
             ],
         }
@@ -572,13 +545,7 @@ impl BamlParity for GherkinScenario {
                 "waiver_reason",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string?",
+                "string", "string", "string[]", "string[]", "string[]", "string[]", "string?",
             ],
         }
     }
@@ -713,7 +680,15 @@ impl BamlParity for TDDPlan {
     }
     fn baml_shape() -> BamlShape {
         BamlShape::Class {
-            fields: vec!["id", "version", "sds_id", "tests", "proof_commands", "manual_checks", "scenarios"],
+            fields: vec![
+                "id",
+                "version",
+                "sds_id",
+                "tests",
+                "proof_commands",
+                "manual_checks",
+                "scenarios",
+            ],
             field_types: vec![
                 "string",
                 "string",
@@ -765,15 +740,8 @@ impl BamlParity for AgentTask {
                 "linked_traceability_ids",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
+                "string", "string", "string", "string[]", "string[]", "string[]", "string[]",
+                "string[]", "string[]",
             ],
         }
     }
@@ -926,14 +894,7 @@ impl BamlParity for FabricatorProofRecord {
                 "linked_eval_result_id",
             ],
             field_types: vec![
-                "string",
-                "string",
-                "string",
-                "string",
-                "string[]",
-                "string",
-                "string[]",
-                "string?",
+                "string", "string", "string", "string", "string[]", "string", "string[]", "string?",
             ],
         }
     }
@@ -958,7 +919,13 @@ impl BamlParity for SemanticChainValidationReport {
     }
     fn baml_shape() -> BamlShape {
         BamlShape::Class {
-            fields: vec!["id", "passed", "missing_links", "waived_links", "blocked_claims"],
+            fields: vec![
+                "id",
+                "passed",
+                "missing_links",
+                "waived_links",
+                "blocked_claims",
+            ],
             field_types: vec!["string", "bool", "string[]", "string[]", "string[]"],
         }
     }

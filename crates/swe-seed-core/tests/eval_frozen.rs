@@ -81,15 +81,24 @@ fn non_frozen_spec_allows_edits() {
     let root = temp_root();
     fs::write(root.join("target.txt"), "ok").unwrap();
     let spec_path = root.join("spec.toml");
-    let mut spec = FROZEN_SPEC.replace("frozen_after_handoff = true", "frozen_after_handoff = false");
+    let mut spec = FROZEN_SPEC.replace(
+        "frozen_after_handoff = true",
+        "frozen_after_handoff = false",
+    );
     fs::write(&spec_path, &spec).unwrap();
     let loaded = load_eval_spec(&spec_path).unwrap();
-    assert_eq!(run_eval(&root, &spec_path, &loaded, false).unwrap().status, EvalStatus::Pass);
+    assert_eq!(
+        run_eval(&root, &spec_path, &loaded, false).unwrap().status,
+        EvalStatus::Pass
+    );
     // Edit freely — no frozen gate.
     spec = spec.replacen("frozen demo", "edited", 1);
     fs::write(&spec_path, &spec).unwrap();
     let loaded = load_eval_spec(&spec_path).unwrap();
-    assert_eq!(run_eval(&root, &spec_path, &loaded, false).unwrap().status, EvalStatus::Pass);
+    assert_eq!(
+        run_eval(&root, &spec_path, &loaded, false).unwrap().status,
+        EvalStatus::Pass
+    );
     let _ = fs::remove_dir_all(&root);
 }
 
@@ -160,11 +169,20 @@ fn deterministic_run_across_four_eval_classes() {
     assert_eq!(statuses, statuses2);
     // Also compare each check's stable identity (id + class) so a reorder or
     // class/identity mix-up is caught, not just the flattened statuses.
-    let identity: Vec<(&str, EvalClass)> =
-        r1.checks.iter().map(|c| (c.id.as_str(), c.eval_class)).collect();
-    let identity2: Vec<(&str, EvalClass)> =
-        r2.checks.iter().map(|c| (c.id.as_str(), c.eval_class)).collect();
-    assert_eq!(identity, identity2, "check identity must be stable across runs");
+    let identity: Vec<(&str, EvalClass)> = r1
+        .checks
+        .iter()
+        .map(|c| (c.id.as_str(), c.eval_class))
+        .collect();
+    let identity2: Vec<(&str, EvalClass)> = r2
+        .checks
+        .iter()
+        .map(|c| (c.id.as_str(), c.eval_class))
+        .collect();
+    assert_eq!(
+        identity, identity2,
+        "check identity must be stable across runs"
+    );
     let _ = fs::remove_dir_all(&root);
 }
 
@@ -212,7 +230,11 @@ fn live_pass_only_waived_eval_does_not_activate() {
     let spec = load_eval_spec(&spec_path).unwrap();
     let result = run_eval(&root, &spec_path, &spec, false).unwrap();
     assert_eq!(result.checks[0].status, EvalStatus::Waived);
-    assert_ne!(result.status, EvalStatus::Pass, "a waived-only eval must not pass");
+    assert_ne!(
+        result.status,
+        EvalStatus::Pass,
+        "a waived-only eval must not pass"
+    );
     let _ = fs::remove_dir_all(&root);
 }
 
@@ -224,9 +246,17 @@ fn core_fixture_loads_and_has_four_classes() {
     let spec = load_eval_spec(&spec_path).unwrap();
     assert_eq!(spec.id, "core-conformance");
     assert!(!spec.frozen_after_handoff);
-    let classes: Vec<String> = spec.checks.iter().map(|c| format!("{:?}", c.eval_class)).collect();
+    let classes: Vec<String> = spec
+        .checks
+        .iter()
+        .map(|c| format!("{:?}", c.eval_class))
+        .collect();
     let unique: std::collections::HashSet<&str> = classes.iter().map(|s| s.as_str()).collect();
-    assert_eq!(unique.len(), 4, "fixture must cover 4 distinct classes, got {classes:?}");
+    assert_eq!(
+        unique.len(),
+        4,
+        "fixture must cover 4 distinct classes, got {classes:?}"
+    );
 }
 
 const COMMAND_CHECK_SPEC: &str = r#"
@@ -262,7 +292,11 @@ fn command_check_is_rejected_unless_trusted() {
     let spec = load_eval_spec(&spec_path).unwrap();
 
     let untrusted = run_eval(&root, &spec_path, &spec, false).unwrap();
-    assert_ne!(untrusted.status, EvalStatus::Pass, "untrusted command_check must not pass");
+    assert_ne!(
+        untrusted.status,
+        EvalStatus::Pass,
+        "untrusted command_check must not pass"
+    );
     assert!(untrusted.checks[0]
         .failure_reason
         .as_deref()
@@ -270,7 +304,11 @@ fn command_check_is_rejected_unless_trusted() {
         .contains("trusted mode"));
 
     let trusted = run_eval(&root, &spec_path, &spec, true).unwrap();
-    assert_eq!(trusted.status, EvalStatus::Pass, "trusted command_check (`true`) should pass");
+    assert_eq!(
+        trusted.status,
+        EvalStatus::Pass,
+        "trusted command_check (`true`) should pass"
+    );
     let _ = fs::remove_dir_all(&root);
 }
 

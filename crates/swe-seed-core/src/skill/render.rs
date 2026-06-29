@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
-use crate::security::{exceptions::Exceptions, gate::scan_blocks_projection};
 use super::ingest::{discover, ingest_one};
 use super::ir::SkillIR;
+use crate::security::{exceptions::Exceptions, gate::scan_blocks_projection};
 
 /// One rendered host file (repo-relative path + content).
 #[derive(Debug, Clone)]
@@ -53,10 +53,15 @@ fn yaml_scalar(raw: &str) -> String {
         || one_line.contains(':')
         || one_line.contains('#')
         || one_line.contains("---")
-        || one_line.starts_with(['&', '*', '!', '|', '>', '%', '@', '`', '"', '\'', '{', '[', ',', '?'])
+        || one_line.starts_with([
+            '&', '*', '!', '|', '>', '%', '@', '`', '"', '\'', '{', '[', ',', '?',
+        ])
         || one_line.starts_with('-');
     if needs_quote {
-        format!("\"{}\"", one_line.replace('\\', "\\\\").replace('"', "\\\""))
+        format!(
+            "\"{}\"",
+            one_line.replace('\\', "\\\\").replace('"', "\\\"")
+        )
     } else {
         one_line
     }
@@ -99,7 +104,7 @@ pub fn render_skill(skill: &SkillIR) -> Vec<RenderTarget> {
     let path_cat = safe_component(&skill.category);
     let header = format!(
         "Generated from Skill IR: {raw_id}@{version}\n\
-         Do not edit this generated file directly; update the Skill IR source instead.\n\n",
+         Do not edit this generated file directly. Update the Skill IR source instead.\n\n",
         version = skill.version
     );
     let title = title(raw_id);
@@ -117,9 +122,24 @@ pub fn render_skill(skill: &SkillIR) -> Vec<RenderTarget> {
         .map(|s| format!("- [ ] {s}"))
         .collect::<Vec<_>>()
         .join("\n");
-    let evidence = skill.evidence_required.iter().map(|s| format!("- {s}")).collect::<Vec<_>>().join("\n");
-    let forbidden = skill.forbidden_behaviors.iter().map(|s| format!("- {s}")).collect::<Vec<_>>().join("\n");
-    let success = skill.success_criteria.iter().map(|s| format!("- {s}")).collect::<Vec<_>>().join("\n");
+    let evidence = skill
+        .evidence_required
+        .iter()
+        .map(|s| format!("- {s}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let forbidden = skill
+        .forbidden_behaviors
+        .iter()
+        .map(|s| format!("- {s}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let success = skill
+        .success_criteria
+        .iter()
+        .map(|s| format!("- {s}"))
+        .collect::<Vec<_>>()
+        .join("\n");
 
     let mut out = Vec::new();
     for kind in &skill.render_targets {

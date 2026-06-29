@@ -50,16 +50,32 @@ pub fn export_junit(log_dir: &Path) -> Result<String> {
     let mut cases = String::new();
     for (env, _) in &records {
         let status = env.get("status").and_then(|v| v.as_str()).unwrap_or("ok");
-        let classname = env.get("hook_id").and_then(|v| v.as_str()).unwrap_or("agent-hooks");
-        let name = env.get("event_id").and_then(|v| v.as_str()).unwrap_or("unknown-event");
-        let dur = env.get("duration_ms").and_then(|v| v.as_f64()).unwrap_or(0.0) / 1000.0;
+        let classname = env
+            .get("hook_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("agent-hooks");
+        let name = env
+            .get("event_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown-event");
+        let dur = env
+            .get("duration_ms")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0)
+            / 1000.0;
         if status != "ok" {
             failures += 1;
-            let msg = xml_escape(env.get("event").and_then(|v| v.as_str()).unwrap_or("failed-event"));
+            let msg = xml_escape(
+                env.get("event")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("failed-event"),
+            );
             let detail = xml_escape(&format!(
                 "status={} exit_code={}",
                 status,
-                env.get("exit_code").map(|v| v.to_string()).unwrap_or_else(|| "null".into())
+                env.get("exit_code")
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "null".into())
             ));
             cases.push_str(&format!(
                 "    <testcase classname=\"{classname}\" name=\"{name}\" time=\"{dur}\">\n      <failure message=\"{msg}\">{detail}</failure>\n    </testcase>\n"

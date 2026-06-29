@@ -5,11 +5,11 @@ use std::path::Path;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::contracts::parity::{BamlParity, BamlShape};
-use crate::util::utc_now;
 use super::check::evaluate_check;
 use super::spec::{check_frozen, EvalSpec};
 use super::{EvalClass, EvalStatus};
+use crate::contracts::parity::{BamlParity, BamlShape};
+use crate::util::utc_now;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalCheckResult {
@@ -28,13 +28,7 @@ impl BamlParity for EvalCheckResult {
     fn baml_shape() -> BamlShape {
         BamlShape::Class {
             fields: vec!["id", "eval_class", "status", "evidence", "failure_reason"],
-            field_types: vec![
-                "string",
-                "EvalClass",
-                "EvalStatus",
-                "string",
-                "string?",
-            ],
+            field_types: vec!["string", "EvalClass", "EvalStatus", "string", "string?"],
         }
     }
 }
@@ -55,7 +49,14 @@ impl BamlParity for EvalResult {
     }
     fn baml_shape() -> BamlShape {
         BamlShape::Class {
-            fields: vec!["eval_id", "run_id", "status", "checks", "summary", "created_at"],
+            fields: vec![
+                "eval_id",
+                "run_id",
+                "status",
+                "checks",
+                "summary",
+                "created_at",
+            ],
             field_types: vec![
                 "string",
                 "string",
@@ -70,8 +71,7 @@ impl BamlParity for EvalResult {
 
 /// A waived check must carry a reason (waiver rationale / failure detail).
 pub fn waived_requires_reason(r: &EvalCheckResult) -> Result<(), String> {
-    if r.status == EvalStatus::Waived
-        && r.failure_reason.as_deref().unwrap_or("").trim().is_empty()
+    if r.status == EvalStatus::Waived && r.failure_reason.as_deref().unwrap_or("").trim().is_empty()
     {
         return Err(format!(
             "waived check '{}' requires a reason (failure_reason)",
@@ -87,7 +87,12 @@ pub fn waived_requires_reason(r: &EvalCheckResult) -> Result<(), String> {
 ///
 /// `trusted` gates `command_check` (spec-controlled shell execution); default
 /// off — pass `true` only from an explicit CLI opt-in.
-pub fn run_eval(root: &Path, spec_path: &Path, spec: &EvalSpec, trusted: bool) -> Result<EvalResult> {
+pub fn run_eval(
+    root: &Path,
+    spec_path: &Path,
+    spec: &EvalSpec,
+    trusted: bool,
+) -> Result<EvalResult> {
     check_frozen(root, spec_path, spec)?;
 
     let checks: Vec<EvalCheckResult> = spec
@@ -105,7 +110,10 @@ pub fn run_eval(root: &Path, spec_path: &Path, spec: &EvalSpec, trusted: bool) -
         })
         .collect();
 
-    let passed = checks.iter().filter(|r| r.status == EvalStatus::Pass).count();
+    let passed = checks
+        .iter()
+        .filter(|r| r.status == EvalStatus::Pass)
+        .count();
     let required_failed = spec
         .checks
         .iter()

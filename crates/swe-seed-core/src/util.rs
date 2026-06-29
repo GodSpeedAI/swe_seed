@@ -29,7 +29,11 @@ pub fn slugify(text: &str) -> String {
         }
     }
     let trimmed = out.trim_matches('-');
-    let capped = if trimmed.len() > 48 { &trimmed[..48] } else { trimmed };
+    let capped = if trimmed.len() > 48 {
+        &trimmed[..48]
+    } else {
+        trimmed
+    };
     if capped.is_empty() {
         "trace".to_string()
     } else {

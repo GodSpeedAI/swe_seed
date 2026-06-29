@@ -2,9 +2,9 @@
 
 use std::path::Path;
 
+use super::report::{DoctorCheck, DoctorStatus};
 use crate::eval::{load_eval_spec, run_eval, spec::check_frozen};
 use crate::seed::{assemble_default, validate_boundaries};
-use super::report::{DoctorCheck, DoctorStatus};
 
 /// Layer-boundary validation on the assembled manifest.
 pub fn boundary_check(_root: &Path) -> DoctorCheck {
@@ -20,7 +20,11 @@ pub fn boundary_check(_root: &Path) -> DoctorCheck {
         DoctorCheck {
             name: "boundary".into(),
             status: DoctorStatus::Fail,
-            detail: format!("{} finding(s): {}", report.findings.len(), report.findings[0].issue),
+            detail: format!(
+                "{} finding(s): {}",
+                report.findings.len(),
+                report.findings[0].issue
+            ),
         }
     }
 }

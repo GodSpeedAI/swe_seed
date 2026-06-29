@@ -10,15 +10,15 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::provenance::content_hash;
-use crate::util::utc_now;
 use super::artifacts::{
     AgentTask, EARSPattern, EARSRequirement, FabricatorArtifactStatus, FabricatorEvalCheck,
     FabricatorEvalClass, FabricatorEvalSpec, FabricatorProofRecord, GherkinScenario, JobStory,
-    PRD, ProductADR, ProductHypothesis, ProductSeed, SDS, SDSComponent,
-    SemanticChainValidationReport, TDDPlan, TraceabilityLink, YStatement,
+    ProductADR, ProductHypothesis, ProductSeed, SDSComponent, SemanticChainValidationReport,
+    TDDPlan, TraceabilityLink, YStatement, PRD, SDS,
 };
 use super::chain::{validate_semantic_chain, SemanticChain};
+use crate::provenance::content_hash;
+use crate::util::utc_now;
 
 /// `.fabricator/runs/<run_id>`.
 pub fn run_dir(root: &Path, run_id: &str) -> PathBuf {
@@ -285,11 +285,21 @@ fn link(upstream: &str, downstream: &str, relation: &str) -> TraceabilityLink {
 
 // id helpers that rebuild the same ids build_chain uses (kept in one place so
 // the documented `links` stay in sync with the artifact ids).
-fn hyp_id_or(run_id: &str) -> String { rid(run_id, "hyp") }
-fn adr_id_or(run_id: &str) -> String { rid(run_id, "adr") }
-fn tdd_id_or(run_id: &str) -> String { rid(run_id, "tdd") }
-fn task_id_or(run_id: &str) -> String { rid(run_id, "task") }
-fn proof_id_or(run_id: &str) -> String { rid(run_id, "proof") }
+fn hyp_id_or(run_id: &str) -> String {
+    rid(run_id, "hyp")
+}
+fn adr_id_or(run_id: &str) -> String {
+    rid(run_id, "adr")
+}
+fn tdd_id_or(run_id: &str) -> String {
+    rid(run_id, "tdd")
+}
+fn task_id_or(run_id: &str) -> String {
+    rid(run_id, "task")
+}
+fn proof_id_or(run_id: &str) -> String {
+    rid(run_id, "proof")
+}
 
 /// Render the chain to disk under `.fabricator/runs/<run>/generated/`. Writes
 /// each artifact as JSON plus a `chain.json` reload source. The proof record's
@@ -307,7 +317,10 @@ pub fn render_chain(chain: &mut SemanticChain, root: &Path, created_at: &str) ->
         Ok(())
     };
 
-    write("PRODUCT_SEED.json", &serde_json::to_value(&chain.product_seed)?)?;
+    write(
+        "PRODUCT_SEED.json",
+        &serde_json::to_value(&chain.product_seed)?,
+    )?;
     write("JOB_STORY.json", &serde_json::to_value(&chain.job_story)?)?;
     write("HYPOTHESIS.json", &serde_json::to_value(&chain.hypothesis)?)?;
     write("PRD.json", &serde_json::to_value(&chain.prd)?)?;
@@ -316,7 +329,10 @@ pub fn render_chain(chain: &mut SemanticChain, root: &Path, created_at: &str) ->
     write("TDD_PLAN.json", &serde_json::to_value(&chain.tdd_plan)?)?;
     write("AGENT_TASK.json", &serde_json::to_value(&chain.agent_task)?)?;
     write("EVAL_SPEC.json", &serde_json::to_value(&chain.eval_spec)?)?;
-    write("PROOF_RECORD.json", &serde_json::to_value(&chain.proof_record)?)?;
+    write(
+        "PROOF_RECORD.json",
+        &serde_json::to_value(&chain.proof_record)?,
+    )?;
     write("CHAIN.json", &serde_json::to_value(&*chain)?)?;
 
     Ok(run_dir(root, &chain.run_id))
@@ -374,7 +390,10 @@ pub fn handoff(
     };
     let _ = std::fs::write(
         dir.join("MANIFEST.json"),
-        format!("{}\n", serde_json::to_string_pretty(&manifest).unwrap_or_default()),
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&manifest).unwrap_or_default()
+        ),
     );
     Ok(report)
 }

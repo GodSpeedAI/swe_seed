@@ -1,9 +1,7 @@
 //! Boundary validation (spec 0018). Falsifiable: a misplaced or upward-
 //! referencing artifact makes `BoundaryReport.passed = false`.
 
-use swe_seed_core::seed::{
-    assemble_default, validate_boundaries, LayerCapability, LayerName,
-};
+use swe_seed_core::seed::{assemble_default, validate_boundaries, LayerCapability, LayerName};
 
 #[test]
 fn clean_default_registry_passes() {
@@ -30,12 +28,19 @@ fn upward_reference_fails() {
         required: false,
     });
     let report = validate_boundaries(&manifest);
-    assert!(!report.passed, "upward reference must fail the boundary report");
+    assert!(
+        !report.passed,
+        "upward reference must fail the boundary report"
+    );
     let found = report
         .findings
         .iter()
         .any(|f| f.artifact_path.contains(".agent-harness/traces"));
-    assert!(found, "expected an upward-reference finding, got {:?}", report.findings);
+    assert!(
+        found,
+        "expected an upward-reference finding, got {:?}",
+        report.findings
+    );
 }
 
 #[test]
@@ -68,7 +73,11 @@ fn missing_required_capability_fails() {
         .findings
         .iter()
         .any(|f| f.issue.contains("missing required capability 'routing'"));
-    assert!(found, "expected a missing-required finding, got {:?}", report.findings);
+    assert!(
+        found,
+        "expected a missing-required finding, got {:?}",
+        report.findings
+    );
 }
 
 #[test]

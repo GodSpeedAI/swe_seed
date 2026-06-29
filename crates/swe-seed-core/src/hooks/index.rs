@@ -34,13 +34,31 @@ pub fn rebuild_index(index_db: &Path, log_dir: &Path) -> Result<usize> {
     let mut count = 0usize;
     let events = iter_events(log_dir)?;
     for (envelope, log_path) in events {
-        let event_id = envelope.get("event_id").and_then(|v| v.as_str()).unwrap_or("");
-        let trace_id = envelope.get("trace_id").and_then(|v| v.as_str()).unwrap_or("");
-        let session_id = envelope.get("session_id").and_then(|v| v.as_str()).unwrap_or("");
+        let event_id = envelope
+            .get("event_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let trace_id = envelope
+            .get("trace_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let session_id = envelope
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let event = envelope.get("event").and_then(|v| v.as_str()).unwrap_or("");
-        let hook_id = envelope.get("hook_id").and_then(|v| v.as_str()).unwrap_or("");
-        let status = envelope.get("status").and_then(|v| v.as_str()).unwrap_or("ok");
-        let timestamp = envelope.get("timestamp").and_then(|v| v.as_str()).unwrap_or("");
+        let hook_id = envelope
+            .get("hook_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let status = envelope
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("ok");
+        let timestamp = envelope
+            .get("timestamp")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let raw = serde_json::to_string(&envelope).unwrap_or_default();
         conn.execute(
             "INSERT OR REPLACE INTO events

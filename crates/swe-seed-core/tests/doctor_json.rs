@@ -125,10 +125,17 @@ fn doctor_warns_preserved_when_core_spec_missing() {
     ));
     fs::create_dir_all(&dir).unwrap();
     let report = run_doctor(&dir);
-    assert_eq!(report.overall, DoctorStatus::Warn, "warn-only run must not collapse to Pass");
+    assert_eq!(
+        report.overall,
+        DoctorStatus::Warn,
+        "warn-only run must not collapse to Pass"
+    );
     let names: Vec<&str> = report.checks.iter().map(|c| c.name.as_str()).collect();
     assert!(names.contains(&"eval"), "missing: {names:?}");
-    assert!(names.contains(&"frozen-integrity"), "frozen check must be emitted even without a core spec: {names:?}");
+    assert!(
+        names.contains(&"frozen-integrity"),
+        "frozen check must be emitted even without a core spec: {names:?}"
+    );
     assert!(names.contains(&"manifest-drift"));
     assert!(names.iter().any(|n| n.starts_with("boundary")));
     let _ = fs::remove_dir_all(&dir);
@@ -149,12 +156,20 @@ fn drift_baseline_updates_on_mismatch() {
     // Corrupt the baseline with a stale hash.
     fs::write(&sidecar, "sha256:stale").unwrap();
     let warned = manifest_drift_check(&root);
-    assert_eq!(warned.status, DoctorStatus::Warn, "stale baseline must warn");
+    assert_eq!(
+        warned.status,
+        DoctorStatus::Warn,
+        "stale baseline must warn"
+    );
 
     // The baseline must now hold the current hash (updated), so the next run
     // reports unchanged — proving the baseline was refreshed, not left stale.
     let next = manifest_drift_check(&root);
-    assert_eq!(next.status, DoctorStatus::Pass, "baseline should have been updated");
+    assert_eq!(
+        next.status,
+        DoctorStatus::Pass,
+        "baseline should have been updated"
+    );
     assert!(next.detail.contains("unchanged"));
 
     let _ = fs::remove_dir_all(&root);

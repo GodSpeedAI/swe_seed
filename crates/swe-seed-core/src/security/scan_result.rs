@@ -20,7 +20,10 @@ pub enum ScanStatus {
 
 impl ScanStatus {
     pub fn is_terminal(&self) -> bool {
-        matches!(self, ScanStatus::Clean | ScanStatus::Warning | ScanStatus::Critical)
+        matches!(
+            self,
+            ScanStatus::Clean | ScanStatus::Warning | ScanStatus::Critical
+        )
     }
     pub fn is_blocking(&self) -> bool {
         matches!(self, ScanStatus::Critical | ScanStatus::Error)

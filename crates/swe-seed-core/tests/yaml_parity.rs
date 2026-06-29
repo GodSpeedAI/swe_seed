@@ -26,7 +26,11 @@ fn yaml_parity_budget() {
         cfg.tool_output_containment.containment_action,
         "summarize_before_context"
     );
-    assert!(cfg.tool_output_containment.durable_storage.generated_records_gitignored);
+    assert!(
+        cfg.tool_output_containment
+            .durable_storage
+            .generated_records_gitignored
+    );
     assert!(!cfg.session_continuity.memory.is_empty());
 }
 

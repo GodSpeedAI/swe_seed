@@ -40,13 +40,7 @@ impl BamlParity for SeedRegenerationInput {
                 "approved_layer_capability_maps",
                 "approved_lower_layer_artifact_refs",
             ],
-            field_types: vec![
-                "string",
-                "string[]",
-                "string[]",
-                "string[]",
-                "string[]",
-            ],
+            field_types: vec!["string", "string[]", "string[]", "string[]", "string[]"],
         }
     }
 }

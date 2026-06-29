@@ -2,9 +2,9 @@
 //! projection; activation requires `source_hash` and a terminal, non-blocking
 //! scan status.
 
-use crate::skill::SkillRecord;
 use super::exceptions::Exceptions;
 use super::scan_result::ScanResult;
+use crate::skill::SkillRecord;
 
 /// A blocking scan (Critical/Error, after applying exceptions) prevents
 /// projection/render of a skill. Fail closed on the status: a blocking status

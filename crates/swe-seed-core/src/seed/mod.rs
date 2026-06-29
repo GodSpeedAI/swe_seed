@@ -173,13 +173,7 @@ impl BamlParity for SeedNeed {
                 "non_goals",
                 "proof_requirements",
             ],
-            field_types: vec![
-                "string",
-                "string",
-                "string[]",
-                "string[]",
-                "string[]",
-            ],
+            field_types: vec!["string", "string", "string[]", "string[]", "string[]"],
         }
     }
 }

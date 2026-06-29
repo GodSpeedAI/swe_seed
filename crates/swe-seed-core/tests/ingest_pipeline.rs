@@ -5,7 +5,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use swe_seed_core::security::{
-    exceptions::Exceptions, gate::{can_activate, scan_blocks_projection},
+    exceptions::Exceptions,
+    gate::{can_activate, scan_blocks_projection},
     scan_result::{ScanFinding, ScanResult, ScanStatus},
 };
 use swe_seed_core::skill::{discover, ingest_with_scan, pipeline_scanning};
@@ -41,11 +42,9 @@ fn fixture_root() -> PathBuf {
 fn pipeline_yields_skillir_with_provenance() {
     let root = fixture_root();
     // Inject a deterministic stub scanner → Pending, regardless of host PATH.
-    let (records, blocked) = pipeline_scanning(
-        &root,
-        &Exceptions::new(),
-        |_| ScanResult::pending("stub", "stubbed scanner"),
-    )
+    let (records, blocked) = pipeline_scanning(&root, &Exceptions::new(), |_| {
+        ScanResult::pending("stub", "stubbed scanner")
+    })
     .unwrap();
     assert_eq!(records.len(), 1);
     let rec = &records[0];
@@ -77,7 +76,10 @@ fn blocking_scan_prevents_projection() {
     };
 
     let exc = Exceptions::new();
-    assert!(scan_blocks_projection(&scan, &exc), "critical finding must block");
+    assert!(
+        scan_blocks_projection(&scan, &exc),
+        "critical finding must block"
+    );
 
     let mut waived = Exceptions::new();
     waived.waive("CVE-evil");
@@ -131,5 +133,7 @@ fn discover_finds_real_repo_skills() {
     // The real repo ships several skill IR files; discover must list them.
     let paths = discover(&real_root()).unwrap();
     assert!(paths.len() >= 3, "expected several skills, got {:?}", paths);
-    assert!(paths.iter().any(|p| p.file_stem().unwrap().to_str().unwrap() == "implement-with-proof"));
+    assert!(paths
+        .iter()
+        .any(|p| p.file_stem().unwrap().to_str().unwrap() == "implement-with-proof"));
 }

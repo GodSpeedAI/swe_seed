@@ -1,15 +1,16 @@
 Generated from Skill IR: test-with-proof@1
-Do not edit this generated file directly; update the Skill IR source instead.
+Do not edit this generated file directly unless this repository intentionally allows generated-surface edits.
+Update the Skill IR source instead.
 
 # Test With Proof Hook Prompt
 
 ## Use this when
 
-Use this hook prompt when lifecycle context matches: test, coverage, validation, proof, regression protection.
+Use this hook prompt when lifecycle context indicates: test, coverage, validation, proof, regression protection.
 
 ## What to do
 
-Require the agent to pursue: add or repair verification that catches the intended behavior and is included in the proof path.
+Require the agent to pursue this outcome: add or repair verification that catches the intended behavior and is included in the proof path.
 
 1. Identify the behavior under test and the intended failure signal.
 2. Write a failing or contract-revealing check that exercises the real behavior.
@@ -24,6 +25,15 @@ Require the agent to pursue: add or repair verification that catches the intende
 - red-green evidence when applicable
 - proof output
 
+## Bundled resources
+
+- `.agent-harness/routes/test.json` (reference): keep the testing procedure aligned with the route card that governs verification-only work Use when the task is primarily about tests or validation.
+- `docs/specs/verification-system.md` (reference): tie the new check to the repository proof model and completion rule Use when the operator needs to confirm that the verification surface supports the final claim.
+
+## Evaluation prompts
+
+- `contract-check`: Add a harness contract check for a missing behavior and prove it fails before the implementation change. Check for: captures a real failure signal; keeps the change scoped to verification when possible; proves the new check is part of the final proof path.
+
 ## Forbidden behavior
 
 - tests that only validate mocks instead of real behavior
@@ -37,4 +47,4 @@ Require the agent to pursue: add or repair verification that catches the intende
 - the proof path includes the new check
 - the testing slice does not smuggle in unrelated changes
 
-Hook should warn or block when evidence is skipped or completion is claimed without proof.
+Hook behavior should warn or block only when the agent is about to skip evidence, guess at root cause, or claim completion without proof.

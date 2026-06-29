@@ -23,14 +23,47 @@ fn result(id: &str, run: &str, status: EvalStatus, class: EvalClass) -> EvalResu
 }
 
 /// One EvalResult carrying checks across all four classes (a realistic run).
-fn full_run(run: &str, product: EvalStatus, process: EvalStatus, learning: EvalStatus, elig: EvalStatus) -> Vec<EvalResult> {
+fn full_run(
+    run: &str,
+    product: EvalStatus,
+    process: EvalStatus,
+    learning: EvalStatus,
+    elig: EvalStatus,
+) -> Vec<EvalResult> {
     let checks = vec![
-        EvalCheckResult { id: "p".into(), eval_class: EvalClass::ProductOutcome, status: product, evidence: "e".into(), failure_reason: None },
-        EvalCheckResult { id: "pc".into(), eval_class: EvalClass::ProcessCompliance, status: process, evidence: "e".into(), failure_reason: None },
-        EvalCheckResult { id: "l".into(), eval_class: EvalClass::LearningQuality, status: learning, evidence: "e".into(), failure_reason: None },
-        EvalCheckResult { id: "a".into(), eval_class: EvalClass::AdaptationEligibility, status: elig, evidence: "e".into(), failure_reason: None },
+        EvalCheckResult {
+            id: "p".into(),
+            eval_class: EvalClass::ProductOutcome,
+            status: product,
+            evidence: "e".into(),
+            failure_reason: None,
+        },
+        EvalCheckResult {
+            id: "pc".into(),
+            eval_class: EvalClass::ProcessCompliance,
+            status: process,
+            evidence: "e".into(),
+            failure_reason: None,
+        },
+        EvalCheckResult {
+            id: "l".into(),
+            eval_class: EvalClass::LearningQuality,
+            status: learning,
+            evidence: "e".into(),
+            failure_reason: None,
+        },
+        EvalCheckResult {
+            id: "a".into(),
+            eval_class: EvalClass::AdaptationEligibility,
+            status: elig,
+            evidence: "e".into(),
+            failure_reason: None,
+        },
     ];
-    let agg = if [product, process, learning, elig].iter().all(|s| *s == EvalStatus::Pass) {
+    let agg = if [product, process, learning, elig]
+        .iter()
+        .all(|s| *s == EvalStatus::Pass)
+    {
         EvalStatus::Pass
     } else {
         EvalStatus::Fail
@@ -58,9 +91,18 @@ fn blocked_eligibility_blocks_all_promotion() {
     let decision = build_adaptation_decision("run-1", &results);
 
     // Outcome 3: a blocked AdaptationEligibility eval blocks promotion.
-    assert!(!decision.promotion_allowed(), "eligibility fail must block promotion: {decision:?}");
-    assert!(decision.allowed_adaptations.is_empty(), "no adaptation granted on eligibility fail");
-    assert!(decision.blocked_adaptations.iter().any(|a| a == "skill_promotion"));
+    assert!(
+        !decision.promotion_allowed(),
+        "eligibility fail must block promotion: {decision:?}"
+    );
+    assert!(
+        decision.allowed_adaptations.is_empty(),
+        "no adaptation granted on eligibility fail"
+    );
+    assert!(decision
+        .blocked_adaptations
+        .iter()
+        .any(|a| a == "skill_promotion"));
     // The decision must cite all four eval results (spec 0016 data model).
     assert_eq!(decision.product_result, EvalStatus::Pass);
     assert_eq!(decision.adaptation_result, EvalStatus::Fail);
@@ -82,8 +124,17 @@ fn passing_eligibility_still_requires_product_and_learning() {
         EvalStatus::Pass,
     );
     let decision = build_adaptation_decision("run-2", &results);
-    assert!(!decision.promotion_allowed(), "learning fail must block promotion");
-    assert!(decision.allowed_adaptations.iter().any(|a| a == "adr_update"), "adr_update only needs process");
+    assert!(
+        !decision.promotion_allowed(),
+        "learning fail must block promotion"
+    );
+    assert!(
+        decision
+            .allowed_adaptations
+            .iter()
+            .any(|a| a == "adr_update"),
+        "adr_update only needs process"
+    );
     assert!(promotion_gate(&decision).is_err());
 
     // Everything passes → promotion allowed.
@@ -95,7 +146,10 @@ fn passing_eligibility_still_requires_product_and_learning() {
         EvalStatus::Pass,
     );
     let decision = build_adaptation_decision("run-3", &results);
-    assert!(decision.promotion_allowed(), "all-pass must allow promotion");
+    assert!(
+        decision.promotion_allowed(),
+        "all-pass must allow promotion"
+    );
     assert!(decision.blocked_adaptations.is_empty());
     assert!(promotion_gate(&decision).is_ok());
 }

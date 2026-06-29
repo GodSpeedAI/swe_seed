@@ -12,16 +12,16 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use swe_seed_core::contracts::{parse_baml_dir, BamlParity, BamlShape, BamlType};
 use swe_seed_core::context::{ContextBudget, ContextPack};
+use swe_seed_core::contracts::{parse_baml_dir, BamlParity, BamlShape, BamlType};
 use swe_seed_core::eval::{
     EvalCheck, EvalCheckResult, EvalClass, EvalResult, EvalSpec, EvalStatus, ProofRecord, SourceRef,
 };
 use swe_seed_core::fabricator::{
     AgentTask, EARSPattern, EARSRequirement, FabricatorArtifactStatus, FabricatorEvalCheck,
     FabricatorEvalClass, FabricatorEvalSpec, FabricatorProofRecord, FabricatorSourceRef,
-    GherkinScenario, JobStory, PRD, ProductADR, ProductHypothesis, ProductSeed, SDS,
-    SDSComponent, SemanticChainValidationReport, TDDPlan, TraceabilityLink, YStatement,
+    GherkinScenario, JobStory, ProductADR, ProductHypothesis, ProductSeed, SDSComponent,
+    SemanticChainValidationReport, TDDPlan, TraceabilityLink, YStatement, PRD, SDS,
 };
 use swe_seed_core::hooks::{HookPolicy, PermissionPolicy};
 use swe_seed_core::learning::{
@@ -30,9 +30,9 @@ use swe_seed_core::learning::{
 };
 use swe_seed_core::route::RouteCard;
 use swe_seed_core::seed::{
-    ArtifactMetadata, BoundaryFinding, BoundaryReport, LayerCapability, LayerName,
-    ProjectSeed, ReviewRequirement, SeedArtifactStatus, SeedNeed, SeedPackageManifest,
-    SeedRegenerationInput, SeedRegenerationPlan, SeedSourceRef, SeedValidationRequirement,
+    ArtifactMetadata, BoundaryFinding, BoundaryReport, LayerCapability, LayerName, ProjectSeed,
+    ReviewRequirement, SeedArtifactStatus, SeedNeed, SeedPackageManifest, SeedRegenerationInput,
+    SeedRegenerationPlan, SeedSourceRef, SeedValidationRequirement,
 };
 use swe_seed_core::skill::SkillIR;
 use swe_seed_core::trace::TraceSchema;
@@ -67,15 +67,24 @@ fn assert_unique_names(types: &[BamlType]) {
 fn registered() -> Vec<(&'static str, BamlShape)> {
     vec![
         (LayerName::baml_name(), LayerName::baml_shape()),
-        (SeedArtifactStatus::baml_name(), SeedArtifactStatus::baml_shape()),
-        (ReviewRequirement::baml_name(), ReviewRequirement::baml_shape()),
+        (
+            SeedArtifactStatus::baml_name(),
+            SeedArtifactStatus::baml_shape(),
+        ),
+        (
+            ReviewRequirement::baml_name(),
+            ReviewRequirement::baml_shape(),
+        ),
         (SeedSourceRef::baml_name(), SeedSourceRef::baml_shape()),
         (
             SeedValidationRequirement::baml_name(),
             SeedValidationRequirement::baml_shape(),
         ),
         (SeedNeed::baml_name(), SeedNeed::baml_shape()),
-        (ArtifactMetadata::baml_name(), ArtifactMetadata::baml_shape()),
+        (
+            ArtifactMetadata::baml_name(),
+            ArtifactMetadata::baml_shape(),
+        ),
         (ProjectSeed::baml_name(), ProjectSeed::baml_shape()),
         (LayerCapability::baml_name(), LayerCapability::baml_shape()),
         (
@@ -105,7 +114,10 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
         (ContextBudget::baml_name(), ContextBudget::baml_shape()),
         (ContextPack::baml_name(), ContextPack::baml_shape()),
         (HookPolicy::baml_name(), HookPolicy::baml_shape()),
-        (PermissionPolicy::baml_name(), PermissionPolicy::baml_shape()),
+        (
+            PermissionPolicy::baml_name(),
+            PermissionPolicy::baml_shape(),
+        ),
         (SkillIR::baml_name(), SkillIR::baml_shape()),
         (
             LearningDisposition::baml_name(),
@@ -116,7 +128,10 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
             ReflectionTemplate::baml_name(),
             ReflectionTemplate::baml_shape(),
         ),
-        (LearningCandidate::baml_name(), LearningCandidate::baml_shape()),
+        (
+            LearningCandidate::baml_name(),
+            LearningCandidate::baml_shape(),
+        ),
         (SkillProposal::baml_name(), SkillProposal::baml_shape()),
         (RegressionCase::baml_name(), RegressionCase::baml_shape()),
         (
@@ -137,7 +152,10 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
             FabricatorSourceRef::baml_name(),
             FabricatorSourceRef::baml_shape(),
         ),
-        (TraceabilityLink::baml_name(), TraceabilityLink::baml_shape()),
+        (
+            TraceabilityLink::baml_name(),
+            TraceabilityLink::baml_shape(),
+        ),
         (JobStory::baml_name(), JobStory::baml_shape()),
         (ProductSeed::baml_name(), ProductSeed::baml_shape()),
         (
@@ -254,8 +272,7 @@ fn baml_parity_swe_seed_layer_fully_covered() {
         .iter()
         .map(|t| (t.name.as_str(), *t))
         .collect();
-    let reg: std::collections::HashSet<&str> =
-        registered().into_iter().map(|(n, _)| n).collect();
+    let reg: std::collections::HashSet<&str> = registered().into_iter().map(|(n, _)| n).collect();
 
     // Every swe_seed.baml class/enum must be registered (no coverage gap).
     let unregistered: Vec<&str> = swe.keys().filter(|n| !reg.contains(*n)).copied().collect();
@@ -274,9 +291,21 @@ fn baml_parity_parser_reads_all_files() {
     }
     // Pinned counts: the .baml files are frozen inputs (spec 0019), so a
     // partial-parse regression changes one of these numbers and fails here.
-    assert_eq!(counts.get("swe_seed").copied().unwrap_or(0), 14, "swe_seed.baml");
-    assert_eq!(counts.get("harness").copied().unwrap_or(0), 29, "harness.baml");
-    assert_eq!(counts.get("fabricator").copied().unwrap_or(0), 26, "fabricator.baml");
+    assert_eq!(
+        counts.get("swe_seed").copied().unwrap_or(0),
+        14,
+        "swe_seed.baml"
+    );
+    assert_eq!(
+        counts.get("harness").copied().unwrap_or(0),
+        29,
+        "harness.baml"
+    );
+    assert_eq!(
+        counts.get("fabricator").copied().unwrap_or(0),
+        26,
+        "fabricator.baml"
+    );
 }
 
 #[test]

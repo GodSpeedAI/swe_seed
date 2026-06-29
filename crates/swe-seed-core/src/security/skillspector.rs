@@ -35,7 +35,9 @@ pub fn run_skillspector_with(skill_path: &Path, available: bool) -> ScanResult {
         return ScanResult::pending(&id, "SkillSpector not installed; scan pending");
     }
     let mut cmd = Command::new(SKILLSPECTOR_BIN);
-    cmd.arg(skill_path).stdout(Stdio::piped()).stderr(Stdio::piped());
+    cmd.arg(skill_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     match run_with_timeout(cmd, SKILLSPECTOR_TIMEOUT_SECS) {
         None => ScanResult {
             skill_id: id,
@@ -113,8 +115,16 @@ pub fn parse_skillspector_output(id: &str, output: &std::process::Output) -> Sca
                         .filter_map(|f| {
                             Some(ScanFinding {
                                 id: f.get("id")?.as_str()?.to_string(),
-                                severity: f.get("severity").and_then(|s| s.as_str()).unwrap_or("medium").to_string(),
-                                message: f.get("message").and_then(|s| s.as_str()).unwrap_or("").to_string(),
+                                severity: f
+                                    .get("severity")
+                                    .and_then(|s| s.as_str())
+                                    .unwrap_or("medium")
+                                    .to_string(),
+                                message: f
+                                    .get("message")
+                                    .and_then(|s| s.as_str())
+                                    .unwrap_or("")
+                                    .to_string(),
                             })
                         })
                         .collect::<Vec<_>>()
@@ -125,7 +135,12 @@ pub fn parse_skillspector_output(id: &str, output: &std::process::Output) -> Sca
                 "clean" => ScanStatus::Clean,
                 "warning" => ScanStatus::Warning,
                 "critical" => ScanStatus::Critical,
-                _ => return ScanResult::pending(id, &format!("unrecognized SkillSpector status '{status_str}'; scan pending")),
+                _ => {
+                    return ScanResult::pending(
+                        id,
+                        &format!("unrecognized SkillSpector status '{status_str}'; scan pending"),
+                    )
+                }
             };
             return ScanResult {
                 skill_id: id.into(),
@@ -137,7 +152,10 @@ pub fn parse_skillspector_output(id: &str, output: &std::process::Output) -> Sca
     }
 
     // Unrecognized output (including empty stdout) → never a faked pass.
-    ScanResult::pending(id, "SkillSpector produced no trusted terminal signal; scan pending")
+    ScanResult::pending(
+        id,
+        "SkillSpector produced no trusted terminal signal; scan pending",
+    )
 }
 
 // Minimal, dependency-free `which` lookup so we don't pull a crate for one call.

@@ -5,8 +5,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use anyhow::Context;
 use crate::route::RouteResult;
+use anyhow::Context;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CompletionClaim {
@@ -32,21 +32,16 @@ pub struct TraceRecord {
 
 impl TraceRecord {
     pub fn load(path: &std::path::Path) -> anyhow::Result<TraceRecord> {
-        let bytes = std::fs::read(path)
-            .with_context(|| format!("read {}", path.display()))?;
-        Ok(serde_json::from_slice(&bytes)
-            .with_context(|| format!("parse {}", path.display()))?)
+        let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
+        Ok(serde_json::from_slice(&bytes).with_context(|| format!("parse {}", path.display()))?)
     }
 
     pub fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
         if let Some(p) = path.parent() {
             std::fs::create_dir_all(p).ok();
         }
-        std::fs::write(
-            path,
-            format!("{}\n", serde_json::to_string_pretty(self)?),
-        )
-        .with_context(|| format!("write {}", path.display()))?;
+        std::fs::write(path, format!("{}\n", serde_json::to_string_pretty(self)?))
+            .with_context(|| format!("write {}", path.display()))?;
         Ok(())
     }
 

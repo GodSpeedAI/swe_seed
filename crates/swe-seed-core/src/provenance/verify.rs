@@ -70,9 +70,7 @@ pub fn verify_record(r: &ProvenanceRecord) -> Result<(), ProvenanceProblem> {
 /// is propagated, not masked as an empty record set. A *missing* directory is
 /// the one intentional exception (zero records → vacuously ok), matching the
 /// documented behavior that an empty provenance set is not an error.
-pub fn verify_dir(
-    dir: &Path,
-) -> Result<(Vec<ProvenanceRecord>, Vec<(String, ProvenanceProblem)>)> {
+pub fn verify_dir(dir: &Path) -> Result<(Vec<ProvenanceRecord>, Vec<(String, ProvenanceProblem)>)> {
     let mut records = Vec::new();
     let mut problems = Vec::new();
 

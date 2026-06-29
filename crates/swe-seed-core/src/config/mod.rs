@@ -214,6 +214,7 @@ pub struct StrategyPython {
 /// Generic loader: parse any config type from a YAML file.
 pub fn load_yaml<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
-    let cfg: T = serde_yaml::from_slice(&bytes).with_context(|| format!("parse {}", path.display()))?;
+    let cfg: T =
+        serde_yaml::from_slice(&bytes).with_context(|| format!("parse {}", path.display()))?;
     Ok(cfg)
 }

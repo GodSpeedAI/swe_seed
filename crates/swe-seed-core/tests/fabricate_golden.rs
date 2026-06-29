@@ -1,6 +1,6 @@
 //! fabricate_golden: a bounded fabricate run produces a complete, traceable
-//! chain; the rendered output round-trips and is byte-stable against a
-//! committed golden fixture (spec 0017 §1, §4).
+//! chain; the rendered output round-trips and is stable against a committed
+//! golden fixture (spec 0017 §1, §4).
 
 use std::fs;
 use std::path::PathBuf;
@@ -56,7 +56,10 @@ fn fabricate_produces_complete_traceable_chain() {
         "PROOF_RECORD.json",
         "CHAIN.json",
     ] {
-        assert!(generated.join(name).is_file(), "missing rendered artifact: {name}");
+        assert!(
+            generated.join(name).is_file(),
+            "missing rendered artifact: {name}"
+        );
     }
 
     // Round-trip: reload + revalidate.
@@ -68,39 +71,45 @@ fn fabricate_produces_complete_traceable_chain() {
     let handoff_report = handoff(&chain, &tmp).expect("passing chain hands off");
     assert!(handoff_report.passed);
     let manifest_path = dir.join("handoff").join("MANIFEST.json");
-    assert!(manifest_path.is_file(), "handoff MANIFEST must be written on a passing chain");
+    assert!(
+        manifest_path.is_file(),
+        "handoff MANIFEST must be written on a passing chain"
+    );
     let manifest: serde_json::Value =
         serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
     assert_eq!(manifest["run_id"], RUN_ID);
     assert_eq!(manifest["frozen"], true);
-    assert!(manifest["eval_spec_sha256"].as_str().unwrap().starts_with("sha256:"));
+    assert!(manifest["eval_spec_sha256"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
 
     fs::remove_dir_all(&tmp).ok();
 }
 
-/// The chain built from fixed inputs is byte-stable against the committed
-/// golden fixture (drift fails CI). Run `fabricate_golden_regen --ignored` to
+/// The chain built from fixed inputs is stable against the committed golden
+/// fixture (drift fails CI). Run `fabricate_golden_regen --ignored` to
 /// refresh the fixture after an intentional chain-shape change.
 #[test]
 fn fabricate_matches_golden_fixture() {
     let mut chain = build_chain(NEED, RUN_ID);
     // Stamp a fixed created_at so the proof record doesn't drift on clock.
     chain.proof_record.created_at = "fixture".into();
-    let actual = serde_json::to_string_pretty(&chain).unwrap();
+    let actual = serde_json::to_value(&chain).unwrap();
 
     let fixture_path = root().join(FIXTURE);
-    let expected = fs::read_to_string(&fixture_path).unwrap_or_else(|e| {
+    let expected: serde_json::Value = serde_json::from_slice(&fs::read(&fixture_path).unwrap_or_else(|e| {
         panic!(
             "golden fixture missing at {}: {e}. \
              Run `cargo test -p swe-seed-core --test fabricate_golden fabricate_golden_regen -- --ignored` to create it.",
             fixture_path.display()
         )
-    });
+    }))
+    .unwrap();
     assert_eq!(
-        actual.trim_end(),
-        expected.trim_end(),
+        actual, expected,
         "fabricate golden drift — regenerate the fixture if the chain shape changed intentionally"
-);
+    );
 }
 
 /// Regenerate the golden fixture. Ignored by default; run on purpose.

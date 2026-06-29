@@ -4,8 +4,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::contracts::parity::{BamlParity, BamlShape};
 use super::{EvalClass, EvalStatus};
+use crate::contracts::parity::{BamlParity, BamlShape};
 
 /// harness.baml `SourceRef`.
 #[derive(Debug, Clone, Deserialize, Default, Serialize)]
@@ -116,7 +116,11 @@ pub fn evaluate_check(
     match check.check_type.as_str() {
         "file_exists" | "artifact_consistency" => {
             let exists = root.join(&check.target).exists();
-            status = if exists { EvalStatus::Pass } else { EvalStatus::Fail };
+            status = if exists {
+                EvalStatus::Pass
+            } else {
+                EvalStatus::Fail
+            };
             evidence = check.target.clone();
             if !exists {
                 failure_reason = Some(format!("target does not exist: {}", check.target));
@@ -130,10 +134,15 @@ pub fn evaluate_check(
                     .filter(|p| !text.contains(p.as_str()))
                     .map(|s| s.as_str())
                     .collect();
-                status = if missing.is_empty() { EvalStatus::Pass } else { EvalStatus::Fail };
+                status = if missing.is_empty() {
+                    EvalStatus::Pass
+                } else {
+                    EvalStatus::Fail
+                };
                 evidence = format!("required_patterns_checked={}", patterns.len());
                 if !missing.is_empty() {
-                    failure_reason = Some(format!("missing required patterns: {}", missing.join(", ")));
+                    failure_reason =
+                        Some(format!("missing required patterns: {}", missing.join(", ")));
                 }
             }
         }
@@ -145,10 +154,15 @@ pub fn evaluate_check(
                     .filter(|p| text.contains(p.as_str()))
                     .map(|s| s.as_str())
                     .collect();
-                status = if found.is_empty() { EvalStatus::Pass } else { EvalStatus::Fail };
+                status = if found.is_empty() {
+                    EvalStatus::Pass
+                } else {
+                    EvalStatus::Fail
+                };
                 evidence = format!("forbidden_patterns_checked={}", patterns.len());
                 if !found.is_empty() {
-                    failure_reason = Some(format!("found forbidden patterns: {}", found.join(", ")));
+                    failure_reason =
+                        Some(format!("found forbidden patterns: {}", found.join(", ")));
                 }
             }
         }
@@ -165,15 +179,29 @@ pub fn evaluate_check(
                 evidence = format!("command={cmd} (not run; trusted mode off)");
             } else {
                 evidence = format!("command={cmd}");
-                match std::process::Command::new("sh").arg("-c").arg(cmd).current_dir(root).output() {
+                match std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(cmd)
+                    .current_dir(root)
+                    .output()
+                {
                     Ok(out) => {
-                        status = if out.status.success() { EvalStatus::Pass } else { EvalStatus::Fail };
-                        evidence = format!("command={cmd} exit={}", out.status.code().unwrap_or(-1));
+                        status = if out.status.success() {
+                            EvalStatus::Pass
+                        } else {
+                            EvalStatus::Fail
+                        };
+                        evidence =
+                            format!("command={cmd} exit={}", out.status.code().unwrap_or(-1));
                         if status != EvalStatus::Pass {
                             failure_reason = Some(
-                                String::from_utf8_lossy(if out.stderr.is_empty() { &out.stdout } else { &out.stderr })
-                                    .trim()
-                                    .to_string(),
+                                String::from_utf8_lossy(if out.stderr.is_empty() {
+                                    &out.stdout
+                                } else {
+                                    &out.stderr
+                                })
+                                .trim()
+                                .to_string(),
                             );
                         }
                     }
@@ -181,25 +209,29 @@ pub fn evaluate_check(
                 }
             }
         }
-        "json_schema_check" => {
-            match std::fs::read(root.join(&check.target)) {
-                Ok(bytes) => {
-                    let data: serde_json::Value = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
-                    let required = rule_patterns(&check.rule);
-                    let missing: Vec<&str> = required
-                        .iter()
-                        .filter(|f| !data.get(f.as_str()).is_some_and(|v| !v.is_null()))
-                        .map(|s| s.as_str())
-                        .collect();
-                    status = if missing.is_empty() { EvalStatus::Pass } else { EvalStatus::Fail };
-                    evidence = format!("required_fields_checked={}", required.len());
-                    if !missing.is_empty() {
-                        failure_reason = Some(format!("missing required fields: {}", missing.join(", ")));
-                    }
+        "json_schema_check" => match std::fs::read(root.join(&check.target)) {
+            Ok(bytes) => {
+                let data: serde_json::Value =
+                    serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
+                let required = rule_patterns(&check.rule);
+                let missing: Vec<&str> = required
+                    .iter()
+                    .filter(|f| !data.get(f.as_str()).is_some_and(|v| !v.is_null()))
+                    .map(|s| s.as_str())
+                    .collect();
+                status = if missing.is_empty() {
+                    EvalStatus::Pass
+                } else {
+                    EvalStatus::Fail
+                };
+                evidence = format!("required_fields_checked={}", required.len());
+                if !missing.is_empty() {
+                    failure_reason =
+                        Some(format!("missing required fields: {}", missing.join(", ")));
                 }
-                Err(e) => err = Some(format!("cannot read target '{}': {e}", check.target)),
             }
-        }
+            Err(e) => err = Some(format!("cannot read target '{}': {e}", check.target)),
+        },
         "manual_check" | "reflection_check" | "promotion_policy" => {
             // These checks need runtime proof (a ProofRecord's attached evidence),
             // not the static `evidence_required` metadata. A deterministic run has

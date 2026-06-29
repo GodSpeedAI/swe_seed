@@ -6,8 +6,8 @@ use std::time::{Duration, SystemTime};
 
 use serde::{Deserialize, Serialize};
 
-use crate::contracts::parity::{BamlParity, BamlShape};
 use super::budget::{ContextBudget, ContextValidation};
+use crate::contracts::parity::{BamlParity, BamlShape};
 
 /// harness.baml `ContextPack`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,7 +84,12 @@ pub fn parse_line_cap(budget: &ContextBudget, default: usize) -> usize {
 }
 
 /// Files in `files` whose mtime is older than `threshold` (relative to `now`).
-pub fn stale_files(root: &Path, files: &[String], threshold: Duration, now: SystemTime) -> Vec<String> {
+pub fn stale_files(
+    root: &Path,
+    files: &[String],
+    threshold: Duration,
+    now: SystemTime,
+) -> Vec<String> {
     let mut stale = Vec::new();
     for f in files {
         let path = root.join(f);
@@ -133,7 +138,13 @@ pub fn build_pack(
     let actually_excluded: Vec<String> = budget
         .excluded_files
         .iter()
-        .filter(|e| budget.required_files.iter().chain(budget.optional_files.iter()).any(|r| r == *e))
+        .filter(|e| {
+            budget
+                .required_files
+                .iter()
+                .chain(budget.optional_files.iter())
+                .any(|r| r == *e)
+        })
         .cloned()
         .collect();
 

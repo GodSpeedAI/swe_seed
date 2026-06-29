@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Result};
 use serde_json::{json, Value};
 
-use crate::route::{build_route_result, write_route_decision, harness_dir};
-use crate::util::{redact_secrets, slugify, utc_now, utc_stamp};
 use super::record::TraceRecord;
+use crate::route::{build_route_result, harness_dir, write_route_decision};
+use crate::util::{redact_secrets, slugify, utc_now, utc_stamp};
 
 fn records_dir(root: &Path) -> PathBuf {
     harness_dir(root).join("traces").join("records")
@@ -194,7 +194,8 @@ pub fn distill(root: &Path, trace: &str) -> Result<Value> {
         evidence.push(format!("artifact:{a}"));
     }
 
-    let candidate_memory_updates = if verification_status == "verified" && unresolved_risks.is_empty()
+    let candidate_memory_updates = if verification_status == "verified"
+        && unresolved_risks.is_empty()
     {
         vec![json!({
             "destination": "successful-patterns",

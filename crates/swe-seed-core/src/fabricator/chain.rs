@@ -8,8 +8,8 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use super::artifacts::{
-    AgentTask, FabricatorEvalSpec, FabricatorProofRecord, JobStory, PRD, ProductADR, ProductHypothesis,
-    ProductSeed, SDS, SemanticChainValidationReport, TDDPlan, TraceabilityLink,
+    AgentTask, FabricatorEvalSpec, FabricatorProofRecord, JobStory, ProductADR, ProductHypothesis,
+    ProductSeed, SemanticChainValidationReport, TDDPlan, TraceabilityLink, PRD, SDS,
 };
 
 /// The assembled semantic chain. Every artifact is required; integrity is
@@ -112,14 +112,23 @@ pub fn validate_semantic_chain(chain: &SemanticChain) -> SemanticChainValidation
 
     // Requirement traceability: every SDS component and scenario must link to a
     // requirement id that actually exists in the PRD.
-    let req_ids: HashSet<&str> = chain.prd.requirements.iter().map(|r| r.id.as_str()).collect();
+    let req_ids: HashSet<&str> = chain
+        .prd
+        .requirements
+        .iter()
+        .map(|r| r.id.as_str())
+        .collect();
     for comp in &chain.sds.components {
         if comp.linked_requirement_ids.is_empty() {
             missing.push(format!(
                 "PRD -> SDSComponent: component '{}' links no requirement",
                 comp.id
             ));
-        } else if !comp.linked_requirement_ids.iter().any(|id| req_ids.contains(id.as_str())) {
+        } else if !comp
+            .linked_requirement_ids
+            .iter()
+            .any(|id| req_ids.contains(id.as_str()))
+        {
             missing.push(format!(
                 "PRD -> SDSComponent: component '{}' linked_requirement_ids={:?} not in prd requirements",
                 comp.id, comp.linked_requirement_ids
@@ -127,7 +136,11 @@ pub fn validate_semantic_chain(chain: &SemanticChain) -> SemanticChainValidation
         }
     }
     for scn in &chain.sds.scenarios {
-        if !scn.linked_requirement_ids.iter().any(|id| req_ids.contains(id.as_str())) {
+        if !scn
+            .linked_requirement_ids
+            .iter()
+            .any(|id| req_ids.contains(id.as_str()))
+        {
             missing.push(format!(
                 "PRD -> GherkinScenario: scenario '{}' linked_requirement_ids={:?} not in prd requirements",
                 scn.id, scn.linked_requirement_ids
@@ -139,7 +152,12 @@ pub fn validate_semantic_chain(chain: &SemanticChain) -> SemanticChainValidation
     // /y-statement must reference one that exists, else the proof is blocked.
     let scenario_ids: HashSet<&str> = chain.sds.scenarios.iter().map(|s| s.id.as_str()).collect();
     let component_ids: HashSet<&str> = chain.sds.components.iter().map(|c| c.id.as_str()).collect();
-    let y_ids: HashSet<&str> = chain.adr.y_statements.iter().map(|y| y.id.as_str()).collect();
+    let y_ids: HashSet<&str> = chain
+        .adr
+        .y_statements
+        .iter()
+        .map(|y| y.id.as_str())
+        .collect();
     for chk in &chain.eval_spec.checks {
         for id in &chk.linked_requirement_ids {
             if nonempty(id) && !req_ids.contains(id.as_str()) {
@@ -179,7 +197,15 @@ pub fn validate_semantic_chain(chain: &SemanticChain) -> SemanticChainValidation
         .links
         .iter()
         .filter(|l| l.waiver_id.is_some())
-        .map(|l| format!("{} -> {} ({}) waived: {}", l.upstream_id, l.downstream_id, l.relation, l.waiver_id.as_deref().unwrap_or("")))
+        .map(|l| {
+            format!(
+                "{} -> {} ({}) waived: {}",
+                l.upstream_id,
+                l.downstream_id,
+                l.relation,
+                l.waiver_id.as_deref().unwrap_or("")
+            )
+        })
         .collect();
 
     let passed = missing.is_empty() && blocked.is_empty();

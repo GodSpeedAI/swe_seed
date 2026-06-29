@@ -4,9 +4,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::ValidationRequirement;
 use crate::contracts::parity::{BamlParity, BamlShape};
 use crate::eval::{EvalCheck, SourceRef};
-use super::ValidationRequirement;
 
 /// harness.baml `SkillProposal`.
 #[derive(Debug, Clone, Deserialize, Serialize)]

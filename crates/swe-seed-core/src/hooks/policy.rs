@@ -7,8 +7,13 @@ use crate::contracts::parity::{BamlParity, BamlShape};
 
 /// The five lifecycle events v0.1 supports end-to-end (spec 0005). Phase 9
 /// projects these into host hook config.
-pub const REQUIRED_LIFECYCLE_EVENTS: &[&str] =
-    &["SessionStart", "ContextBuild", "PreToolUse", "PostToolUse", "TaskEnd"];
+pub const REQUIRED_LIFECYCLE_EVENTS: &[&str] = &[
+    "SessionStart",
+    "ContextBuild",
+    "PreToolUse",
+    "PostToolUse",
+    "TaskEnd",
+];
 
 /// harness.baml `ValidationRequirement` (hooks-local copy).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

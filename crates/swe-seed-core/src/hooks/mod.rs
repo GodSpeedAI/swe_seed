@@ -8,6 +8,8 @@ pub mod policy;
 pub mod redact;
 pub mod runtime;
 
-pub use policy::{gate_action, ActionGate, HookPolicy, PermissionPolicy, REQUIRED_LIFECYCLE_EVENTS};
+pub use policy::{
+    gate_action, ActionGate, HookPolicy, PermissionPolicy, REQUIRED_LIFECYCLE_EVENTS,
+};
 pub use redact::{redact_value, RedactionConfig};
 pub use runtime::{append_event, compact_logs, iter_events};

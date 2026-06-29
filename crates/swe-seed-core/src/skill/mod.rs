@@ -11,4 +11,4 @@ pub use ingest::{
     SkillRecord,
 };
 pub use ir::{ArtifactStatus, SkillIR};
-pub use render::{render_skill, render_all, RenderTarget};
+pub use render::{render_all, render_skill, RenderTarget};

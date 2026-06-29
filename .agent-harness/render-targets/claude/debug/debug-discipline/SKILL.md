@@ -1,10 +1,11 @@
 ---
 name: debug-discipline
-description: A repro-first debugging procedure with reliable reproduction, fail path tracing, hypothesis disproof, breadcrumb ledger, and completion gates.
+description: A repro-first debugging procedure with reliable reproduction, fail path tracing, hypothesis disproof, breadcrumb ledger, and completion gates. Use this skill when the request mentions failing tests, regressions, unexpected behavior that needs root-cause diagnosis.
 ---
 
 Generated from Skill IR: debug-discipline@1
-Do not edit this generated file directly; update the Skill IR source instead.
+Do not edit this generated file directly unless this repository intentionally allows generated-surface edits.
+Update the Skill IR source instead.
 
 # Debug Discipline
 
@@ -35,6 +36,16 @@ Job to be done: diagnose and fix a defect without guessing.
 - root cause explanation
 - validation result
 
+## Bundled resources
+
+- `.agent-harness/playbooks/30-debug-from-symptom.md` (reference): extend the compact skill procedure with the longer repro-first debugging workflow Use when the failure is broad, the repro is unstable, or the operator needs the full debugging loop.
+- `.agent-harness/traces/traceability-template.yaml` (asset): capture breadcrumb-style evidence and next actions across multiple debugging runs Use when the investigation needs a durable trace or handoff packet.
+
+## Evaluation prompts
+
+- `parser-regression`: A parser refactor introduced a failing regression test. Diagnose the root cause, make the smallest fix, and show the proof. Check for: establishes a reliable reproduction; traces the failing path before editing; connects the root cause to the final validation.
+- `intermittent-cli-failure`: A CLI command fails intermittently in CI but not every local run. Use a repro-first debugging flow and avoid speculative rewrites. Check for: documents missing repro inputs if reproduction is not stable; keeps a breadcrumb ledger of experiments; avoids broad rewrites before root cause.
+
 ## Forbidden behavior
 
 - speculative fix without reliable reproduction or explicit uncertainty
@@ -49,3 +60,5 @@ Job to be done: diagnose and fix a defect without guessing.
 - root cause is connected to fix
 - breadcrumb ledger is consistent with the final root cause
 - relevant tests pass
+
+This generated Claude-style skill follows the 9arm-skills shape: one skill directory, one SKILL.md, YAML frontmatter, and behavior-preserving body generated from Skill IR.

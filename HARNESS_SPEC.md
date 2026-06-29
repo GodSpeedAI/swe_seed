@@ -45,6 +45,12 @@ runtime; see `.agents/specs/0019-baml-contracts-as-data.md`).
 5. Learning is enforceable: a lesson becomes a `RegressionCase` linked to an `EvalCheck`, and
    a `SkillProposal` always includes a rollback plan.
 
+## Evaluation and Adaptation Layer
+
+Evaluation and adaptation are specified in detail in `.agents/specs/HARNESS_SPEC.md` and
+`.agents/specs/0013-eval-and-proof.md`. This root contract preserves the stable section marker
+used by harness smoke evals.
+
 ## Required job types
 
 Each job type has a route card in `.agent-harness/routes/`:

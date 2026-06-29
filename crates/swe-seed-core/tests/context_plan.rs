@@ -6,8 +6,7 @@ use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
 use swe_seed_core::context::{
-    build_pack, cap_lines, parse_line_cap, ContextBudget,
-    context_plan, DEFAULT_STALE_THRESHOLD,
+    build_pack, cap_lines, context_plan, parse_line_cap, ContextBudget, DEFAULT_STALE_THRESHOLD,
 };
 
 fn real_root() -> PathBuf {
@@ -50,7 +49,13 @@ fn excluded_files_are_removed_from_the_pack() {
     fs::write(root.join("keep.md"), "x").unwrap();
     fs::write(root.join("secret.env"), "x").unwrap();
     let b = budget(&["keep.md", "secret.env"], &["secret.env"]);
-    let pack = build_pack(&root, &b, "card", DEFAULT_STALE_THRESHOLD, SystemTime::now());
+    let pack = build_pack(
+        &root,
+        &b,
+        "card",
+        DEFAULT_STALE_THRESHOLD,
+        SystemTime::now(),
+    );
     assert!(pack.included_files.contains(&"keep.md".to_string()));
     assert!(!pack.included_files.contains(&"secret.env".to_string()));
     assert!(pack.excluded_files.contains(&"secret.env".to_string()));
@@ -63,7 +68,10 @@ fn raw_output_is_capped() {
     let b = budget(&[], &[]);
     let cap = parse_line_cap(&b, 200);
     assert_eq!(cap, 200);
-    let big: String = (0..300).map(|i| format!("line {i}")).collect::<Vec<_>>().join("\n");
+    let big: String = (0..300)
+        .map(|i| format!("line {i}"))
+        .collect::<Vec<_>>()
+        .join("\n");
     let capped = cap_lines(&big, cap);
     assert_eq!(capped.lines().count(), 201);
     assert!(capped.contains("truncated"));
@@ -84,7 +92,13 @@ fn stale_context_is_warned() {
     drop(f);
 
     let b = budget(&["fresh.md", "stale.md"], &[]);
-    let pack = build_pack(&root, &b, "card", DEFAULT_STALE_THRESHOLD, SystemTime::now());
+    let pack = build_pack(
+        &root,
+        &b,
+        "card",
+        DEFAULT_STALE_THRESHOLD,
+        SystemTime::now(),
+    );
     assert!(
         pack.stale_context_warnings
             .iter()
@@ -93,7 +107,8 @@ fn stale_context_is_warned() {
         pack.stale_context_warnings
     );
     assert!(
-        !pack.stale_context_warnings
+        !pack
+            .stale_context_warnings
             .iter()
             .any(|w| w.contains("fresh.md")),
         "fresh.md must not be warned"
@@ -110,7 +125,9 @@ fn context_plan_routes_and_emits_read_order() {
     let read_order = plan["context_budget"]["read_order"].as_array().unwrap();
     assert!(!read_order.is_empty());
     assert!(
-        read_order.iter().any(|v| v.as_str().unwrap_or("").contains("budget-policy.yaml")),
+        read_order
+            .iter()
+            .any(|v| v.as_str().unwrap_or("").contains("budget-policy.yaml")),
         "read order should include the budget policy: {read_order:?}"
     );
     assert_eq!(plan["context_budget"]["raw_output_cap_lines"], 200);

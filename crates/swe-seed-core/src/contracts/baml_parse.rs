@@ -132,7 +132,11 @@ fn parse_fields(body: &str) -> (Vec<String>, Vec<String>) {
         let mut parts = line.split_whitespace();
         let Some(name) = parts.next() else { continue };
         // Skip stray braces or non-identifier noise.
-        if !name.chars().next().is_some_and(|c| c.is_alphabetic() || c == '_') {
+        if !name
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_alphabetic() || c == '_')
+        {
             continue;
         }
         let ty = parts.collect::<Vec<_>>().join(" ");

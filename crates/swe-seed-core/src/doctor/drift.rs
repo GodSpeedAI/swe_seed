@@ -3,9 +3,9 @@
 
 use std::path::Path;
 
+use super::report::{DoctorCheck, DoctorStatus};
 use crate::provenance::content_hash;
 use crate::seed::assemble_default;
-use super::report::{DoctorCheck, DoctorStatus};
 
 /// Warn-level: a changed manifest is surfaced but does not fail doctor.
 pub fn manifest_drift_check(root: &Path) -> DoctorCheck {

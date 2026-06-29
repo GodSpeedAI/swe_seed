@@ -6,10 +6,10 @@ use std::path::Path;
 use anyhow::Result;
 use serde_json::{json, Value};
 
-use crate::config::{load_yaml, BudgetPolicyConfig};
-use crate::route::build_route_result;
 use super::budget::ContextBudget;
 use super::pack::{build_pack, parse_line_cap, DEFAULT_STALE_THRESHOLD};
+use crate::config::{load_yaml, BudgetPolicyConfig};
+use crate::route::build_route_result;
 
 pub const BUDGET_POLICY_PATH: &str = ".agent-harness/context/budget-policy.yaml";
 const DEFAULT_LINE_CAP: usize = 200;
@@ -97,12 +97,14 @@ pub fn context_plan(root: &Path, task: &str) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::context::pack::cap_lines;
 
     #[test]
     fn cap_lines_truncates_and_notes() {
-        let big: String = (0..300).map(|i| format!("line {i}")).collect::<Vec<_>>().join("\n");
+        let big: String = (0..300)
+            .map(|i| format!("line {i}"))
+            .collect::<Vec<_>>()
+            .join("\n");
         let capped = cap_lines(&big, 200);
         let l = capped.lines().count();
         assert_eq!(l, 201, "200 lines + 1 truncation note");

@@ -44,7 +44,13 @@ pub fn validate_ears_requirement(req: &EARSRequirement) -> Result<(), String> {
     match req.pattern {
         EARSPattern::Ubiquitous => {}
         EARSPattern::EventDriven => {
-            if req.trigger.as_deref().map(str::trim).unwrap_or("").is_empty() {
+            if req
+                .trigger
+                .as_deref()
+                .map(str::trim)
+                .unwrap_or("")
+                .is_empty()
+            {
                 return Err(clause_err("trigger"));
             }
         }
@@ -54,7 +60,13 @@ pub fn validate_ears_requirement(req: &EARSRequirement) -> Result<(), String> {
             }
         }
         EARSPattern::OptionalFeature => {
-            if req.feature.as_deref().map(str::trim).unwrap_or("").is_empty() {
+            if req
+                .feature
+                .as_deref()
+                .map(str::trim)
+                .unwrap_or("")
+                .is_empty()
+            {
                 return Err(clause_err("feature"));
             }
         }
@@ -70,7 +82,14 @@ pub fn validate_ears_requirement(req: &EARSRequirement) -> Result<(), String> {
             }
         }
     }
-    if !req.testable && req.non_testable_reason.as_deref().map(str::trim).unwrap_or("").is_empty() {
+    if !req.testable
+        && req
+            .non_testable_reason
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty()
+    {
         return Err(format!(
             "EARS requirement '{}' is not testable but gives no non_testable_reason",
             req.id
@@ -100,22 +119,13 @@ pub fn validate_gherkin_scenario(scn: &GherkinScenario) -> Result<(), String> {
         return Err(format!("Gherkin scenario '{}' has an empty name", scn.id));
     }
     if scn.given_steps.iter().all(|s| s.trim().is_empty()) {
-        return Err(format!(
-            "Gherkin scenario '{}' has no Given step",
-            scn.id
-        ));
+        return Err(format!("Gherkin scenario '{}' has no Given step", scn.id));
     }
     if scn.when_steps.iter().all(|s| s.trim().is_empty()) {
-        return Err(format!(
-            "Gherkin scenario '{}' has no When step",
-            scn.id
-        ));
+        return Err(format!("Gherkin scenario '{}' has no When step", scn.id));
     }
     if scn.then_steps.iter().all(|s| s.trim().is_empty()) {
-        return Err(format!(
-            "Gherkin scenario '{}' has no Then step",
-            scn.id
-        ));
+        return Err(format!("Gherkin scenario '{}' has no Then step", scn.id));
     }
     Ok(())
 }

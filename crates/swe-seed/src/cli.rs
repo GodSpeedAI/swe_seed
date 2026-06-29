@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(
@@ -92,6 +92,18 @@ enum Command {
         #[command(subcommand)]
         action: Option<FabricateAction>,
     },
+    /// Bounded inner-stack run; `--federation off` is fully standalone (spec 0011)
+    Run {
+        task: Option<String>,
+        /// Federation master switch override (`off` | `on`); default `off`
+        #[arg(long, value_enum)]
+        federation: Option<FederationFlag>,
+    },
+    /// Federation flags + envelope I/O (spec 0011)
+    Federation {
+        #[command(subcommand)]
+        action: FederationAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -127,6 +139,18 @@ enum FabricateAction {
 }
 
 #[derive(Subcommand)]
+enum FederationAction {
+    /// Show resolved federation flags + domain_model_hash
+    Status,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum FederationFlag {
+    Off,
+    On,
+}
+
+#[derive(Subcommand)]
 enum HooksAction {
     /// Append a hook event to the JSONL log (payload from stdin)
     Capture {
@@ -154,9 +178,15 @@ enum HooksAction {
 #[derive(Subcommand)]
 enum ExportFormat {
     /// OpenTelemetry-compatible JSON
-    Otel { #[arg(long)] output: Option<String> },
+    Otel {
+        #[arg(long)]
+        output: Option<String>,
+    },
     /// JUnit XML
-    Junit { #[arg(long)] output: Option<String> },
+    Junit {
+        #[arg(long)]
+        output: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -281,6 +311,8 @@ pub fn run() -> Result<ExitCode> {
         Command::Learn { action } => run_learn(action, &root),
         Command::Adapt { run_id } => run_adapt(&root, &run_id),
         Command::Fabricate { need, action } => run_fabricate(&root, need, action),
+        Command::Run { task, federation } => run_run(&root, task, federation),
+        Command::Federation { action } => run_federation(&root, action),
     }
 }
 
@@ -319,11 +351,12 @@ fn run_seed(action: SeedAction, root: &std::path::Path) -> Result<ExitCode> {
             let input = seed::regenerate::SeedRegenerationInput {
                 swe_seed_spec_path: ".agents/specs/0018-layer-boundary-governance.md".into(),
                 approved_project_seeds: vec![
-                    ".agents/plans/0001-swe-seed-v0-1-implementation.md".into(),
+                    ".agents/plans/0001-swe-seed-v0-1-implementation.md".into()
                 ],
                 approved_seed_package_manifests: vec![seed::manifest::DEFAULT_MANIFEST_PATH.into()],
-                approved_layer_capability_maps: vec![".agents/specs/0003-capability-registry.md"
-                    .into()],
+                approved_layer_capability_maps: vec![
+                    ".agents/specs/0003-capability-registry.md".into()
+                ],
                 approved_lower_layer_artifact_refs: vec![
                     ".agents/specs/0012-existing-harness-reconciliation.md".into(),
                 ],
@@ -609,15 +642,16 @@ fn run_render_skills(root: &std::path::Path) -> Result<ExitCode> {
     for b in &blocked {
         eprintln!("blocked (scan): {b}");
     }
-    println!("rendered {rendered} target file(s); {} blocked", blocked.len());
+    println!(
+        "rendered {rendered} target file(s); {} blocked",
+        blocked.len()
+    );
     Ok(ExitCode::SUCCESS)
 }
 
 fn run_skill(action: SkillAction, root: &std::path::Path) -> Result<ExitCode> {
-    use swe_seed_core::security::{
-        exceptions_store_path, run_skillspector, Exceptions,
-    };
-    use swe_seed_core::skill::{discover, ingest_one, fetch, normalize, SkillRecord};
+    use swe_seed_core::security::{exceptions_store_path, run_skillspector, Exceptions};
+    use swe_seed_core::skill::{discover, fetch, ingest_one, normalize, SkillRecord};
     match action {
         SkillAction::Add { path } => {
             let p = root.join(&path);
@@ -703,12 +737,19 @@ fn run_reflect(root: &std::path::Path, trace: &str) -> Result<ExitCode> {
 
     let trace_path = resolve_trace_path(root, trace);
     let record = TraceRecord::load(&trace_path)?;
-    let learned = reflect(&default_template(), &record, &trace_path.display().to_string())
-        .map_err(|e| anyhow::anyhow!(e))?;
+    let learned = reflect(
+        &default_template(),
+        &record,
+        &trace_path.display().to_string(),
+    )
+    .map_err(|e| anyhow::anyhow!(e))?;
     let out_dir = learning_dir(root).join("records");
     std::fs::create_dir_all(&out_dir)?;
     let out = out_dir.join(format!("{}.json", learned.id));
-    std::fs::write(&out, format!("{}\n", serde_json::to_string_pretty(&learned)?))?;
+    std::fs::write(
+        &out,
+        format!("{}\n", serde_json::to_string_pretty(&learned)?),
+    )?;
     println!(
         "{}",
         serde_json::to_string_pretty(&serde_json::json!({
@@ -736,9 +777,8 @@ fn run_learn(action: LearnAction, root: &std::path::Path) -> Result<ExitCode> {
 
     // Validate the record itself before any candidate is considered: a corrupt
     // or evidence-less record must not unlock a promotion write.
-    validate_learning_record(&loaded).map_err(|e| {
-        anyhow::anyhow!("learning record {} failed validation: {e}", loaded.id)
-    })?;
+    validate_learning_record(&loaded)
+        .map_err(|e| anyhow::anyhow!("learning record {} failed validation: {e}", loaded.id))?;
 
     match loaded.disposition {
         LearningDisposition::ApprovedLesson => {
@@ -831,7 +871,10 @@ fn run_adapt(root: &std::path::Path, run_id: &str) -> Result<ExitCode> {
     let out_dir = learning_dir(root).join("decisions");
     std::fs::create_dir_all(&out_dir)?;
     let out = out_dir.join(format!("{}.json", decision.decision_id));
-    std::fs::write(&out, format!("{}\n", serde_json::to_string_pretty(&decision)?))?;
+    std::fs::write(
+        &out,
+        format!("{}\n", serde_json::to_string_pretty(&decision)?),
+    )?;
     println!("{}", serde_json::to_string_pretty(&decision)?);
     Ok(ExitCode::SUCCESS)
 }
@@ -841,9 +884,7 @@ fn run_fabricate(
     need: Option<String>,
     action: Option<FabricateAction>,
 ) -> Result<ExitCode> {
-    use swe_seed_core::fabricator::{
-        fabricate, load_chain, run_dir, validate_semantic_chain,
-    };
+    use swe_seed_core::fabricator::{fabricate, load_chain, run_dir, validate_semantic_chain};
     use swe_seed_core::util::{slugify, utc_stamp};
 
     match action {
@@ -903,4 +944,87 @@ fn run_fabricate(
             }
         }
     }
+}
+
+/// Resolve the federation config from the `--federation` flag (off=standalone,
+/// on=emit+consume enabled). Absent flag = standalone default.
+fn federation_config_from(
+    flag: Option<FederationFlag>,
+) -> swe_seed_core::federation::FederationConfig {
+    use swe_seed_core::federation::{FederationConfig, SettlementMode};
+    let mut cfg = FederationConfig::default();
+    match flag {
+        Some(FederationFlag::On) => {
+            cfg.enabled = true;
+            cfg.emit_envelope = true;
+            cfg.consume_envelope = true;
+            // Planes stay local/off by default; `on` only enables envelope I/O.
+            cfg.settlement.mode = SettlementMode::Emit;
+        }
+        Some(FederationFlag::Off) | None => {}
+    }
+    cfg
+}
+
+fn run_run(
+    root: &std::path::Path,
+    task: Option<String>,
+    federation: Option<FederationFlag>,
+) -> Result<ExitCode> {
+    use swe_seed_core::federation::{
+        dispatch, emit_work_requested, resolve_domain_model_hash, Dispatch,
+    };
+
+    let cfg = federation_config_from(federation);
+    let resolved = resolve_domain_model_hash();
+    let task = task.as_deref().unwrap_or("inner-stack smoke");
+
+    // Build a WorkRequested envelope in memory (never dispatched when off).
+    let envelope = emit_work_requested(
+        &resolved.hash,
+        "run-smoke",
+        "swe-seed",
+        "run",
+        task,
+        "low",
+        None,
+    );
+    let dispatched = dispatch(&cfg, &envelope, None);
+
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&serde_json::json!({
+            "task": task,
+            "root": root.display().to_string(),
+            "federation": {
+                "enabled": cfg.enabled,
+                "emits": cfg.emits(),
+                "consumes": cfg.consumes(),
+                "standalone": cfg.is_standalone(),
+            },
+            "domain_model_hash": resolved.hash,
+            "hash_source": format!("{:?}", resolved.source),
+            "hash_warned": resolved.warned,
+            "dispatched": match dispatched { Dispatch::Written(_) => "written", Dispatch::Suppressed => "suppressed" },
+        }))?
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_federation(root: &std::path::Path, action: FederationAction) -> Result<ExitCode> {
+    use swe_seed_core::federation::{fallback_hash, resolve_domain_model_hash};
+    let FederationAction::Status = action;
+    let resolved = resolve_domain_model_hash();
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&serde_json::json!({
+            "config_root": root.join(".swe-seed").display().to_string(),
+            "domain_model_hash": resolved.hash,
+            "fallback_hash": fallback_hash(),
+            "hash_source": format!("{:?}", resolved.source),
+            "hash_warned": resolved.warned,
+            "namespace": swe_seed_core::federation::NAMESPACE,
+        }))?
+    );
+    Ok(ExitCode::SUCCESS)
 }

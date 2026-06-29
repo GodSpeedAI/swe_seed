@@ -6,9 +6,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use swe_seed_core::eval::{evaluate_check, EvalStatus};
-use swe_seed_core::learning::{
-    eval_check_for_regression, validate_regression, RegressionCase,
-};
+use swe_seed_core::learning::{eval_check_for_regression, validate_regression, RegressionCase};
 
 fn case(id: &str, failure_mode: &str, linked: &str) -> RegressionCase {
     RegressionCase {
@@ -51,7 +49,10 @@ fn require_future_rule_without_content_is_rejected() {
     let mut c = case("reg-5", "missing guard", "chk-reg-5");
     c.future_rule = "require:   ".into();
     let err = validate_regression(&c).unwrap_err();
-    assert!(err.contains("require:") && err.contains("no rule content"), "{err}");
+    assert!(
+        err.contains("require:") && err.contains("no rule content"),
+        "{err}"
+    );
 
     // `require:` with content is fine, and still builds a required-pattern check.
     c.future_rule = "require: fn guarded()".into();
@@ -78,7 +79,10 @@ fn linked_check_fails_when_failure_mode_recurs() {
 
     let c = case("reg-3", "TODO: refactor this", "chk-reg-3");
     let check = eval_check_for_regression(&c).expect("valid case builds a check");
-    assert_eq!(check.id, "chk-reg-3", "the linked eval check id is the case's linked_eval_check");
+    assert_eq!(
+        check.id, "chk-reg-3",
+        "the linked eval check id is the case's linked_eval_check"
+    );
     assert_eq!(check.check_type, "static_forbidden_patterns");
     assert!(check.required, "a regression check is required");
 

@@ -10,7 +10,8 @@ fn clean_record() -> ProvenanceRecord {
         source_kind: "git".into(),
         source_location: "https://example.invalid/repo".into(),
         source_ref: "v1.0.0".into(),
-        source_hash: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".into(),
+        source_hash: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            .into(),
         license_tag: "MIT".into(),
         license_status: "clear".into(),
         inspected_at: "2026-06-26".into(),
@@ -61,11 +62,17 @@ fn malformed_source_hash_fails() {
     // Valid prefix, non-hex payload.
     let mut r = clean_record();
     r.source_hash = "sha256:xyz-not-hex".into();
-    assert_eq!(verify_record(&r), Err(ProvenanceProblem::MalformedSourceHash));
+    assert_eq!(
+        verify_record(&r),
+        Err(ProvenanceProblem::MalformedSourceHash)
+    );
     // Missing prefix entirely.
     let mut r2 = clean_record();
     r2.source_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".into();
-    assert_eq!(verify_record(&r2), Err(ProvenanceProblem::MalformedSourceHash));
+    assert_eq!(
+        verify_record(&r2),
+        Err(ProvenanceProblem::MalformedSourceHash)
+    );
 }
 
 #[test]

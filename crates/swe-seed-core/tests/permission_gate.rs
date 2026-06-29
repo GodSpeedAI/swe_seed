@@ -44,7 +44,13 @@ fn forbidden_takes_precedence_over_approval_gated() {
 fn five_required_lifecycle_events_present() {
     // The 5 v0.1 lifecycle events (spec 0005) that Phase 9 projects to hosts.
     assert_eq!(REQUIRED_LIFECYCLE_EVENTS.len(), 5);
-    for ev in ["SessionStart", "ContextBuild", "PreToolUse", "PostToolUse", "TaskEnd"] {
+    for ev in [
+        "SessionStart",
+        "ContextBuild",
+        "PreToolUse",
+        "PostToolUse",
+        "TaskEnd",
+    ] {
         assert!(
             REQUIRED_LIFECYCLE_EVENTS.iter().any(|e| *e == ev),
             "missing required lifecycle event {ev}"

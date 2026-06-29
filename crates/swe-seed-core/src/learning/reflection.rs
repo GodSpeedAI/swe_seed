@@ -4,11 +4,11 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::record::{LearningDisposition, LearningRecord};
+use super::ValidationRequirement;
 use crate::contracts::parity::{BamlParity, BamlShape};
 use crate::eval::SourceRef;
 use crate::trace::TraceRecord;
-use super::record::{LearningDisposition, LearningRecord};
-use super::ValidationRequirement;
 
 /// harness.baml `ReflectionTemplate`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -27,7 +27,13 @@ impl BamlParity for ReflectionTemplate {
     }
     fn baml_shape() -> BamlShape {
         BamlShape::Class {
-            fields: vec!["id", "prompts", "evidence_required", "no_change_allowed", "validation"],
+            fields: vec![
+                "id",
+                "prompts",
+                "evidence_required",
+                "no_change_allowed",
+                "validation",
+            ],
             field_types: vec![
                 "string",
                 "string[]",

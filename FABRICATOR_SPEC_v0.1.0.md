@@ -18,7 +18,7 @@ Run a single bounded pass from a product need to a proven prototype. The Fabrica
 loop autonomously; it produces a traceable chain plus a frozen eval spec and a proof record,
 then hands off.
 
-## The semantic chain
+## Semantic Specification Chain
 
 Each artifact derives from and traces to its predecessor:
 
@@ -55,6 +55,33 @@ Configuration and templates: `.fabricator/config.yaml`, `.fabricator/templates/`
 - `.agents/specs/0017-fabricator-layer.md` — full semantic chain and validation.
 - `.agents/specs/0013-eval-and-proof.md` — eval and proof model reused at product scope.
 - `.agents/plans/0001-swe-seed-v0-1-implementation.md` — Rust rewrite plan of record.
+
+## Root Compatibility Markers
+
+Detailed Fabricator contracts remain in `.agents/specs/`, but the root spec preserves the
+validation markers used by the harness smoke suite:
+
+- `eval-spec.schema.yaml`
+- `NO_SKILL_PROPOSED.md.j2`
+- `EVAL_RESULT.json`
+- Deterministic Serialization
+
+## Job Story Syntax
+
+See `.agents/specs/FABRICATOR_SPEC_v0.1.0.md` for the full syntax.
+
+## Y-Statement ADR Syntax
+
+See `.agents/specs/FABRICATOR_SPEC_v0.1.0.md` for the full syntax.
+
+## SDS Structural Requirements
+
+See `.agents/specs/FABRICATOR_SPEC_v0.1.0.md` for the full structural requirements.
+
+## Gherkin Behavioral Syntax
+
+No Gherkin scenario may be considered satisfied unless its Given, When, and Then clauses trace
+to the semantic chain.
 
 ## Status
 

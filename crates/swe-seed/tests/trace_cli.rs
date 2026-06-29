@@ -20,3 +20,21 @@ fn trace_finish_without_claim_errors() {
         "expected a missing-claim usage error, got stderr: {err}"
     );
 }
+
+#[test]
+fn run_rejects_unknown_federation_value() {
+    let bin = env!("CARGO_BIN_EXE_swe-seed");
+    let out = Command::new(bin)
+        .args(["run", "--federation", "banana"])
+        .output()
+        .expect("run swe-seed");
+    assert!(
+        !out.status.success(),
+        "unknown federation value must exit non-zero"
+    );
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("invalid") && err.contains("federation"),
+        "expected invalid federation usage error, got stderr: {err}"
+    );
+}

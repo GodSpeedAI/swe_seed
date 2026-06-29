@@ -8,11 +8,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use swe_seed_core::route::RouteResult;
-use swe_seed_core::trace::{
-    self,
-    record::TraceRecord,
-    lifecycle,
-};
+use swe_seed_core::trace::{self, lifecycle, record::TraceRecord};
 
 fn real_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -77,7 +73,10 @@ fn full_trace_lifecycle_with_unresolved_risk() {
     assert!(root
         .join(started["trace_record"].as_str().unwrap())
         .is_file());
-    assert!(started["route_decision_record"].as_str().unwrap().contains("route-decisions"));
+    assert!(started["route_decision_record"]
+        .as_str()
+        .unwrap()
+        .contains("route-decisions"));
 
     // append adds a note event (now 2 events).
     let appended = lifecycle::append(&root, &trace_id, "a note").expect("append");
@@ -104,14 +103,23 @@ fn full_trace_lifecycle_with_unresolved_risk() {
 
     // finish sets the completion claim (claim is required by the CLI; here it is supplied).
     // A verification entry is recorded so distill classifies a real status.
-    let fin = lifecycle::finish(&root, &trace_id, "done", Some("just ci"), Some("incomplete"))
-        .expect("finish");
+    let fin = lifecycle::finish(
+        &root,
+        &trace_id,
+        "done",
+        Some("just ci"),
+        Some("incomplete"),
+    )
+    .expect("finish");
     assert_eq!(fin["completion_claim"]["claim"], "done");
 
     // distill: verification present but unresolved risk remains → partial.
     let d = lifecycle::distill(&root, &trace_id).expect("distill");
     assert_eq!(d["learning_review"]["verification_status"], "partial");
-    assert_eq!(d["learning_review"]["candidate_memory_updates"][0]["destination"], "open-questions");
+    assert_eq!(
+        d["learning_review"]["candidate_memory_updates"][0]["destination"],
+        "open-questions"
+    );
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -122,8 +130,14 @@ fn distill_verified_when_clean_passing_verification() {
     let started = lifecycle::start(&root, "clean run").expect("start");
     let trace_id = started["trace_id"].as_str().unwrap().to_string();
     // No checkpoint risks; finish with passing verification evidence.
-    lifecycle::finish(&root, &trace_id, "shipped", Some("just ci"), Some("all checks passed"))
-        .expect("finish");
+    lifecycle::finish(
+        &root,
+        &trace_id,
+        "shipped",
+        Some("just ci"),
+        Some("all checks passed"),
+    )
+    .expect("finish");
     let d = lifecycle::distill(&root, &trace_id).expect("distill");
     assert_eq!(d["learning_review"]["verification_status"], "verified");
     assert_eq!(
@@ -138,11 +152,17 @@ fn trace_schema_rejects_missing_identifiers() {
     let schema = trace::trace_schema();
 
     let mut rec = fixture_record("", "some task");
-    assert_eq!(trace::missing_identifiers(&schema, &rec), vec!["trace_id".to_string()]);
+    assert_eq!(
+        trace::missing_identifiers(&schema, &rec),
+        vec!["trace_id".to_string()]
+    );
 
     rec.trace_id = "20260617T002316Z-lifecycle-probe".into();
     rec.task = "".into();
-    assert_eq!(trace::missing_identifiers(&schema, &rec), vec!["task".to_string()]);
+    assert_eq!(
+        trace::missing_identifiers(&schema, &rec),
+        vec!["task".to_string()]
+    );
 
     rec.task = "has task".into();
     assert!(trace::missing_identifiers(&schema, &rec).is_empty());
@@ -168,10 +188,22 @@ fn trace_id_does_not_leak_secret_from_task() {
     let trace_rec = started["trace_record"].as_str().unwrap();
     let route_rec = started["route_decision_record"].as_str().unwrap();
 
-    assert!(!trace_id.contains(secret), "trace_id leaks secret: {trace_id}");
-    assert!(!trace_rec.contains(secret), "trace_record path leaks secret: {trace_rec}");
-    assert!(!route_rec.contains(secret), "route_decision path leaks secret: {route_rec}");
-    assert!(trace_id.ends_with("redacted-do-work"), "trace_id not sanitized: {trace_id}");
+    assert!(
+        !trace_id.contains(secret),
+        "trace_id leaks secret: {trace_id}"
+    );
+    assert!(
+        !trace_rec.contains(secret),
+        "trace_record path leaks secret: {trace_rec}"
+    );
+    assert!(
+        !route_rec.contains(secret),
+        "route_decision path leaks secret: {route_rec}"
+    );
+    assert!(
+        trace_id.ends_with("redacted-do-work"),
+        "trace_id not sanitized: {trace_id}"
+    );
 
     // Stored task field is the redacted form, never the raw secret.
     let rec = TraceRecord::load(&root.join(trace_rec)).expect("load record");

@@ -184,7 +184,12 @@ pub fn build_adaptation_decision(run_id: &str, results: &[EvalResult]) -> Adapta
         &mut allowed,
         &mut blocked,
     );
-    grant(process == EvalStatus::Pass, "adr_update", &mut allowed, &mut blocked);
+    grant(
+        process == EvalStatus::Pass,
+        "adr_update",
+        &mut allowed,
+        &mut blocked,
+    );
     grant(
         learning == EvalStatus::Pass,
         "lesson_publish",
@@ -193,7 +198,9 @@ pub fn build_adaptation_decision(run_id: &str, results: &[EvalResult]) -> Adapta
     );
 
     if !blocked.is_empty() {
-        next_actions.push(format!("blocked adaptations need a passing eval: {blocked:?}"));
+        next_actions.push(format!(
+            "blocked adaptations need a passing eval: {blocked:?}"
+        ));
     }
 
     AdaptationDecision {

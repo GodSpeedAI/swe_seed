@@ -13,8 +13,8 @@ pub mod validate;
 pub use artifacts::{
     AgentTask, EARSPattern, EARSRequirement, FabricatorArtifactStatus, FabricatorEvalCheck,
     FabricatorEvalClass, FabricatorEvalSpec, FabricatorProofRecord, FabricatorSourceRef,
-    GherkinScenario, JobStory, PRD, ProductADR, ProductHypothesis, ProductSeed, SDS,
-    SDSComponent, SemanticChainValidationReport, TDDPlan, TraceabilityLink, YStatement,
+    GherkinScenario, JobStory, ProductADR, ProductHypothesis, ProductSeed, SDSComponent,
+    SemanticChainValidationReport, TDDPlan, TraceabilityLink, YStatement, PRD, SDS,
 };
 pub use chain::{validate_semantic_chain, SemanticChain};
 pub use render::{

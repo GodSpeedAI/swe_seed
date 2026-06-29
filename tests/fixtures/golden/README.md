@@ -7,14 +7,14 @@ behavior) — modulo the normalization notes below.
 
 ## Files
 
-| Fixture | Command | Notes |
-|---|---|---|
-| `route_test.out` | `harness.py route "checkpoint smoke"` | Stable (no `--record`, so no timestamps). |
-| `context-plan_test.out` | `harness.py context-plan "checkpoint smoke"` | Stable. |
-| `render-skills.out` | `harness.py render-skills` | Stable. |
-| `inspect_test.out` | `harness.py inspect test` | Stable. |
-| `doctor.out` | `harness.py doctor` | Stable (short). |
-| `validate.out` | `harness.py validate` | **Exits 0** ("Harness validation passed") since the three root layer specs now exist. The Rust `validate` must reproduce this green state and the same root-spec / artifact checks. |
+| Fixture                 | Command                                      | Notes                                                                                                                                                                               |
+| ----------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `route_test.out`        | `harness.py route "checkpoint smoke"`        | Stable (no `--record`, so no timestamps).                                                                                                                                           |
+| `context-plan_test.out` | `harness.py context-plan "checkpoint smoke"` | Stable.                                                                                                                                                                             |
+| `render-skills.out`     | `harness.py render-skills`                   | Stable.                                                                                                                                                                             |
+| `inspect_test.out`      | `harness.py inspect test`                    | Stable.                                                                                                                                                                             |
+| `doctor.out`            | `harness.py doctor`                          | Stable (short).                                                                                                                                                                     |
+| `validate.out`          | `harness.py validate`                        | **Exits 0** ("Harness validation passed") since the three root layer specs now exist. The Rust `validate` must reproduce this green state and the same root-spec / artifact checks. |
 
 ## Normalization rules for parity tests
 

@@ -11,7 +11,11 @@ use swe_seed_core::fabricator::{
 fn well_formed_chain_passes_integrity() {
     let chain = build_chain("a bounded sample need", "ci-run");
     let report = validate_semantic_chain(&chain);
-    assert!(report.passed, "expected pass, got missing={:?} blocked={:?}", report.missing_links, report.blocked_claims);
+    assert!(
+        report.passed,
+        "expected pass, got missing={:?} blocked={:?}",
+        report.missing_links, report.blocked_claims
+    );
     assert!(report.missing_links.is_empty());
     assert!(report.blocked_claims.is_empty());
 }
@@ -25,7 +29,10 @@ fn broken_prd_to_sds_link_blocks_handoff() {
     let report = validate_semantic_chain(&chain);
     assert!(!report.passed, "broken PRD->SDS link must fail the chain");
     assert!(
-        report.missing_links.iter().any(|m| m.contains("PRD -> SDS")),
+        report
+            .missing_links
+            .iter()
+            .any(|m| m.contains("PRD -> SDS")),
         "missing_links must name the PRD->SDS edge: {:?}",
         report.missing_links
     );
@@ -34,7 +41,9 @@ fn broken_prd_to_sds_link_blocks_handoff() {
     let root = tempdir();
     let result = handoff(&chain, &root);
     assert!(result.is_err(), "handoff must be blocked on broken chain");
-    assert!(!root.join(".fabricator/runs/ci-broken-sds/handoff/MANIFEST.json").exists());
+    assert!(!root
+        .join(".fabricator/runs/ci-broken-sds/handoff/MANIFEST.json")
+        .exists());
 }
 
 #[test]
@@ -68,7 +77,9 @@ fn eval_check_linking_unknown_requirement_blocks_proof() {
     // An eval check that cites a non-existent requirement is an unresolvable
     // proof claim → blocked_claims (not just a missing link).
     let mut chain = build_chain("sample need", "ci-blocked-claim");
-    chain.eval_spec.checks[0].linked_requirement_ids.push("GHOST-REQ".into());
+    chain.eval_spec.checks[0]
+        .linked_requirement_ids
+        .push("GHOST-REQ".into());
     let report = validate_semantic_chain(&chain);
     assert!(!report.passed);
     assert!(report
@@ -113,9 +124,15 @@ fn ears_event_driven_requires_trigger() {
     ] {
         let mut r = ears_req("req-x", pattern);
         set_clause(&mut r, field, None);
-        assert!(validate_ears_requirement(&r).is_err(), "{pattern:?} without {field} must fail");
+        assert!(
+            validate_ears_requirement(&r).is_err(),
+            "{pattern:?} without {field} must fail"
+        );
         set_clause(&mut r, field, Some("present".into()));
-        assert!(validate_ears_requirement(&r).is_ok(), "{pattern:?} with {field} must pass");
+        assert!(
+            validate_ears_requirement(&r).is_ok(),
+            "{pattern:?} with {field} must pass"
+        );
     }
 }
 
@@ -124,7 +141,10 @@ fn non_testable_ears_requires_reason() {
     let mut req = ears_req("req-nt", EARSPattern::Ubiquitous);
     req.testable = false;
     req.non_testable_reason = None;
-    assert!(validate_ears_requirement(&req).is_err(), "non-testable needs a reason");
+    assert!(
+        validate_ears_requirement(&req).is_err(),
+        "non-testable needs a reason"
+    );
     req.non_testable_reason = Some("requires human judgement".into());
     assert!(validate_ears_requirement(&req).is_ok());
 }
