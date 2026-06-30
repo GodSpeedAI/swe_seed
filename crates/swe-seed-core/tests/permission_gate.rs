@@ -57,3 +57,98 @@ fn five_required_lifecycle_events_present() {
         );
     }
 }
+
+#[test]
+fn federated_authority_wrapper_preserves_standalone_and_delegates() {
+    use swe_seed_core::federation::{
+        AuthorityConfig, AuthorityMode, AuthorityVerdict, FederationConfig, Risk,
+    };
+    use swe_seed_core::hooks::gate_action_with_authority;
+
+    let allowed = policy(&["deploy"], &[], &[]);
+
+    // Standalone (default): the federation gate is NOT consulted — an incoming
+    // external Deny is ignored and the local allow stands.
+    let standalone = FederationConfig::default();
+    assert_eq!(standalone.authority_mode(), AuthorityMode::Local);
+    assert_eq!(
+        gate_action_with_authority(
+            &allowed,
+            "deploy",
+            &standalone,
+            Risk::Low,
+            Some(AuthorityVerdict::Deny)
+        ),
+        ActionGate::Allowed,
+        "standalone mode must ignore federation envelopes"
+    );
+
+    // Delegate mode: an external Deny on a locally-allowed action blocks it.
+    let mut delegate = FederationConfig {
+        enabled: true,
+        authority: AuthorityConfig {
+            mode: AuthorityMode::Delegate,
+            allow_external_override: false,
+        },
+        ..FederationConfig::default()
+    };
+    assert_eq!(
+        gate_action_with_authority(
+            &allowed,
+            "deploy",
+            &delegate,
+            Risk::Low,
+            Some(AuthorityVerdict::Deny)
+        ),
+        ActionGate::Forbidden
+    );
+    // Escalate → approval-gated.
+    assert_eq!(
+        gate_action_with_authority(
+            &allowed,
+            "deploy",
+            &delegate,
+            Risk::Low,
+            Some(AuthorityVerdict::Escalate)
+        ),
+        ActionGate::ApprovalGated
+    );
+    // Allow → proceeds.
+    assert_eq!(
+        gate_action_with_authority(
+            &allowed,
+            "deploy",
+            &delegate,
+            Risk::Low,
+            Some(AuthorityVerdict::Allow)
+        ),
+        ActionGate::Allowed
+    );
+
+    // Local Forbidden is never overridden by an external Allow (no override opt-in).
+    let forbidden = policy(&[], &[], &["deploy"]);
+    assert_eq!(
+        gate_action_with_authority(
+            &forbidden,
+            "deploy",
+            &delegate,
+            Risk::Low,
+            Some(AuthorityVerdict::Allow)
+        ),
+        ActionGate::Forbidden
+    );
+
+    // Master switch off forces Local even if the configured mode is Delegate.
+    delegate.enabled = false;
+    assert_eq!(delegate.authority_mode(), AuthorityMode::Local);
+    assert_eq!(
+        gate_action_with_authority(
+            &allowed,
+            "deploy",
+            &delegate,
+            Risk::Low,
+            Some(AuthorityVerdict::Deny)
+        ),
+        ActionGate::Allowed
+    );
+}

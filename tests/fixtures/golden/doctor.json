@@ -1,0 +1,29 @@
+{
+  "core": {
+    "checks": [
+      {
+        "detail": "13 capabilities, no findings",
+        "name": "boundary",
+        "status": "Pass"
+      },
+      {
+        "detail": "4/4 checks passed",
+        "name": "eval:core-conformance",
+        "status": "Pass"
+      },
+      {
+        "detail": "spec not frozen",
+        "name": "frozen-integrity",
+        "status": "Pass"
+      },
+      {
+        "detail": "manifest unchanged since last doctor run",
+        "name": "manifest-drift",
+        "status": "Pass"
+      }
+    ],
+    "overall": "Pass"
+  },
+  "hosts": [],
+  "overall": "Pass"
+}

@@ -157,7 +157,7 @@ pub fn validate_boundaries(manifest: &SeedPackageManifest) -> BoundaryReport {
         metadata: super::ArtifactMetadata {
             artifact_type: "BoundaryReport".into(),
             artifact_id: "swe-seed-boundary".into(),
-            source_spec: ".agents/specs/0018-layer-boundary-governance.md".into(),
+            source_spec: "docs/specs/0018-layer-boundary-governance.md".into(),
             generated_by: "swe-seed v0.1".into(),
             status: if passed {
                 super::SeedArtifactStatus::Active

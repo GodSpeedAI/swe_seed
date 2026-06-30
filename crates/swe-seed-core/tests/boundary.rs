@@ -22,7 +22,7 @@ fn upward_reference_fails() {
     manifest.capabilities.push(LayerCapability {
         id: "bad-upward".into(),
         owner: LayerName::Fabricator,
-        source_spec: ".agents/specs/0017-fabricator-layer.md".into(),
+        source_spec: "docs/specs/0017-fabricator-layer.md".into(),
         artifact_paths: vec![".agent-harness/traces/".into()],
         purpose: "misplaced".into(),
         required: false,
@@ -50,7 +50,7 @@ fn harness_referencing_fabricator_is_allowed() {
     manifest.capabilities.push(LayerCapability {
         id: "ok-inward".into(),
         owner: LayerName::Harness,
-        source_spec: ".agents/specs/0013-eval-and-proof.md".into(),
+        source_spec: "docs/specs/0013-eval-and-proof.md".into(),
         artifact_paths: vec![".fabricator/runs/".into()],
         purpose: "eval reuses fabricator handoff".into(),
         required: false,
@@ -105,7 +105,7 @@ fn unclassified_artifact_path_fails() {
     manifest.capabilities.push(LayerCapability {
         id: "bad-path".into(),
         owner: LayerName::SweSeed,
-        source_spec: ".agents/specs/0018-layer-boundary-governance.md".into(),
+        source_spec: "docs/specs/0018-layer-boundary-governance.md".into(),
         artifact_paths: vec!["totally/unknown/zone/".into()],
         purpose: "unrecognized".into(),
         required: false,

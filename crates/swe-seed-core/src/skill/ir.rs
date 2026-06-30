@@ -21,17 +21,6 @@ pub enum ArtifactStatus {
     Rejected,
 }
 
-/// harness.baml `ValidationRequirement` (skill-local).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct SkillValidation {
-    #[serde(default)]
-    pub check: String,
-    #[serde(default)]
-    pub blocking: bool,
-    #[serde(default)]
-    pub evidence: String,
-}
-
 /// harness.baml `SourceRef` (skill-local; reused from eval would cross modules).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SkillSourceRef {
@@ -62,7 +51,7 @@ pub struct SkillIR {
     pub render_targets: Vec<String>,
     pub status: ArtifactStatus,
     #[serde(default)]
-    pub validation: Vec<SkillValidation>,
+    pub validation: Vec<crate::contracts::harness::ValidationRequirement>,
     #[serde(default)]
     pub sources: Vec<SkillSourceRef>,
 }

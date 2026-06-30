@@ -14,12 +14,12 @@ fn root() -> PathBuf {
 
 fn input() -> SeedRegenerationInput {
     SeedRegenerationInput {
-        swe_seed_spec_path: ".agents/specs/0018-layer-boundary-governance.md".into(),
-        approved_project_seeds: vec![".agents/specs/0002-swe-seed-centralization-layer.md".into()],
+        swe_seed_spec_path: "docs/specs/0018-layer-boundary-governance.md".into(),
+        approved_project_seeds: vec!["docs/specs/0002-swe-seed-centralization-layer.md".into()],
         approved_seed_package_manifests: vec![],
-        approved_layer_capability_maps: vec![".agents/specs/0003-capability-registry.md".into()],
+        approved_layer_capability_maps: vec!["docs/specs/0003-capability-registry.md".into()],
         approved_lower_layer_artifact_refs: vec![
-            ".agents/specs/0012-existing-harness-reconciliation.md".into(),
+            "docs/specs/0012-existing-harness-reconciliation.md".into(),
         ],
     }
 }

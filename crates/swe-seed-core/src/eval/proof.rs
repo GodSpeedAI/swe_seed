@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::check::SourceRef;
+use crate::contracts::harness::SourceRef;
 use crate::contracts::parity::{BamlParity, BamlShape};
 
 /// harness.baml `ProofRecord`.

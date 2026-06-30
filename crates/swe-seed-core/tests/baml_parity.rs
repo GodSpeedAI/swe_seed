@@ -13,6 +13,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use swe_seed_core::context::{ContextBudget, ContextPack};
+use swe_seed_core::contracts::harness::{
+    ArtifactStatus, HarnessADR, HarnessNeed, ProofDisposition, RegenerationInput, RegenerationPlan,
+    ValidationRequirement,
+};
 use swe_seed_core::contracts::{parse_baml_dir, BamlParity, BamlShape, BamlType};
 use swe_seed_core::eval::{
     EvalCheck, EvalCheckResult, EvalClass, EvalResult, EvalSpec, EvalStatus, ProofRecord, SourceRef,
@@ -186,6 +190,26 @@ fn registered() -> Vec<(&'static str, BamlShape)> {
         (
             SemanticChainValidationReport::baml_name(),
             SemanticChainValidationReport::baml_shape(),
+        ),
+        // Shared harness contract types (consolidated; spec 0019).
+        (ArtifactStatus::baml_name(), ArtifactStatus::baml_shape()),
+        (
+            ProofDisposition::baml_name(),
+            ProofDisposition::baml_shape(),
+        ),
+        (
+            ValidationRequirement::baml_name(),
+            ValidationRequirement::baml_shape(),
+        ),
+        (HarnessNeed::baml_name(), HarnessNeed::baml_shape()),
+        (HarnessADR::baml_name(), HarnessADR::baml_shape()),
+        (
+            RegenerationInput::baml_name(),
+            RegenerationInput::baml_shape(),
+        ),
+        (
+            RegenerationPlan::baml_name(),
+            RegenerationPlan::baml_shape(),
         ),
     ]
 }

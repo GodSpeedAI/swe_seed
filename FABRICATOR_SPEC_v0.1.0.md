@@ -2,8 +2,8 @@
 
 Root contract for the **Fabricator layer**: the inner layer that turns a product need into a
 proven prototype through a traceable semantic chain. This file is a stable root spec.
-Detailed design lives in `.agents/specs/0017-fabricator-layer.md`; the reconciliation in
-`.agents/specs/0012-existing-harness-reconciliation.md` is authoritative on any vocabulary
+Detailed design lives in `docs/specs/0017-fabricator-layer.md`; the reconciliation in
+`docs/specs/0012-existing-harness-reconciliation.md` is authoritative on any vocabulary
 conflict.
 
 ## Position in the stack
@@ -29,7 +29,7 @@ ProductSeed -> JobStory -> ProductHypothesis -> PRD -> ProductADR (Y-statement)
 ```
 
 Canonical schema: `.agent-harness/baml/baml_src/fabricator.baml` (contracts as data, no LLM
-runtime; see `.agents/specs/0019-baml-contracts-as-data.md`). The chain edge is
+runtime; see `docs/specs/0019-baml-contracts-as-data.md`). The chain edge is
 `TraceabilityLink`.
 
 ## Layer rules
@@ -52,13 +52,13 @@ Configuration and templates: `.fabricator/config.yaml`, `.fabricator/templates/`
 
 ## Detailed specs
 
-- `.agents/specs/0017-fabricator-layer.md` — full semantic chain and validation.
-- `.agents/specs/0013-eval-and-proof.md` — eval and proof model reused at product scope.
+- `docs/specs/0017-fabricator-layer.md` — full semantic chain and validation.
+- `docs/specs/0013-eval-and-proof.md` — eval and proof model reused at product scope.
 - `.agents/plans/0001-swe-seed-v0-1-implementation.md` — Rust rewrite plan of record.
 
 ## Root Compatibility Markers
 
-Detailed Fabricator contracts remain in `.agents/specs/`, but the root spec preserves the
+Detailed Fabricator contracts remain in `docs/specs/`, but the root spec preserves the
 validation markers used by the harness smoke suite:
 
 - `eval-spec.schema.yaml`
@@ -68,15 +68,15 @@ validation markers used by the harness smoke suite:
 
 ## Job Story Syntax
 
-See `.agents/specs/FABRICATOR_SPEC_v0.1.0.md` for the full syntax.
+See `docs/specs/FABRICATOR_SPEC_v0.1.0.md` for the full syntax.
 
 ## Y-Statement ADR Syntax
 
-See `.agents/specs/FABRICATOR_SPEC_v0.1.0.md` for the full syntax.
+See `docs/specs/FABRICATOR_SPEC_v0.1.0.md` for the full syntax.
 
 ## SDS Structural Requirements
 
-See `.agents/specs/FABRICATOR_SPEC_v0.1.0.md` for the full structural requirements.
+See `docs/specs/FABRICATOR_SPEC_v0.1.0.md` for the full structural requirements.
 
 ## Gherkin Behavioral Syntax
 

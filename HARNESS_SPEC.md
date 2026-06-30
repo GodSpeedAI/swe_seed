@@ -1,8 +1,8 @@
 # HARNESS_SPEC
 
 Root contract for the **Harness layer**: the middle layer that turns a request into routed,
-proven work. This file is a stable root spec. Detailed design lives in `.agents/specs/`; the
-reconciliation in `.agents/specs/0012-existing-harness-reconciliation.md` is authoritative on
+proven work. This file is a stable root spec. Detailed design lives in `docs/specs/`; the
+reconciliation in `docs/specs/0012-existing-harness-reconciliation.md` is authoritative on
 any vocabulary conflict.
 
 ## Position in the stack
@@ -20,7 +20,7 @@ types before work begins. Completion claims depend on proof. The full operating 
 ## Owned concepts
 
 Canonical schema: `.agent-harness/baml/baml_src/harness.baml` (contracts as data, no LLM
-runtime; see `.agents/specs/0019-baml-contracts-as-data.md`).
+runtime; see `docs/specs/0019-baml-contracts-as-data.md`).
 
 - `RouteCard` — job type, required context, work loop, required artifacts, proof, done-when.
 - `SkillIR` — normalized, portable skill procedure with evidence and render targets.
@@ -47,8 +47,8 @@ runtime; see `.agents/specs/0019-baml-contracts-as-data.md`).
 
 ## Evaluation and Adaptation Layer
 
-Evaluation and adaptation are specified in detail in `.agents/specs/HARNESS_SPEC.md` and
-`.agents/specs/0013-eval-and-proof.md`. This root contract preserves the stable section marker
+Evaluation and adaptation are specified in this root `HARNESS_SPEC.md` and in
+`docs/specs/0013-eval-and-proof.md`. This root contract preserves the stable section marker
 used by harness smoke evals.
 
 ## Required job types
@@ -72,10 +72,10 @@ swe-seed reflect <trace> ; swe-seed adapt <run>  # learning and adaptation loop
 
 ## Detailed specs
 
-- `.agents/specs/0004-host-adapter-contract.md`, `0005-normalized-hook-runtime.md`,
+- `docs/specs/0004-host-adapter-contract.md`, `0005-normalized-hook-runtime.md`,
   `0006-mcp-gateway-integration.md`, `0007-skill-ingestion-and-scan-gate.md`,
   `0008-doctor-and-drift-detection.md`.
-- `.agents/specs/0013-eval-and-proof.md`, `0014-trace-and-durable-decisions.md`,
+- `docs/specs/0013-eval-and-proof.md`, `0014-trace-and-durable-decisions.md`,
   `0015-context-budget-plane.md`, `0016-learning-and-adaptation-loop.md`.
 - `.agents/plans/0001-swe-seed-v0-1-implementation.md` — Rust rewrite plan of record.
 

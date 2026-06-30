@@ -38,7 +38,7 @@ SWE_SEED is both a reference implementation and a portable specification.
 - `.agent-harness/reflections/` keeps learning review packets and improvement proposals separate from active instructions.
 - `scripts/harness.py` exposes routing, validation, context planning, skill rendering, and trace commands.
 - `justfile` gives humans, agents, and CI one command surface.
-- `SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, and `FABRICATOR_SPEC_v0.1.0.md` are the root layer contracts; `.agents/specs/` and `docs/specs/` hold the detailed design.
+- `SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, and `FABRICATOR_SPEC_v0.1.0.md` are the root layer contracts; `docs/specs/` holds the detailed design.
 
 ## Layered Architecture
 
@@ -58,9 +58,9 @@ SweSeed     (SWE_SEED_SPEC_v0.2.0.md)   governance, capability assembly, layer b
 
 ## Design Specs and the Rust Rewrite
 
-The design lives in `.agents/`:
+The design lives in committed specs:
 
-- `.agents/specs/0002`–`0019` define each subsystem. `0012` reconciles these specs with the existing harness and is authoritative on any vocabulary conflict.
+- `docs/specs/0001`–`0020` define each subsystem. `0012` reconciles these specs with the existing harness and is authoritative on any vocabulary conflict.
 - `.agents/plans/0001-swe-seed-v0-1-implementation.md` is the plan of record: a full rewrite of all three layers in Rust, building to the specs, with golden-file parity against the current Python harness, after which the Python implementation is removed.
 
 The current `scripts/harness.py` (plus `agent_hooks.py`, `fabricate.py`) is the Python reference implementation that the Rust rewrite reproduces and supersedes.

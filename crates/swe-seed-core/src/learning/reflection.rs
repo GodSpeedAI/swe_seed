@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use super::record::{LearningDisposition, LearningRecord};
 use super::ValidationRequirement;
+use crate::contracts::harness::SourceRef;
 use crate::contracts::parity::{BamlParity, BamlShape};
-use crate::eval::SourceRef;
 use crate::trace::TraceRecord;
 
 /// harness.baml `ReflectionTemplate`.

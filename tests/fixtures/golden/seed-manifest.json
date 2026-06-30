@@ -1,0 +1,183 @@
+{
+  "capabilities": [
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/seed",
+        ".swe-seed/"
+      ],
+      "id": "layer-governance",
+      "owner": "SweSeed",
+      "purpose": "3-layer ownership + boundary validation",
+      "required": true,
+      "source_spec": "docs/specs/0018-layer-boundary-governance.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/provenance",
+        ".swe-seed/provenance/"
+      ],
+      "id": "provenance",
+      "owner": "SweSeed",
+      "purpose": "license + clean-room provenance records",
+      "required": true,
+      "source_spec": "docs/specs/0009-license-and-provenance-boundaries.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/adapters"
+      ],
+      "id": "host-adapters",
+      "owner": "SweSeed",
+      "purpose": "project the assembled manifest into hosts",
+      "required": false,
+      "source_spec": "docs/specs/0004-host-adapter-contract.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/federation"
+      ],
+      "id": "federation",
+      "owner": "SweSeed",
+      "purpose": "optional SEA envelope (default off)",
+      "required": false,
+      "source_spec": "docs/specs/0011-sea-loop-federation.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/route",
+        ".agent-harness/routes/"
+      ],
+      "id": "routing",
+      "owner": "Harness",
+      "purpose": "RouteCard-driven task routing",
+      "required": true,
+      "source_spec": "docs/specs/0012-existing-harness-reconciliation.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/trace",
+        ".agent-harness/traces/"
+      ],
+      "id": "traces",
+      "owner": "Harness",
+      "purpose": "durable decisions + session continuity",
+      "required": true,
+      "source_spec": "docs/specs/0014-trace-and-durable-decisions.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/eval"
+      ],
+      "id": "eval-proof",
+      "owner": "Harness",
+      "purpose": "eval specs, proof records, promotion gate",
+      "required": true,
+      "source_spec": "docs/specs/0013-eval-and-proof.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/doctor"
+      ],
+      "id": "doctor",
+      "owner": "Harness",
+      "purpose": "validate + eval + boundary aggregation",
+      "required": true,
+      "source_spec": "docs/specs/0008-doctor-and-drift-detection.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/context",
+        ".agent-harness/context/"
+      ],
+      "id": "context-plane",
+      "owner": "Harness",
+      "purpose": "bounded context budget + pack",
+      "required": true,
+      "source_spec": "docs/specs/0015-context-budget-plane.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/hooks",
+        ".agent-hooks/"
+      ],
+      "id": "hook-runtime",
+      "owner": "Harness",
+      "purpose": "normalized hook events + permissions",
+      "required": true,
+      "source_spec": "docs/specs/0005-normalized-hook-runtime.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/skill"
+      ],
+      "id": "skill-ingestion",
+      "owner": "Harness",
+      "purpose": "SkillIR ingestion + scan gate",
+      "required": false,
+      "source_spec": "docs/specs/0007-skill-ingestion-and-scan-gate.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/learning"
+      ],
+      "id": "learning-loop",
+      "owner": "Harness",
+      "purpose": "reflection → learning → adaptation",
+      "required": false,
+      "source_spec": "docs/specs/0016-learning-and-adaptation-loop.md"
+    },
+    {
+      "artifact_paths": [
+        "crates/swe-seed-core/src/fabricator",
+        ".fabricator/"
+      ],
+      "id": "fabricator",
+      "owner": "Fabricator",
+      "purpose": "product → prototype semantic chain",
+      "required": false,
+      "source_spec": "docs/specs/0017-fabricator-layer.md"
+    }
+  ],
+  "generated_paths": [
+    "crates/swe-seed-core/src/seed",
+    ".swe-seed/",
+    "crates/swe-seed-core/src/provenance",
+    ".swe-seed/provenance/",
+    "crates/swe-seed-core/src/adapters",
+    "crates/swe-seed-core/src/federation",
+    "crates/swe-seed-core/src/route",
+    ".agent-harness/routes/",
+    "crates/swe-seed-core/src/trace",
+    ".agent-harness/traces/",
+    "crates/swe-seed-core/src/eval",
+    "crates/swe-seed-core/src/doctor",
+    "crates/swe-seed-core/src/context",
+    ".agent-harness/context/",
+    "crates/swe-seed-core/src/hooks",
+    ".agent-hooks/",
+    "crates/swe-seed-core/src/skill",
+    "crates/swe-seed-core/src/learning",
+    "crates/swe-seed-core/src/fabricator",
+    ".fabricator/"
+  ],
+  "metadata": {
+    "artifact_id": "swe-seed-package",
+    "artifact_type": "SeedPackageManifest",
+    "generated_by": "swe-seed v0.1",
+    "linked_artifacts": [
+      "swe-seed-self"
+    ],
+    "requires_human_review": "Optional",
+    "source_spec": "docs/specs/0018-layer-boundary-governance.md",
+    "status": "Active",
+    "version": "0.1.0"
+  },
+  "project_seed_path": "docs/specs/0018-layer-boundary-governance.md",
+  "validation": [
+    {
+      "blocking": true,
+      "check": "workspace builds",
+      "evidence": "cargo build"
+    }
+  ]
+}

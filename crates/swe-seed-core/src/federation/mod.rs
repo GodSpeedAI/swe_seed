@@ -8,6 +8,10 @@ pub mod consume;
 pub mod emit;
 pub mod envelope;
 pub mod flags;
+pub mod signing;
+
+/// The signature algorithm label carried on signed envelopes.
+pub const SIGNING_ALGORITHM: &str = "ed25519";
 
 pub use consume::{
     authority_verdict, check_drift, consume_authority_checked, consume_context_packet_created,
@@ -24,4 +28,9 @@ pub use envelope::{
 pub use flags::{
     authority_gate, standalone, AuthorityConfig, AuthorityMode, AuthorityVerdict, ContextConfig,
     ContextMode, FederationConfig, GateOutcome, Risk, SettlementConfig, SettlementMode,
+};
+pub use signing::{
+    canonical_signing_string, generate_signing_key, load_signing_key, private_key_path,
+    public_key_b64, public_key_from_b64, public_key_path, sign_envelope, signing_key_from_bytes,
+    verify_envelope, write_keypair, LoadError, SignaturePayload, VerifyError,
 };

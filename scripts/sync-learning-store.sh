@@ -95,10 +95,10 @@ for trace_path in trace_paths:
     record = json.loads(trace_path.read_text(encoding="utf-8"))
     try:
         distill_output = subprocess.check_output(
-            [sys.executable, "scripts/harness.py", "trace", "distill", str(trace_path)],
+            ["cargo", "run", "-q", "-p", "swe-seed", "--", "trace", "distill", str(trace_path)],
             cwd=root,
             text=True,
-            timeout=30,
+            timeout=60,
         )
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         print(f"Warning: distill failed for {trace_path}: {exc}", file=sys.stderr)

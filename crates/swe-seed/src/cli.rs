@@ -132,6 +132,16 @@ enum Command {
         #[command(subcommand)]
         action: FederationAction,
     },
+    /// Harness structure validation (CI integrity; Rust port of harness validate)
+    Harness,
+    /// Routing enforcement gate: exits 0 iff <trace> has a RouteSelected genesis
+    /// (and the chain verifies, with --verify)
+    Gate {
+        trace: String,
+        /// Also verify the full chain's tamper-evidence (recompute hashes)
+        #[arg(long)]
+        verify: bool,
+    },
 }
 
 fn discover_root() -> Result<PathBuf> {
@@ -190,6 +200,8 @@ pub fn run() -> Result<ExitCode> {
         Command::Fabricate { need, action } => run_fabricate(&root, need, action),
         Command::Run { task, federation } => run_run(&root, task, federation),
         Command::Federation { action } => run_federation(&root, action),
+        Command::Harness => crate::harness_cli::run_harness_validate(&root),
+        Command::Gate { trace, verify } => crate::gate_cli::run_gate(&root, &trace, verify),
     }
 }
 

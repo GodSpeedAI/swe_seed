@@ -14,6 +14,7 @@ node_modules/
 # generated harness traces
 .agent-harness/traces/records/*.json
 .agent-harness/traces/route-decisions/*.json
+.agent-harness/traces/ledger.sqlite3
 .agent-harness/baml/baml_client/
 
 # generated learning artifacts (records, proposals, regressions, decisions, runs)

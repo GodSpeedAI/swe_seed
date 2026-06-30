@@ -70,7 +70,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "layer-governance",
             SweSeed,
-            ".agents/specs/0018-layer-boundary-governance.md",
+            "docs/specs/0018-layer-boundary-governance.md",
             &["crates/swe-seed-core/src/seed", ".swe-seed/"],
             "3-layer ownership + boundary validation",
             true,
@@ -78,7 +78,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "provenance",
             SweSeed,
-            ".agents/specs/0009-license-and-provenance-boundaries.md",
+            "docs/specs/0009-license-and-provenance-boundaries.md",
             &[
                 "crates/swe-seed-core/src/provenance",
                 ".swe-seed/provenance/",
@@ -89,7 +89,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "host-adapters",
             SweSeed,
-            ".agents/specs/0004-host-adapter-contract.md",
+            "docs/specs/0004-host-adapter-contract.md",
             &["crates/swe-seed-core/src/adapters"],
             "project the assembled manifest into hosts",
             false,
@@ -97,7 +97,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "federation",
             SweSeed,
-            ".agents/specs/0011-sea-loop-federation.md",
+            "docs/specs/0011-sea-loop-federation.md",
             &["crates/swe-seed-core/src/federation"],
             "optional SEA envelope (default off)",
             false,
@@ -106,7 +106,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "routing",
             Harness,
-            ".agents/specs/0012-existing-harness-reconciliation.md",
+            "docs/specs/0012-existing-harness-reconciliation.md",
             &["crates/swe-seed-core/src/route", ".agent-harness/routes/"],
             "RouteCard-driven task routing",
             true,
@@ -114,7 +114,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "traces",
             Harness,
-            ".agents/specs/0014-trace-and-durable-decisions.md",
+            "docs/specs/0014-trace-and-durable-decisions.md",
             &["crates/swe-seed-core/src/trace", ".agent-harness/traces/"],
             "durable decisions + session continuity",
             true,
@@ -122,7 +122,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "eval-proof",
             Harness,
-            ".agents/specs/0013-eval-and-proof.md",
+            "docs/specs/0013-eval-and-proof.md",
             &["crates/swe-seed-core/src/eval"],
             "eval specs, proof records, promotion gate",
             true,
@@ -130,7 +130,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "doctor",
             Harness,
-            ".agents/specs/0008-doctor-and-drift-detection.md",
+            "docs/specs/0008-doctor-and-drift-detection.md",
             &["crates/swe-seed-core/src/doctor"],
             "validate + eval + boundary aggregation",
             true,
@@ -138,7 +138,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "context-plane",
             Harness,
-            ".agents/specs/0015-context-budget-plane.md",
+            "docs/specs/0015-context-budget-plane.md",
             &[
                 "crates/swe-seed-core/src/context",
                 ".agent-harness/context/",
@@ -149,7 +149,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "hook-runtime",
             Harness,
-            ".agents/specs/0005-normalized-hook-runtime.md",
+            "docs/specs/0005-normalized-hook-runtime.md",
             &["crates/swe-seed-core/src/hooks", ".agent-hooks/"],
             "normalized hook events + permissions",
             true,
@@ -157,7 +157,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "skill-ingestion",
             Harness,
-            ".agents/specs/0007-skill-ingestion-and-scan-gate.md",
+            "docs/specs/0007-skill-ingestion-and-scan-gate.md",
             &["crates/swe-seed-core/src/skill"],
             "SkillIR ingestion + scan gate",
             false,
@@ -165,7 +165,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "learning-loop",
             Harness,
-            ".agents/specs/0016-learning-and-adaptation-loop.md",
+            "docs/specs/0016-learning-and-adaptation-loop.md",
             &["crates/swe-seed-core/src/learning"],
             "reflection → learning → adaptation",
             false,
@@ -174,7 +174,7 @@ pub fn builtin_capabilities() -> Vec<LayerCapability> {
         cap(
             "fabricator",
             Fabricator,
-            ".agents/specs/0017-fabricator-layer.md",
+            "docs/specs/0017-fabricator-layer.md",
             &["crates/swe-seed-core/src/fabricator", ".fabricator/"],
             "product → prototype semantic chain",
             false,

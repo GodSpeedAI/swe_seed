@@ -20,30 +20,6 @@ pub use record::{validate_learning_record, LearningDisposition, LearningRecord};
 pub use reflection::{default_template, reflect, validate_reflection, ReflectionTemplate};
 pub use regression::{eval_check_for_regression, validate_regression, RegressionCase};
 
-use serde::{Deserialize, Serialize};
-
-use crate::contracts::parity::{BamlParity, BamlShape};
-
-/// harness.baml `ValidationRequirement` (learning-local copy; leaf type, not
-/// registered for parity — matches the convention used by route/hooks/context).
-#[derive(Debug, Clone, Deserialize, Default, Serialize)]
-pub struct ValidationRequirement {
-    #[serde(default)]
-    pub check: String,
-    #[serde(default)]
-    pub blocking: bool,
-    #[serde(default)]
-    pub evidence: String,
-}
-
-impl BamlParity for ValidationRequirement {
-    fn baml_name() -> &'static str {
-        "ValidationRequirement"
-    }
-    fn baml_shape() -> BamlShape {
-        BamlShape::Class {
-            fields: vec!["check", "blocking", "evidence"],
-            field_types: vec!["string", "bool", "string"],
-        }
-    }
-}
+// ValidationRequirement is the canonical harness type (contracts::harness); the
+// re-export keeps `super::ValidationRequirement` resolving in submodules.
+pub use crate::contracts::harness::ValidationRequirement;

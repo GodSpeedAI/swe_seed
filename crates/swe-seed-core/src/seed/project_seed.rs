@@ -57,7 +57,7 @@ pub fn self_project_seed() -> ProjectSeed {
         metadata: ArtifactMetadata {
             artifact_type: "ProjectSeed".into(),
             artifact_id: "swe-seed-self".into(),
-            source_spec: ".agents/specs/0018-layer-boundary-governance.md".into(),
+            source_spec: "docs/specs/0018-layer-boundary-governance.md".into(),
             generated_by: "swe-seed v0.1".into(),
             status: super::SeedArtifactStatus::Active,
             version: "0.1.0".into(),

@@ -26,6 +26,13 @@ pub enum HooksAction {
     CompactLogs,
     /// Rebuild the SQLite index from the JSONL logs
     Index,
+    /// Routing enforcement at the hook layer: evaluate the route gate for a
+    /// trace, log a PreToolUse event (allowed/blocked), and exit 0 (allow) / 1
+    /// (block). Wire this as the host's PreToolUse hook command.
+    RouteGate {
+        #[arg(long)]
+        trace_id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -81,7 +88,13 @@ pub fn run_agent_hooks(action: HooksAction, root: &std::path::Path) -> Result<Ex
                 "session_id": session_id,
                 "attributes": payload,
             });
-            let (log, event_id) = hooks::append_event(&log_dir, &mut envelope, &redact_cfg)?;
+            let (log, event_id) = match hooks::append_event(&log_dir, &mut envelope, &redact_cfg) {
+                Ok(record) => record,
+                Err(e) => {
+                    eprintln!("route-gate: audit log append failed; blocking hook: {e:#}");
+                    return Ok(ExitCode::from(1));
+                }
+            };
             println!(
                 "{}",
                 serde_json::to_string_pretty(&serde_json::json!({
@@ -123,6 +136,39 @@ pub fn run_agent_hooks(action: HooksAction, root: &std::path::Path) -> Result<Ex
                 }))?
             );
             Ok(ExitCode::SUCCESS)
+        }
+        HooksAction::RouteGate { trace_id } => {
+            // Evaluate the routing gate, log a PreToolUse event, enforce on exit code.
+            use swe_seed_core::routing_gate::{route_gate, RouteGate};
+            let outcome = route_gate(root, &trace_id);
+            let (status, reason, allowed) = match outcome {
+                Ok(RouteGate::Allow) => ("allowed", String::new(), true),
+                Ok(RouteGate::Block(r)) => ("blocked", r, false),
+                Err(e) => ("blocked", format!("gate error: {e:#}"), false),
+            };
+            let mut envelope = serde_json::json!({
+                "event": "PreToolUse",
+                "hook_id": "route-gate",
+                "status": status,
+                "trace_id": trace_id,
+                "attributes": { "reason": reason },
+            });
+            let (log, event_id) = hooks::append_event(&log_dir, &mut envelope, &redact_cfg)?;
+            let _ = log;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "event_id": event_id,
+                    "trace_id": trace_id,
+                    "status": status,
+                    "allowed": allowed,
+                }))?
+            );
+            Ok(if allowed {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            })
         }
     }
 }

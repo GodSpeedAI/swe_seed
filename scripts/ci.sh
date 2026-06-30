@@ -20,8 +20,13 @@ run_lint() {
 }
 
 run_test() {
-  python scripts/harness.py validate
-  bash tests/validate-harness.sh
+  # Rust-backed harness structure validation + the full Rust test suite.
+  # Replaces the former `python scripts/harness.py validate` + Python CLI
+  # parity smoke (`tests/validate-harness.sh`) after the Phase 10 cutover.
+  cargo run -q -p swe-seed -- harness
+  cargo test -q
+  cargo build --release -q -p swe-seed
+  SWE_SEED_BIN=target/release/swe-seed cargo test -q -p swe-seed --test cli_golden
 }
 
 case "$mode" in

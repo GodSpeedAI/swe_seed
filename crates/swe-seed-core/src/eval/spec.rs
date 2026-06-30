@@ -5,7 +5,8 @@ use std::path::Path;
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 
-use super::check::{EvalCheck, SourceRef};
+use super::check::EvalCheck;
+use crate::contracts::harness::SourceRef;
 use crate::contracts::parity::{BamlParity, BamlShape};
 use crate::provenance::content_hash;
 

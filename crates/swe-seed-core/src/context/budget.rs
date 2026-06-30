@@ -2,19 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::contracts::harness::ValidationRequirement;
 use crate::contracts::parity::{BamlParity, BamlShape};
-
-/// harness.baml `ValidationRequirement` (context-local copy so this module is
-/// self-contained; not registered for parity separately here).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ContextValidation {
-    #[serde(default)]
-    pub check: String,
-    #[serde(default)]
-    pub blocking: bool,
-    #[serde(default)]
-    pub evidence: String,
-}
 
 /// harness.baml `ContextBudget`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,7 +22,7 @@ pub struct ContextBudget {
     #[serde(default)]
     pub summarization_rules: Vec<String>,
     #[serde(default)]
-    pub validation: Vec<ContextValidation>,
+    pub validation: Vec<ValidationRequirement>,
 }
 
 impl BamlParity for ContextBudget {

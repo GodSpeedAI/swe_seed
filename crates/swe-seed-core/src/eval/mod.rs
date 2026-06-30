@@ -7,7 +7,8 @@ pub mod proof;
 pub mod result;
 pub mod spec;
 
-pub use check::{evaluate_check, EvalCheck, SourceRef};
+pub use crate::contracts::harness::SourceRef;
+pub use check::{evaluate_check, EvalCheck};
 pub use proof::{validate_proof, ProofRecord};
 pub use result::{run_eval, waived_requires_reason, EvalCheckResult, EvalResult};
 pub use spec::{check_frozen, load_eval_spec, EvalSpec};

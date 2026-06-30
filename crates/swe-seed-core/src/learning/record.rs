@@ -4,8 +4,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::ValidationRequirement;
+use crate::contracts::harness::SourceRef;
 use crate::contracts::parity::{BamlParity, BamlShape};
-use crate::eval::SourceRef;
 
 /// harness.baml `LearningDisposition`.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]

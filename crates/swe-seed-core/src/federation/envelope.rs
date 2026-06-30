@@ -194,4 +194,20 @@ impl Envelope {
             .get("domain_model_hash")
             .and_then(Value::as_str)
     }
+
+    /// Inject the tamper-evident trace chain root into the payload. This is the
+    /// value Phase B signs with Ed25519 and SEA-Forge verifies; carrying it in
+    /// the envelope is the federation hook (spec 0011).
+    pub fn with_trace_chain_root(&mut self, chain_root: &str) -> Result<(), &'static str> {
+        let Some(obj) = self.payload.as_object_mut() else {
+            return Err("cannot attach trace_chain_root to non-object envelope payload");
+        };
+        obj.insert("trace_chain_root".into(), Value::String(chain_root.into()));
+        Ok(())
+    }
+
+    /// The carried `trace_chain_root`, if any.
+    pub fn trace_chain_root(&self) -> Option<&str> {
+        self.payload.get("trace_chain_root").and_then(Value::as_str)
+    }
 }

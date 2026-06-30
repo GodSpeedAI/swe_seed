@@ -1,0 +1,11 @@
+# Normative specs and harness artifacts are not source code; do not reformat.
+docs/specs/
+.agent-harness/
+.agents/
+docs/agent-harness/
+.sops.yaml
+justfile
+# Generated fixtures / golden captures must match CLI output byte-for-byte.
+tests/fixtures/
+.target/
+reference/

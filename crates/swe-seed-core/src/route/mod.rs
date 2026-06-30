@@ -26,17 +26,6 @@ pub const REQUIRED_JOB_TYPES: &[&str] = &[
     "skill_authoring",
 ];
 
-/// Element of `RouteCard.validation` (baml `ValidationRequirement`).
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct RouteValidationEntry {
-    #[serde(default)]
-    pub check: String,
-    #[serde(default)]
-    pub blocking: bool,
-    #[serde(default)]
-    pub evidence: String,
-}
-
 /// Element of `RouteCard.sources` (baml `SourceRef`).
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct RouteSourceRef {
@@ -65,7 +54,7 @@ pub struct RouteCard {
     pub failure_modes: Vec<String>,
     pub fallback_policy: String,
     #[serde(default)]
-    pub validation: Vec<RouteValidationEntry>,
+    pub validation: Vec<crate::contracts::harness::ValidationRequirement>,
     #[serde(default)]
     pub sources: Vec<RouteSourceRef>,
 }

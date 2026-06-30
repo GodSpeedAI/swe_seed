@@ -1,4 +1,4 @@
-//! `EvalCheck` + `SourceRef` + the deterministic evaluator.
+//! `EvalCheck` + the deterministic evaluator.
 
 use std::path::Path;
 
@@ -6,27 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{EvalClass, EvalStatus};
 use crate::contracts::parity::{BamlParity, BamlShape};
-
-/// harness.baml `SourceRef`.
-#[derive(Debug, Clone, Deserialize, Default, Serialize)]
-pub struct SourceRef {
-    #[serde(default)]
-    pub path: String,
-    #[serde(default)]
-    pub summary: String,
-}
-
-impl BamlParity for SourceRef {
-    fn baml_name() -> &'static str {
-        "SourceRef"
-    }
-    fn baml_shape() -> BamlShape {
-        BamlShape::Class {
-            fields: vec!["path", "summary"],
-            field_types: vec!["string", "string"],
-        }
-    }
-}
 
 /// harness.baml `EvalCheck`. `rule` is a single string interpreted per
 /// `check_type` (keeps the type 1:1 with `.baml`).

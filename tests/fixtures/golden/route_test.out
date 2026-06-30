@@ -7,7 +7,7 @@
     "AGENTS.md",
     ".agent-harness/playbooks/20-change-with-proof.md",
     ".agent-harness/playbooks/30-debug-from-symptom.md",
-    "docs/specs/verification-system.md"
+    "docs/specs/0013-eval-and-proof.md"
   ],
   "required_skills": [
     "test-with-proof",

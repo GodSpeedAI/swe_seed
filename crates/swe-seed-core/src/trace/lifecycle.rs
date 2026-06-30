@@ -10,6 +10,37 @@ use super::record::TraceRecord;
 use crate::route::{build_route_result, harness_dir, write_route_decision};
 use crate::util::{redact_secrets, slugify, utc_now, utc_stamp};
 
+fn ledger_append_result(
+    root: &Path,
+    trace_id: &str,
+    event_type: &str,
+    payload_json: &str,
+) -> Result<()> {
+    let db = crate::trace_ledger::default_db_path(root);
+    crate::trace_ledger::open(&db).and_then(|c| {
+        crate::trace_ledger::append(
+            &c,
+            crate::trace_ledger::LedgerEntry {
+                trace_id,
+                event_type,
+                payload_json,
+                occurred_at: &utc_now(),
+            },
+        )
+        .map(|_| ())
+    })
+}
+
+/// Best-effort append to the tamper-evident trace ledger. Opens the ledger DB
+/// at the default path and appends; failures are warned to stderr but never
+/// break follow-up trace commands. The genesis append is handled separately
+/// because routing evidence is required.
+fn ledger_append(root: &Path, trace_id: &str, event_type: &str, payload_json: &str) {
+    if let Err(e) = ledger_append_result(root, trace_id, event_type, payload_json) {
+        eprintln!("trace ledger: best-effort append failed ({event_type}): {e}");
+    }
+}
+
 fn records_dir(root: &Path) -> PathBuf {
     harness_dir(root).join("traces").join("records")
 }
@@ -35,6 +66,14 @@ pub fn start(root: &Path, task: &str) -> Result<Value> {
     std::fs::create_dir_all(records_dir(root)).ok();
     let trace_id = format!("{}-{}", utc_stamp(), slugify(&redact_secrets(task)));
     let route_decision_record = write_route_decision(root, task, &route_result)?;
+    // Genesis: the routing decision is the first chain entry (tamper-evident).
+    let genesis_payload = serde_json::json!({
+        "task": redact_secrets(task),
+        "job_type": route_result.job_type,
+        "route_card": route_result.route_card,
+    })
+    .to_string();
+    ledger_append_result(root, &trace_id, "RouteSelected", &genesis_payload)?;
     let record = TraceRecord {
         trace_id: trace_id.clone(),
         created_at: utc_now(),
@@ -77,6 +116,12 @@ pub fn append(root: &Path, trace: &str, note: &str) -> Result<Value> {
         "note": note,
     }));
     record.save(&path)?;
+    ledger_append(
+        root,
+        &record.trace_id,
+        "TraceNote",
+        &json!({ "note": note }).to_string(),
+    );
     Ok(json!({
         "trace_record": rel(root, &path),
         "events": record.events.len(),
@@ -109,6 +154,12 @@ pub fn checkpoint(
         record.unresolved_risks = unresolved_risks.to_vec();
     }
     record.save(&path)?;
+    ledger_append(
+        root,
+        &record.trace_id,
+        "TraceCheckpoint",
+        &checkpoint.to_string(),
+    );
     Ok(json!({
         "trace_record": rel(root, &path),
         "checkpoint": checkpoint,
@@ -151,6 +202,12 @@ pub fn finish(
         }));
     }
     record.save(&path)?;
+    ledger_append(
+        root,
+        &record.trace_id,
+        "TraceFinished",
+        &json!({ "claim": claim }).to_string(),
+    );
     Ok(json!({
         "trace_record": rel(root, &path),
         "completion_claim": record.completion_claim,

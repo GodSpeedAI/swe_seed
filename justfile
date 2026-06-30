@@ -1,5 +1,9 @@
 set dotenv-load := true
 
+# `swe-seed` binary, run through cargo (debug). Use `cargo build --release` once
+# for the optimized binary if a recipe is hot.
+swe := "cargo run -q -p swe-seed --"
+
 default:
     @just --list
 
@@ -21,35 +25,45 @@ test:
 ci:
     @bash scripts/ci.sh
 
+# Phase 10 final parity gate: release build + golden CLI parity (beyond `route`).
+parity:
+    @cargo build --release -p swe-seed
+    @SWE_SEED_BIN=target/release/swe-seed cargo test -p swe-seed --test cli_golden
+
+# ------------------------------ harness (Rust) ------------------------------
+
 harness-validate:
-    @python scripts/harness.py validate
+    @{{swe}} harness
 
 harness-doctor:
-    @python scripts/harness.py doctor
+    @{{swe}} doctor
 
 harness-render-skills:
-    @python scripts/harness.py render-skills
+    @{{swe}} render-skills
 
 harness-route task:
-    @python scripts/harness.py route "{{task}}"
+    @{{swe}} route "{{task}}"
 
 harness-route-record task:
-    @python scripts/harness.py route --record "{{task}}"
-
-harness-inspect item:
-    @python scripts/harness.py inspect "{{item}}"
+    @{{swe}} route "{{task}}" --record
 
 harness-context-plan task:
-    @python scripts/harness.py context-plan "{{task}}"
+    @{{swe}} context-plan "{{task}}"
 
 harness-trace-start task:
-    @python scripts/harness.py trace start "{{task}}"
+    @{{swe}} trace start "{{task}}"
 
 harness-trace-append trace note:
-    @python scripts/harness.py trace append "{{trace}}" "{{note}}"
+    @{{swe}} trace append "{{trace}}" "{{note}}"
 
 harness-trace-distill trace:
-    @python scripts/harness.py trace distill "{{trace}}"
+    @{{swe}} trace distill "{{trace}}"
+
+harness-trace-finish trace claim:
+    @{{swe}} trace finish "{{trace}}" --claim "{{claim}}"
+
+harness-eval-run spec output="":
+    @if [ -n "{{output}}" ]; then {{swe}} eval run --spec "{{spec}}" --output "{{output}}"; else {{swe}} eval run --spec "{{spec}}"; fi
 
 harness-plan-learning-store backend="both":
     @bash scripts/plan-learning-store.sh "{{backend}}"
@@ -63,92 +77,47 @@ harness-query-learning-store mode="summaries" limit="10" status="any" job_type="
 harness-eval-learning-retrieval db_path="":
     @bash scripts/eval-learning-retrieval.sh "{{db_path}}"
 
-harness-eval-run spec output="":
-    @if [ -n "{{output}}" ]; then python scripts/harness.py eval run "{{spec}}" --output "{{output}}"; else python scripts/harness.py eval run "{{spec}}"; fi
+# ------------------------------ fabricator (Rust) ---------------------------
 
-fabricate-new seed:
-    @python scripts/fabricate.py new "{{seed}}"
+fabricate need:
+    @{{swe}} fabricate "{{need}}"
 
-fabricate-generate run_id:
-    @python scripts/fabricate.py generate "{{run_id}}"
+fabricate-validate-chain run:
+    @{{swe}} fabricate validate-chain "{{run}}"
 
-fabricate-validate run_id:
-    @python scripts/fabricate.py validate "{{run_id}}"
-
-fabricate-handoff run_id:
-    @python scripts/fabricate.py handoff "{{run_id}}"
-
-fabricate-proof run_id:
-    @python scripts/fabricate.py proof "{{run_id}}"
-
-fabricate-reflect run_id:
-    @python scripts/fabricate.py reflect "{{run_id}}"
-
-fabricate-status run_id:
-    @python scripts/fabricate.py status "{{run_id}}"
-
-strategy-new question:
-    @python .strategy/strategy.py new "{{question}}"
-
-strategy-capture source:
-    @python .strategy/strategy.py capture "{{source}}"
-
-strategy-generate-options brief_id:
-    @python .strategy/strategy.py generate-options "{{brief_id}}"
-
-strategy-identify-gaps option_id:
-    @python .strategy/strategy.py identify-gaps "{{option_id}}"
-
-strategy-generate-research-prompts option_id:
-    @python .strategy/strategy.py generate-research-prompts "{{option_id}}"
-
-strategy-ingest-research-report report_path:
-    @python .strategy/strategy.py ingest-research-report "{{report_path}}"
-
-strategy-design-tests option_id:
-    @python .strategy/strategy.py design-tests "{{option_id}}"
-
-strategy-record-evidence test_id:
-    @python .strategy/strategy.py record-evidence "{{test_id}}"
-
-strategy-evaluate option_id:
-    @python .strategy/strategy.py evaluate "{{option_id}}"
-
-strategy-decide option_id:
-    @python .strategy/strategy.py decide "{{option_id}}"
-
-strategy-status option_id:
-    @python .strategy/strategy.py status "{{option_id}}"
-
-agent-hooks-trace-last:
-    @scripts/agent-hooks trace --last
-
-agent-hooks-trace-session session_id:
-    @scripts/agent-hooks trace --session "{{session_id}}"
-
-agent-hooks-inspect event_id:
-    @scripts/agent-hooks inspect --event "{{event_id}}"
-
-agent-hooks-replay event_id:
-    @scripts/agent-hooks replay --event "{{event_id}}"
-
-agent-hooks-doctor:
-    @scripts/agent-hooks doctor --observability
+# ------------------------------ hooks (Rust) --------------------------------
 
 agent-hooks-compact-logs:
-    @scripts/agent-hooks compact-logs
+    @{{swe}} agent-hooks compact-logs
 
 agent-hooks-index-rebuild:
-    @scripts/agent-hooks index rebuild
+    @{{swe}} agent-hooks index
 
 agent-hooks-export-otel output="":
-    @if [ -n "{{output}}" ]; then scripts/agent-hooks export otel --output "{{output}}"; else scripts/agent-hooks export otel; fi
+    @if [ -n "{{output}}" ]; then {{swe}} agent-hooks export otel --output "{{output}}"; else {{swe}} agent-hooks export otel; fi
 
 agent-hooks-export-junit output="":
-    @if [ -n "{{output}}" ]; then scripts/agent-hooks export junit --output "{{output}}"; else scripts/agent-hooks export junit; fi
+    @if [ -n "{{output}}" ]; then {{swe}} agent-hooks export junit --output "{{output}}"; else {{swe}} agent-hooks export junit; fi
 
-harness-trace-finish trace claim:
-    @python scripts/harness.py trace finish "{{trace}}" --claim "{{claim}}"
+# ------------------------------ federation (Rust) ---------------------------
+
+federation-status:
+    @{{swe}} federation status
+
+# Routing enforcement: CI merge gate. Set SWE_SEED_TRACE to the merge's trace id;
+# exits non-zero if it was never routed or the chain fails verification.
+gate-merge:
+    @trace="${SWE_SEED_TRACE:-}"; if [ -z "$$trace" ]; then echo "SWE_SEED_TRACE unset — no trace to gate" >&2; exit 1; fi; {{swe}} gate "$$trace" --verify
+
+# SOPS-encrypt a federation private key at rest (idempotent if already encrypted).
+federation-encrypt-key key_id:
+    @sops --encrypt --in-place .swe-seed/federation/keys/{{key_id}}.key
+
+# Decrypt a federation private key to stdout (e.g. for inspection).
+federation-decrypt-key key_id:
+    @sops -d .swe-seed/federation/keys/{{key_id}}.key
+
+# ------------------------------ secrets -------------------------------------
 
 secrets-encrypt:
     @bash scripts/secrets-encrypt.sh

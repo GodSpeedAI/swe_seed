@@ -14,7 +14,8 @@ pub mod runtime_map;
 
 pub use events::{CanonicalHookEvent, ALL_CANONICAL_HOOK_EVENTS};
 pub use policy::{
-    gate_action, ActionGate, HookPolicy, PermissionPolicy, REQUIRED_LIFECYCLE_EVENTS,
+    gate_action, gate_action_with_authority, ActionGate, HookPolicy, PermissionPolicy,
+    REQUIRED_LIFECYCLE_EVENTS,
 };
 pub use redact::{redact_value, RedactionConfig};
 pub use runtime::{append_event, compact_logs, iter_events};

@@ -14,17 +14,7 @@ pub struct TraceSchema {
     pub identifier_fields: Vec<String>,
     pub proof_fields: Vec<String>,
     #[serde(default)]
-    pub validation: Vec<TraceSchemaValidation>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct TraceSchemaValidation {
-    #[serde(default)]
-    pub check: String,
-    #[serde(default)]
-    pub blocking: bool,
-    #[serde(default)]
-    pub evidence: String,
+    pub validation: Vec<crate::contracts::harness::ValidationRequirement>,
 }
 
 impl BamlParity for TraceSchema {

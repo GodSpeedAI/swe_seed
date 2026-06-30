@@ -3,8 +3,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::contracts::harness::SourceRef;
 use crate::contracts::parity::{BamlParity, BamlShape};
-use crate::eval::SourceRef;
 
 /// harness.baml `LearningCandidate`.
 #[derive(Debug, Clone, Deserialize, Serialize)]

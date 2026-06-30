@@ -6,7 +6,8 @@ use std::time::{Duration, SystemTime};
 
 use serde::{Deserialize, Serialize};
 
-use super::budget::{ContextBudget, ContextValidation};
+use super::budget::ContextBudget;
+use crate::contracts::harness::ValidationRequirement;
 use crate::contracts::parity::{BamlParity, BamlShape};
 
 /// harness.baml `ContextPack`.
@@ -20,7 +21,7 @@ pub struct ContextPack {
     pub salient_facts: Vec<String>,
     pub stale_context_warnings: Vec<String>,
     #[serde(default)]
-    pub validation: Vec<ContextValidation>,
+    pub validation: Vec<ValidationRequirement>,
 }
 
 impl BamlParity for ContextPack {

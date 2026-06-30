@@ -1,0 +1,35 @@
+{
+  "context_budget": {
+    "excluded": [],
+    "id": "default-route-budget",
+    "raw_output_cap_lines": 200,
+    "raw_output_policy": "raw output cap: 200 lines (summarize, keep full output in a file/trace)",
+    "read_order": [
+      ".agent-harness/context/README.md",
+      ".agent-harness/context/budget-policy.yaml",
+      "AGENTS.md",
+      ".agent-harness/playbooks/20-change-with-proof.md",
+      ".agent-harness/playbooks/30-debug-from-symptom.md",
+      "docs/specs/0013-eval-and-proof.md"
+    ],
+    "session_continuity": "Use trace records for durable decisions, proof, unresolved risks.",
+    "stale_context_warnings": [
+      "<STALE_CONTEXT_WARNINGS>"
+    ],
+    "think_in_code": "For bulk analysis, run a small script and bring back only the result.",
+    "tool_output_containment": "Prefer counts, paths, JSON fields, focused excerpts over broad file dumps."
+  },
+  "next_action": "Read context in order, then execute the selected route work loop.",
+  "route": {
+    "confidence": "low",
+    "job_type": "test",
+    "route_card": ".agent-harness/routes/test.json"
+  },
+  "salient_facts": [
+    "raw output cap: 200 lines (summarize, keep full output in a file/trace)",
+    "tool output containment: prefer counts, paths, JSON fields, focused excerpts over broad dumps",
+    "think in code: for bulk analysis, run a small script and bring back only the result",
+    "keep only context that changes the next action"
+  ],
+  "task": "checkpoint smoke"
+}

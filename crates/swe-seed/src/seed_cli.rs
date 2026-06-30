@@ -40,16 +40,16 @@ pub fn run_seed(action: SeedAction, root: &std::path::Path) -> Result<ExitCode> 
         SeedAction::Regenerate => {
             // Default input: the self seed spec + this repo's approved artifacts.
             let input = seed::regenerate::SeedRegenerationInput {
-                swe_seed_spec_path: ".agents/specs/0018-layer-boundary-governance.md".into(),
+                swe_seed_spec_path: "docs/specs/0018-layer-boundary-governance.md".into(),
                 approved_project_seeds: vec![
                     ".agents/plans/0001-swe-seed-v0-1-implementation.md".into()
                 ],
                 approved_seed_package_manifests: vec![seed::manifest::DEFAULT_MANIFEST_PATH.into()],
                 approved_layer_capability_maps: vec![
-                    ".agents/specs/0003-capability-registry.md".into()
+                    "docs/specs/0003-capability-registry.md".into()
                 ],
                 approved_lower_layer_artifact_refs: vec![
-                    ".agents/specs/0012-existing-harness-reconciliation.md".into(),
+                    "docs/specs/0012-existing-harness-reconciliation.md".into(),
                 ],
             };
             let plan = seed::regenerate::regenerate(root, &input);
