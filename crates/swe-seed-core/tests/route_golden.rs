@@ -1,5 +1,5 @@
 //! route_golden: the Rust router selects the same card and emits the same
-//! route-decision shape as the captured Python record for "checkpoint smoke".
+//! route result shape as the committed golden fixture for "checkpoint smoke".
 //!
 //! Timestamps (trace_id, created_at) are inherently non-reproducible, so parity
 //! is asserted on the deterministic routing object + task + decision_basis.
@@ -17,10 +17,9 @@ fn root() -> PathBuf {
         .expect("workspace root")
 }
 
-/// The captured Python route-decision record for "checkpoint smoke".
+/// The committed route-result fixture for "checkpoint smoke".
 fn golden_record() -> Value {
-    let path =
-        root().join(".agent-harness/traces/route-decisions/20260617T002316Z-checkpoint-smoke.json");
+    let path = root().join("tests/fixtures/golden/route_test.out");
     let bytes = std::fs::read(&path).expect("read golden");
     serde_json::from_slice(&bytes).expect("parse golden")
 }
@@ -29,19 +28,18 @@ fn golden_record() -> Value {
 fn route_matches_golden_checkpoint_smoke() {
     let result = build_route_result(&root(), "checkpoint smoke").expect("route");
     let golden = golden_record();
-    let golden_route = golden.get("route").expect("golden.route");
 
     // Byte-compatible routing decision (all deterministic fields).
     let got = serde_json::to_value(&result).unwrap();
     assert_eq!(
-        got, *golden_route,
-        "Rust route result differs from the captured Python golden record"
+        got, golden,
+        "Rust route result differs from the committed golden fixture"
     );
 
     // The decision_basis label is part of the frozen format.
     assert_eq!(
-        golden.get("decision_basis").and_then(Value::as_str),
-        Some("deterministic token overlap against route-card triggers, examples, and job type"),
+        swe_seed_core::route::DECISION_BASIS,
+        "deterministic token overlap against route-card triggers, examples, and job type",
     );
 }
 

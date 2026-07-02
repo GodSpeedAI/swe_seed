@@ -26,6 +26,10 @@ pub const REQUIRED_JOB_TYPES: &[&str] = &[
     "skill_authoring",
 ];
 
+/// Frozen label explaining how route decisions are selected.
+pub const DECISION_BASIS: &str =
+    "deterministic token overlap against route-card triggers, examples, and job type";
+
 /// Element of `RouteCard.sources` (baml `SourceRef`).
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct RouteSourceRef {
@@ -294,7 +298,7 @@ pub fn write_route_decision(root: &Path, task: &str, result: &RouteResult) -> Re
         "created_at": utc_now(),
         "task": redact_secrets(task),
         "route": result,
-        "decision_basis": "deterministic token overlap against route-card triggers, examples, and job type",
+        "decision_basis": DECISION_BASIS,
     });
     let path = dir.join(format!("{trace_id}.json"));
     std::fs::write(
