@@ -179,6 +179,12 @@ impl std::error::Error for LoadError {}
 /// Construct the canonical signing string for an envelope. `payload` must be
 /// the payload *minus* any `signature` field (the verifier strips it before
 /// calling this).
+///
+/// `namespace` is signed once, as the header line. In the v1 layout namespace
+/// rides inside `payload`; we strip it from the payload-JSON portion so the
+/// canonical bytes are identical whether namespace is carried top-level
+/// (family A) or inside payload (v1) — the port does not invalidate any
+/// committed signature/vector.
 pub fn canonical_signing_string(
     namespace: &str,
     event_type: &str,
@@ -186,10 +192,24 @@ pub fn canonical_signing_string(
     payload: &Value,
 ) -> String {
     // The federation contract is compact JSON with recursively sorted keys,
-    // excluding the envelope's attached signature.
-    let p = sorted_without_signature(payload);
+    // excluding the envelope's attached signature AND the namespace (which is
+    // signed as the header line above).
+    let mut p = sorted_without_signature(payload);
+    if let Some(obj) = p.as_object_mut() {
+        obj.remove("namespace");
+    }
     let payload_json = serde_json::to_string(&p).unwrap_or_default();
     format!("{namespace}\n{event_type}\n{occurred_at}\n{payload_json}")
+}
+
+/// Compact JSON of a payload with recursively sorted keys and the `signature`
+/// field removed. This is the canonical payload representation used by the
+/// content-derived idempotency key (F-10). Unlike the signing string it
+/// intentionally KEEPS `namespace` (idempotency is over full producer content,
+/// matching SEA/GSA's `json.dumps(payload, sort_keys=True)`).
+pub fn canonical_payload_json(payload: &Value) -> String {
+    let p = sorted_without_signature(payload);
+    serde_json::to_string(&p).unwrap_or_default()
 }
 
 fn sorted_without_signature(value: &Value) -> Value {
@@ -228,8 +248,9 @@ pub fn signing_key_from_bytes(bytes: &[u8; 32]) -> SigningKey {
 /// Sign the canonical signing string of `envelope` and return the attached
 /// signature payload (algorithm, key_id, base64 signature value).
 pub fn sign_envelope(envelope: &Envelope, secret: &SigningKey, key_id: &str) -> SignaturePayload {
+    let namespace = envelope.namespace().unwrap_or("");
     let msg = canonical_signing_string(
-        &envelope.namespace,
+        namespace,
         &envelope.event_type,
         &envelope.occurred_at,
         &envelope.payload,
@@ -254,8 +275,9 @@ pub fn verify_envelope(
         .decode(signature_b64.as_bytes())
         .map_err(|_| VerifyError::MalformedSignature)?;
     let sig = Signature::from_slice(&sig_bytes).map_err(|_| VerifyError::MalformedSignature)?;
+    let namespace = envelope.namespace().unwrap_or("");
     let msg = canonical_signing_string(
-        &envelope.namespace,
+        namespace,
         &envelope.event_type,
         &envelope.occurred_at,
         &envelope.payload,

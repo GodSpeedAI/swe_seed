@@ -4,6 +4,20 @@ SWE_SEED is a low-touch development harness for teams that use AI coding agents 
 
 It gives humans and agents one shared way to decide what kind of work is being requested, load only the context that matters, make the change, and prove the result before anyone calls it done. When hooks are enabled, the harness can guide that loop as the agent works instead of waiting for a human to remember every step.
 
+## Boundary
+
+SWE_SEED is the **dev-work harness**: it owns **routing** (prompt → route card),
+**hooks**, **traces**, and **proof gating** (completion claims depend on proof
+commands). It is the sole repo that should be called "harness" in this stack.
+
+It does **not** own settlement classification or the capability lifecycle — that
+is [godspeed_agent](../godspeed_agent)'s job (the **settlement / navigation
+runtime**). SWE_SEED emits `WorkRequested`, `ContextRequired`, `RouteSelected`,
+`ProofStarted`/`ProofCompleted`; godspeed_agent consumes evidence and emits
+`SettlementRecorded` / `CapabilityUpdated`. Keeping these boundaries prevents
+the duplicated hook/trace/learning machinery both repos drifted toward (F-08).
+
+
 ## Why It Exists
 
 AI agents can move fast, but speed does not help when the work stops at a confident summary instead of a verified change. SWE_SEED changes the default state from "trust the agent" to "follow the route, produce the artifact, show the proof."

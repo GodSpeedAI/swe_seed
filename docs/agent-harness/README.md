@@ -11,6 +11,8 @@ This documentation is for operating the harness. The specification remains the s
 - New task: [Start a Task](howto/start-a-task.md)
 - Before claiming work is ready: [Run Harness Checks](howto/run-harness-checks.md)
 - Need durable execution state: [Capture Traces and Checkpoints](howto/capture-traces.md)
+- Need tamper-evidence / routing enforcement: [Enforce Routing](howto/enforce-routing.md)
+- Need signed envelopes / SEA-Forge verification: [Manage Federation Keys](howto/manage-federation-keys.md)
 - Route looks wrong: [Debug Routing](howto/debug-routing.md)
 - Extending the harness: [Extend the Harness](howto/extend-the-harness.md)
 - Add a route: [Add a Route Card](howto/add-a-route-card.md)
@@ -24,6 +26,7 @@ This documentation is for operating the harness. The specification remains the s
 - [Context and Continuity](explanations/context-and-continuity.md)
 - [Verification and Conformance](explanations/verification-and-conformance.md)
 - [Hooks, Memory, and Learning](explanations/hooks-memory-and-learning.md)
+- [Federation Signing and Tamper-Evident Traces](explanations/federation-signing-and-traces.md)
 
 ## References
 

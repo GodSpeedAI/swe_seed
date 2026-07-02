@@ -2,6 +2,11 @@
 //! Pure port of `agentic_capability_loop/adapters.py` `_load_hash` / `_event`.
 //! In standalone mode the envelope is never constructed; this module only
 //! provides the boundary artifact for `emit`/`consume`.
+//!
+//! The envelope is v1-conformant (`sea.agent.event.v1.json`): `namespace`
+//! rides inside `payload` because the schema's `additionalProperties:false`
+//! rejects a top-level `namespace`. The signing canonical string still takes
+//! `namespace` as an explicit header line — see [`Envelope::namespace`].
 
 use std::path::{Path, PathBuf};
 
@@ -22,14 +27,30 @@ const MANIFEST_REL: &str =
 /// The fallback hash input — `sha256("agentic_capability_loop")` (Python parity).
 const FALLBACK_INPUT: &[u8] = b"agentic_capability_loop";
 
-/// Canonical event envelope. Field names match the Python adapter 1:1.
+/// The v1 wire schema version label.
+pub const SCHEMA_VERSION: &str = "v1";
+
+/// The `source_agent` SWE_Seed stamps on its envelopes.
+pub const SOURCE_AGENT: &str = "swe-seed";
+
+/// Canonical v1 event envelope. Field names + set match
+/// `sea.agent.event.v1.json` exactly; `namespace` is NOT a top-level field
+/// (it lives in `payload`) because the schema enforces
+/// `additionalProperties:false`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Envelope {
+    pub schema_version: String,
     pub event_id: String,
+    pub source_agent: String,
     pub event_type: String,
-    pub namespace: String,
     pub occurred_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub idempotency_key: Option<String>,
     pub payload: Value,
+    /// CEP-0008 SS15 provenance record (F-06). `{origin, chain}`; populated by
+    /// `make_event` so every SWE_Seed envelope answers "who produced this".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<Value>,
 }
 
 /// Where the resolved hash came from (testability + the standalone warning).
@@ -170,21 +191,50 @@ fn marker_walk_hash() -> Option<String> {
     None
 }
 
-/// Build a canonical envelope, injecting `domain_model_hash` as the first
-/// payload key (matches Python `{"domain_model_hash": ..., **payload}`).
+/// Build a canonical v1 envelope, injecting `domain_model_hash` and
+/// `namespace` as the first payload keys (matches Python
+/// `{"domain_model_hash": ..., "namespace": ..., **payload}`). The
+/// `idempotency_key` is content-derived (F-10), matching SEA/GSA's
+/// `sha256("{correlation_id}|{event_type}|{canonical_payload}")`.
 pub fn make_event(event_type: &str, payload: Map<String, Value>, hash: &str) -> Envelope {
     let mut full = Map::new();
     full.insert("domain_model_hash".into(), Value::String(hash.into()));
+    full.insert("namespace".into(), Value::String(NAMESPACE.into()));
     for (k, v) in payload {
         full.insert(k, v);
     }
+    let payload_value = Value::Object(full);
+    let event_id = Uuid::new_v4().to_string();
+    let idempotency = idempotency_key(event_type, &payload_value, None);
+    let provenance = serde_json::json!({
+        "origin": SOURCE_AGENT,
+        "chain": [format!("domain_model_hash:{hash}")],
+    });
     Envelope {
-        event_id: Uuid::new_v4().to_string(),
+        schema_version: SCHEMA_VERSION.into(),
+        event_id,
+        source_agent: SOURCE_AGENT.into(),
         event_type: event_type.into(),
-        namespace: NAMESPACE.into(),
         occurred_at: utc_now(),
-        payload: Value::Object(full),
+        idempotency_key: Some(idempotency),
+        payload: payload_value,
+        provenance: Some(provenance),
     }
+}
+
+/// Content-derived dedup key (F-10). Mirrors SEA/GSA: sha256 over
+/// `"{correlation_id}|{event_type}|{canonical_payload_json}"`. Stable across
+/// re-wraps that reassign event_id/occurred_at but leave the payload intact.
+pub fn idempotency_key(
+    event_type: &str,
+    payload: &Value,
+    correlation_id: Option<&str>,
+) -> String {
+    let payload_json = super::signing::canonical_payload_json(payload);
+    let content = format!("{}|{}|{}", correlation_id.unwrap_or(""), event_type, payload_json);
+    let mut h = Sha256::new();
+    h.update(content.as_bytes());
+    format!("{:x}", h.finalize())
 }
 
 impl Envelope {
@@ -193,6 +243,13 @@ impl Envelope {
         self.payload
             .get("domain_model_hash")
             .and_then(Value::as_str)
+    }
+
+    /// The envelope's `namespace`, carried inside `payload` per v1
+    /// (`additionalProperties:false` rejects a top-level namespace). The
+    /// signing canonical string sources its namespace header line from here.
+    pub fn namespace(&self) -> Option<&str> {
+        self.payload.get("namespace").and_then(Value::as_str)
     }
 
     /// Inject the tamper-evident trace chain root into the payload. This is the

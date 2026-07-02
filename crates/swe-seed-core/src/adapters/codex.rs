@@ -45,7 +45,7 @@ impl HostAdapter for CodexAdapter {
             "swe_seed_managed": {"version": 1, "stable_id": "codex-hooks"},
             "hooks": FULL.iter().map(|event| json!({
                 "event": event.as_str(),
-                "command": format!("swe-seed agent-hooks capture {}", event.as_str())
+                "command": super::hook_command_for(*event)
             })).collect::<Vec<_>>(),
             "partial_support": partial,
         });

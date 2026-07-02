@@ -53,7 +53,7 @@ impl HostAdapter for OpenCodeAdapter {
             .collect::<Vec<_>>()
             .join("\n");
         let body = format!(
-            "const mappings = new Map<string, string>([\n{mappings}\n]);\nexport default async function sweSeed(event: string, payload: unknown) {{\n  const canonical = mappings.get(event);\n  if (!canonical) return;\n  await $`swe-seed agent-hooks capture ${{canonical}}`;\n}}\n"
+            "const mappings = new Map<string, string>([\n{mappings}\n]);\nexport default async function sweSeed(event: string, payload: unknown) {{\n  const canonical = mappings.get(event);\n  if (!canonical) return;\n  // PreToolUse enforces the routing gate (blocks unrouted tool use on an active trace).\n  if (canonical === 'PreToolUse') {{ await $`swe-seed agent-hooks route-gate`; return; }}\n  await $`swe-seed agent-hooks capture ${{canonical}}`;\n}}\n"
         );
         ProjectionPlan {
             host_id: self.host_id(),

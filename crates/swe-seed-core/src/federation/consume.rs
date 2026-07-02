@@ -63,10 +63,11 @@ pub fn check_drift(envelope: &Envelope, expected_hash: &str) -> Result<(), Consu
 }
 
 fn require<'a>(envelope: &'a Envelope, event_type: &str) -> Result<&'a Value, ConsumeError> {
-    if envelope.namespace != NAMESPACE {
+    let got_ns = envelope.namespace().unwrap_or("");
+    if got_ns != NAMESPACE {
         return Err(ConsumeError::WrongNamespace {
             expected: NAMESPACE.into(),
-            got: envelope.namespace.clone(),
+            got: got_ns.to_string(),
         });
     }
     if envelope.event_type != event_type {

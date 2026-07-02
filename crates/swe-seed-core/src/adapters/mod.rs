@@ -47,6 +47,20 @@ pub fn project_host(host: HostId) -> ProjectionPlan {
     adapter_for(host).project()
 }
 
+/// The host hook command projected for a canonical event. `PreToolUse` projects
+/// the **enforcing** route-gate (blocks tool use on an active trace that was
+/// never routed); every other event projects the logging capture command.
+///
+/// The gate resolves the active trace from `SWE_SEED_TRACE` and allows when no
+/// trace is active, so a host running this on every tool call is not blocked
+/// outside a traced session.
+pub fn hook_command_for(event: CanonicalHookEvent) -> String {
+    match event {
+        CanonicalHookEvent::PreToolUse => "swe-seed agent-hooks route-gate".into(),
+        _ => format!("swe-seed agent-hooks capture {}", event.as_str()),
+    }
+}
+
 pub fn sync_host(root: &Path, host: HostId, options: SyncOptions) -> Result<SyncReport> {
     let plan = project_host(host);
     if !options.dry_run {

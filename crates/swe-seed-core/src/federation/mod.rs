@@ -5,6 +5,7 @@
 //! payload keys, hash resolution order).
 
 pub mod consume;
+pub mod context_client;
 pub mod emit;
 pub mod envelope;
 pub mod flags;
@@ -17,13 +18,14 @@ pub use consume::{
     authority_verdict, check_drift, consume_authority_checked, consume_context_packet_created,
     consume_settlement_recorded, ConsumeError,
 };
+pub use context_client::{ContextKernelClient, ContextPacket};
 pub use emit::{
     dispatch, emit_context_required, emit_proof_completed, emit_proof_started, emit_route_selected,
     emit_work_requested, Dispatch, PROOF_TYPE_LIVE, PROOF_TYPE_SIMULATION,
 };
 pub use envelope::{
-    fallback_hash, make_event, resolve_domain_model_hash, resolve_from, resolve_from_root,
-    Envelope, HashSource, ResolvedHash, NAMESPACE,
+    fallback_hash, idempotency_key, make_event, resolve_domain_model_hash, resolve_from,
+    resolve_from_root, Envelope, HashSource, ResolvedHash, NAMESPACE, SCHEMA_VERSION, SOURCE_AGENT,
 };
 pub use flags::{
     authority_gate, standalone, AuthorityConfig, AuthorityMode, AuthorityVerdict, ContextConfig,

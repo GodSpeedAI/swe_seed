@@ -26,12 +26,14 @@ pub enum HooksAction {
     CompactLogs,
     /// Rebuild the SQLite index from the JSONL logs
     Index,
-    /// Routing enforcement at the hook layer: evaluate the route gate for a
-    /// trace, log a PreToolUse event (allowed/blocked), and exit 0 (allow) / 1
-    /// (block). Wire this as the host's PreToolUse hook command.
+    /// Routing enforcement at the hook layer: evaluate the route gate for the
+    /// active trace (from `--trace-id` or `SWE_SEED_TRACE`), log a PreToolUse
+    /// event (allowed/blocked), and exit 0 (allow) / 1 (block). When no trace
+    /// is active, allows (nothing to enforce). Wire this as the host's
+    /// PreToolUse hook command.
     RouteGate {
         #[arg(long)]
-        trace_id: String,
+        trace_id: Option<String>,
     },
 }
 
@@ -138,13 +140,19 @@ pub fn run_agent_hooks(action: HooksAction, root: &std::path::Path) -> Result<Ex
             Ok(ExitCode::SUCCESS)
         }
         HooksAction::RouteGate { trace_id } => {
-            // Evaluate the routing gate, log a PreToolUse event, enforce on exit code.
             use swe_seed_core::routing_gate::{route_gate, RouteGate};
-            let outcome = route_gate(root, &trace_id);
-            let (status, reason, allowed) = match outcome {
-                Ok(RouteGate::Allow) => ("allowed", String::new(), true),
-                Ok(RouteGate::Block(r)) => ("blocked", r, false),
-                Err(e) => ("blocked", format!("gate error: {e:#}"), false),
+            // Resolve the active trace: explicit --trace-id, else SWE_SEED_TRACE env.
+            let trace_id = trace_id.or_else(|| std::env::var("SWE_SEED_TRACE").ok());
+            let (status, reason, allowed) = match &trace_id {
+                None => {
+                    // No active trace → nothing to enforce; allow.
+                    ("allowed", "no active trace (SWE_SEED_TRACE unset)".into(), true)
+                }
+                Some(tid) => match route_gate(root, tid) {
+                    Ok(RouteGate::Allow) => ("allowed", String::new(), true),
+                    Ok(RouteGate::Block(r)) => ("blocked", r, false),
+                    Err(e) => ("blocked", format!("gate error: {e:#}"), false),
+                },
             };
             let mut envelope = serde_json::json!({
                 "event": "PreToolUse",
@@ -164,11 +172,7 @@ pub fn run_agent_hooks(action: HooksAction, root: &std::path::Path) -> Result<Ex
                     "allowed": allowed,
                 }))?
             );
-            Ok(if allowed {
-                ExitCode::SUCCESS
-            } else {
-                ExitCode::from(1)
-            })
+            Ok(if allowed { ExitCode::SUCCESS } else { ExitCode::from(1) })
         }
     }
 }

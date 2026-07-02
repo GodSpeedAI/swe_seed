@@ -79,7 +79,7 @@ fn envelope_payload_keys_match_python_contract() {
         Some("repo"),
     );
     assert_eq!(e.event_type, "WorkRequested");
-    assert_eq!(e.namespace, "agentic_capability_loop");
+    assert_eq!(e.namespace(), Some("agentic_capability_loop"));
     assert_eq!(e.payload["domain_model_hash"], h);
     for key in [
         "work_request_id",
@@ -259,14 +259,18 @@ fn consume_validates_event_type_and_payload() {
 fn consume_rejects_wrong_namespace() {
     let h = fallback_hash();
     let envelope = Envelope {
+        schema_version: "v1".into(),
         event_id: "event-1".into(),
+        source_agent: "swe-seed".into(),
         event_type: "ContextPacketCreated".into(),
-        namespace: "other_namespace".into(),
         occurred_at: "2026-06-29T00:00:00Z".into(),
+        idempotency_key: None,
         payload: serde_json::json!({
             "domain_model_hash": h,
+            "namespace": "other_namespace",
             "citations": []
         }),
+        provenance: None,
     };
     let err = consume_context_packet_created(&envelope).unwrap_err();
     assert_eq!(

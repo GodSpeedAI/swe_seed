@@ -35,7 +35,8 @@ impl HostAdapter for AntigravityAdapter {
             "hooks": [{
                 "event": "PreToolUse",
                 "matchers": ["run_command", "shell", "bash", "write", "edit"],
-                "command": "swe-seed agent-hooks capture PreToolUse"
+                // Enforcing: blocks tool use on an active trace that was never routed.
+                "command": super::hook_command_for(CanonicalHookEvent::PreToolUse)
             }]
         });
         ProjectionPlan {

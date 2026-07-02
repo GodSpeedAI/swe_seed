@@ -27,24 +27,34 @@ fn test_secret() -> [u8; 32] {
 
 fn envelope() -> Envelope {
     Envelope {
+        schema_version: "v1".into(),
         event_id: "ignored-in-canonical".into(),
+        source_agent: "swe-seed".into(),
         event_type: "ProofCompleted".into(),
-        namespace: "agentic_capability_loop".into(),
         occurred_at: "2026-06-30T00:00:00+00:00".into(),
+        idempotency_key: None,
         payload: serde_json::json!({
             "domain_model_hash": "deadbeef",
+            "namespace": "agentic_capability_loop",
             "trace_chain_root": "cafef00dcafef00dcafef00dcafef00dcafef00dcafef00dcafef00dcafef00d",
             "result": "pass",
         }),
+        provenance: None,
     }
 }
 
 #[test]
 fn canonical_string_is_stable_and_documented() {
     // The exact canonical form: 4 lines, sorted compact JSON payload, signature
-    // excluded. This is the contract both Rust and Python reproduce.
+    // AND namespace excluded from the payload JSON (namespace is the header
+    // line). This is the contract both Rust and Python reproduce.
     let e = envelope();
-    let s = canonical_signing_string(&e.namespace, &e.event_type, &e.occurred_at, &e.payload);
+    let s = canonical_signing_string(
+        e.namespace().unwrap_or(""),
+        &e.event_type,
+        &e.occurred_at,
+        &e.payload,
+    );
     assert_eq!(
         s,
         "agentic_capability_loop\n\
@@ -139,11 +149,14 @@ t
 #[test]
 fn trace_chain_root_requires_object_payload() {
     let mut envelope = Envelope {
+        schema_version: "v1".into(),
         event_id: "e".into(),
+        source_agent: "swe-seed".into(),
         event_type: "ProofCompleted".into(),
-        namespace: "agentic_capability_loop".into(),
         occurred_at: "t".into(),
+        idempotency_key: None,
         payload: serde_json::json!("not-object"),
+        provenance: None,
     };
     assert!(envelope.with_trace_chain_root("abc").is_err());
 }
@@ -189,13 +202,23 @@ fn rust_matches_committed_test_vector() {
     let canon = canonical_signing_string(&v.namespace, &v.event_type, &v.occurred_at, &v.payload);
     assert_eq!(canon, v.canonical_signing_string, "canonical string drift");
 
-    // Rust's signature MUST equal the committed vector.
+    // Rust's signature MUST equal the committed vector. Build a v1 envelope,
+    // injecting the vector's namespace into the payload so `namespace()` finds
+    // it; the signing string strips namespace from the payload JSON, so the
+    // canonical bytes match the (pre-v1) vector exactly.
+    let mut payload = v.payload.clone();
+    if let Some(obj) = payload.as_object_mut() {
+        obj.insert("namespace".into(), serde_json::json!(v.namespace));
+    }
     let e = Envelope {
+        schema_version: "v1".into(),
         event_id: String::new(),
+        source_agent: "swe-seed".into(),
         event_type: v.event_type.clone(),
-        namespace: v.namespace.clone(),
         occurred_at: v.occurred_at.clone(),
-        payload: v.payload.clone(),
+        idempotency_key: None,
+        payload,
+        provenance: None,
     };
     let sig = sign_envelope(&e, &sec, &v.key_id);
     assert_eq!(
@@ -213,15 +236,27 @@ fn rust_matches_committed_test_vector() {
 fn regen_vector() {
     let sec = signing_key_from_bytes(&test_secret());
     let e = envelope();
-    let canon = canonical_signing_string(&e.namespace, &e.event_type, &e.occurred_at, &e.payload);
+    let canon = canonical_signing_string(
+        e.namespace().unwrap_or(""),
+        &e.event_type,
+        &e.occurred_at,
+        &e.payload,
+    );
     let sig = sign_envelope(&e, &sec, "test-key-2026q3");
+    // The vector stores namespace separately and payload without namespace,
+    // matching the pre-v1 shape; canonical_signing_string strips namespace
+    // from the payload JSON, so the stored canonical string is stable.
+    let mut stored_payload = e.payload.clone();
+    if let Some(obj) = stored_payload.as_object_mut() {
+        obj.remove("namespace");
+    }
     let v = VectorFile {
         secret_key_b64: base64_encode(&test_secret()),
         public_key_b64: public_key_b64(&sec.verifying_key()),
-        namespace: e.namespace.clone(),
+        namespace: e.namespace().unwrap_or("").to_string(),
         event_type: e.event_type.clone(),
         occurred_at: e.occurred_at.clone(),
-        payload: e.payload.clone(),
+        payload: stored_payload,
         canonical_signing_string: canon,
         signature_b64: sig.value,
         key_id: "test-key-2026q3".into(),

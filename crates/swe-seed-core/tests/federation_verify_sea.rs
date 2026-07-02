@@ -39,12 +39,22 @@ fn swe_seed_verifies_sea_authority_checked() {
         "canonical string drift (SEA→SWE_Seed)"
     );
 
+    // Build a v1 envelope, injecting the vector's namespace into the payload so
+    // `namespace()` finds it. The signing string strips namespace from the
+    // payload JSON, so canonical bytes match the (pre-v1) vector exactly.
+    let mut payload = v.payload.clone();
+    if let Some(obj) = payload.as_object_mut() {
+        obj.insert("namespace".into(), serde_json::json!(v.namespace));
+    }
     let envelope = Envelope {
+        schema_version: "v1".into(),
         event_id: String::new(),
+        source_agent: "sea-forge".into(),
         event_type: v.event_type.clone(),
-        namespace: v.namespace.clone(),
         occurred_at: v.occurred_at.clone(),
-        payload: v.payload.clone(),
+        idempotency_key: None,
+        payload,
+        provenance: None,
     };
     let pk = public_key_from_b64(&v.public_key_b64).unwrap();
     assert!(
