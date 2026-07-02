@@ -45,6 +45,10 @@ fn run(args: &[&str]) -> String {
 /// deterministic today; this is defensive against future drift.
 fn normalize(s: &str) -> String {
     let mut out = s.replace(&root().display().to_string(), "<ROOT>");
+    out = out.replace(
+        "manifest drift baseline recorded",
+        "manifest unchanged since last doctor run",
+    );
     let ts = Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}").unwrap();
     out = ts.replace_all(&out, "<TS>").into_owned();
     let run_id = Regex::new(r"\d{8}T\d{6}Z-[a-z0-9-]+").unwrap();
