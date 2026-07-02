@@ -11,3 +11,5 @@ If an optional local database layer is added, structured mirroring should come f
 When the optional structured mirror exists, it should expose a read-only query surface for operators and agents. That query surface should support exact and metadata-oriented recovery over distilled summaries, unresolved risks, and candidate memory, skill, or harness updates so the structured mirror is directly useful before any vector layer is considered.
 
 Required memory files are listed in `.agent-harness/config.yaml`.
+
+Local agent work memory lives under `.agents/`. It is ignored by git and supports handoff, not canonical harness behavior. Agents use `.agents/CURRENT_STATUS.md` for the latest outcome and next action, `.agents/OPEN_QUESTIONS.md` for human decisions that cannot be answered from the repository, `.agents/DEBT.md` for out-of-scope issues noticed during work, and `.agents/lessons/` for generalizable lessons that may later be promoted into stable project instructions or harness memory.

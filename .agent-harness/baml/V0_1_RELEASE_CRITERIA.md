@@ -29,8 +29,8 @@ The v0.1 BAML layer is releasable only when these capabilities are present and v
 - `grep -q 'class YStatement' .agent-harness/baml/baml_src/fabricator.baml`
 - `grep -q 'class SDSComponent' .agent-harness/baml/baml_src/fabricator.baml`
 - `grep -q 'class GherkinScenario' .agent-harness/baml/baml_src/fabricator.baml`
-- `python scripts/harness.py validate`
-- `bash tests/validate-harness.sh`
+- `just harness-validate`
+- `just harness-validate`
 - `just ci`
 
 ## Prohibited Release Evidence

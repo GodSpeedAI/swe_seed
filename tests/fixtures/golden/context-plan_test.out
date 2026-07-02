@@ -1,0 +1,23 @@
+{
+  "task": "checkpoint smoke",
+  "route": {
+    "job_type": "test",
+    "route_card": ".agent-harness/routes/test.json",
+    "confidence": "low"
+  },
+  "context_budget": {
+    "read_order": [
+      ".agent-harness/context/README.md",
+      ".agent-harness/context/budget-policy.yaml",
+      "AGENTS.md",
+      ".agent-harness/playbooks/20-change-with-proof.md",
+      ".agent-harness/playbooks/30-debug-from-symptom.md",
+      "docs/specs/verification-system.md"
+    ],
+    "raw_output_policy": "Do not paste large raw command output into the conversation. Summarize the finding and keep full output in a file or trace note when it matters.",
+    "tool_output_containment": "Prefer commands that emit counts, paths, JSON fields, or focused excerpts over broad file dumps.",
+    "think_in_code": "For bulk analysis, write or run a small script or pipeline and bring back only the computed result.",
+    "session_continuity": "Use trace records for durable decisions, proof, unresolved risks, and restart context."
+  },
+  "next_action": "Read context in order, then execute the selected route work loop."
+}

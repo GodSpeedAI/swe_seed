@@ -1,0 +1,15 @@
+{
+  "secret_key_b64": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+  "public_key_b64": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w=",
+  "namespace": "agentic_capability_loop",
+  "event_type": "ProofCompleted",
+  "occurred_at": "2026-06-30T00:00:00+00:00",
+  "payload": {
+    "domain_model_hash": "deadbeef",
+    "result": "pass",
+    "trace_chain_root": "cafef00dcafef00dcafef00dcafef00dcafef00dcafef00dcafef00dcafef00d"
+  },
+  "canonical_signing_string": "agentic_capability_loop\nProofCompleted\n2026-06-30T00:00:00+00:00\n{\"domain_model_hash\":\"deadbeef\",\"result\":\"pass\",\"trace_chain_root\":\"cafef00dcafef00dcafef00dcafef00dcafef00dcafef00dcafef00dcafef00d\"}",
+  "signature_b64": "t/Qh+O8Gt1pvqGdatKs/cFnloXzRCeL+bPpt4ESb/QDfGfKl8x3cbe9UtgZA86qADF5vf3BOHRKUuQMzZaHjBg==",
+  "key_id": "test-key-2026q3"
+}

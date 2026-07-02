@@ -6,9 +6,9 @@ That distinction matters because agents are good at producing activity that look
 
 There are two related layers here.
 
-The first layer is task proof. Each route card defines required evidence, proof commands, and done conditions. For this repository the default project proof command is `just ci`, but some routes also use focused harness checks such as `python scripts/harness.py validate` or `python scripts/harness.py render-skills`. Route decisions and traces support proof. They do not replace it.
+The first layer is task proof. Each route card defines required evidence, proof commands, and done conditions. For this repository the default project proof command is `just ci`, but some routes also use focused harness checks such as `just harness-validate` or `just harness-render-skills`. Route decisions and traces support proof. They do not replace it.
 
-The second layer is harness conformance. These checks prove the harness contract still exists and still moves agents toward outcomes. They are stored under `.agent-harness/evals/` and mirrored by deterministic shell assertions in `tests/validate-harness.sh`.
+The second layer is harness conformance. These checks prove the harness contract still exists and still moves agents toward outcomes. They are stored under `.agent-harness/evals/` and mirrored by deterministic shell assertions in `just harness-validate`.
 
 The main conformance classes are:
 

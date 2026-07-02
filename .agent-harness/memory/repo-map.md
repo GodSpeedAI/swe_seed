@@ -18,7 +18,7 @@ The dev harness proves commands and environment behavior. The agentic harness go
 - Start with `AGENTS.md` when the task is about how agents should behave.
 - Start with `HARNESS_SPEC.md` when the task changes the harness contract.
 - Start with `.agent-harness/routes/` when the task changes routing or agent movement.
-- Start with `scripts/harness.py` when validation, rendering, or route output is wrong.
+- Start with `crates/swe-seed` when validation, rendering, or route output is wrong.
 - Start with `.agent-harness/memory/` when the task concerns durable lessons or cognitive ergonomics.
 - Start with `docs/dev-harness/` when the task concerns human operation of local CI, tools, or secrets.
 

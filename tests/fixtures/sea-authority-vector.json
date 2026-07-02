@@ -1,0 +1,17 @@
+{
+  "secret_key_b64": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
+  "public_key_b64": "gTl3Dqh9F19Wo1Rmw0x+zMuNipG07jeiXfYPW4/Js5Q=",
+  "namespace": "agentic_capability_loop",
+  "event_type": "AuthorityChecked",
+  "occurred_at": "2026-06-30T00:00:00+00:00",
+  "payload": {
+    "domain_model_hash": "deadbeef",
+    "work_request_id": "wr-1",
+    "action_type": "deploy",
+    "result": "allow",
+    "policy_code": "POL-007"
+  },
+  "canonical_signing_string": "agentic_capability_loop\nAuthorityChecked\n2026-06-30T00:00:00+00:00\n{\"action_type\":\"deploy\",\"domain_model_hash\":\"deadbeef\",\"policy_code\":\"POL-007\",\"result\":\"allow\",\"work_request_id\":\"wr-1\"}",
+  "signature_b64": "TL4nVSHb+8AaqQ0V/90hQLO6FcBLD/+8OG1hJvr066ZEb9qhAggrLJZEPC9PYrOBuavf4wUbAsZdJY02ftcvCQ==",
+  "key_id": "sea-test-2026q3"
+}

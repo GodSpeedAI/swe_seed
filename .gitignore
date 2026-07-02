@@ -6,6 +6,8 @@
 .pnpm-store/
 .pytest_cache/
 .ruff_cache/
+.omc/
+.serena/
 .secrets/
 .venv/
 __pycache__/
@@ -14,7 +16,11 @@ node_modules/
 # generated harness traces
 .agent-harness/traces/records/*.json
 .agent-harness/traces/route-decisions/*.json
+.agent-harness/traces/ledger.sqlite3
 .agent-harness/baml/baml_client/
+
+# generated learning artifacts (records, proposals, regressions, decisions, runs)
+.agent-harness/learning/
 
 # generated fabrication runs
 .fabricator/runs/*
@@ -37,4 +43,12 @@ secrets/*.decrypted.*
 # workfiles
 tmp/
 
+# generated swe-seed artifacts (manifests, provenance, boundary reports)
+.swe-seed/
+
+# rust build output
+/target/
+
 reference/
+
+.tmp/

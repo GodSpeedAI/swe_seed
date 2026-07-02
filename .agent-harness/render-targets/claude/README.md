@@ -11,7 +11,7 @@ Shape:
 Do not edit generated `SKILL.md` files directly. Update the source Skill IR under `.agent-harness/skills/`, then run:
 
 ```bash
-python scripts/harness.py render-skills
+just harness-render-skills
 ```
 
 ## Skills

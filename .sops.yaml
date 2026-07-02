@@ -1,4 +1,12 @@
+# SOPS config for SWE_Seed federation keys (spec 0011 / Phase B).
+# Private Ed25519 signing keys live under .swe-seed/federation/keys/*.key
+# (gitignored). Encrypt at rest with SOPS/age so a machine compromise cannot
+# lift the raw key. Replace the recipient below with your team's age public key
+# (see SEA's .sops.yaml for the team-key convention).
 creation_rules:
-  - path_regex: secrets/.*\.(yaml|yml|json|env)$
-    age: "age1replacewithprojectrecipient0000000000000000000000000000000000000"
-    encrypted_regex: "^(data|stringData|values|env|secrets)$"
+  - path_regex: '\.swe-seed/federation/keys/.*\.key$'
+    encrypted_regex: '^(.*)$'
+    key_groups:
+      - age:
+          # SWE_Seed operator age public key.
+          - age1mq5sj8gj4k5vqtgefkuvs05nghanzhgmcqkxxspk0vffq9hxm5ssnj93a5

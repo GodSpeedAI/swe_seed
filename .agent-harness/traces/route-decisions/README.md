@@ -9,14 +9,14 @@ Use this when the semantic router's choice matters to the task outcome or when a
 A Route decision record is written by:
 
 ```bash
-python scripts/harness.py route --record "task text"
+just harness-route-record "task text"
 ```
 
 The record stores the selected job type, route card path, confidence, required context, required skills, work loop, proof commands, and next action. It does not replace execution. It starts execution.
 
 ## Trace record relationship
 
-`python scripts/harness.py trace start "task text"` creates both a route decision and a Trace record. The trace file points back to the decision so routing, work notes, and verification remain connected.
+`just harness-trace-start "task text"` creates both a route decision and a Trace record. The trace file points back to the decision so routing, work notes, and verification remain connected.
 
 ## Do not store secrets
 

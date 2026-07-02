@@ -193,6 +193,10 @@ validation:
     - "tool-output containment"
     - "think in code"
     - "session continuity"
+    - ".agents/lessons"
+    - ".agents/current_status.md"
+    - ".agents/open_questions.md"
+    - ".agents/debt.md"
   context_normalization_phrases:
     - "Source mechanism"
     - "Imported invariant"

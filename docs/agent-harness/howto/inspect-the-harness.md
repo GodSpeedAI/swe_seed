@@ -9,7 +9,7 @@ This is the right entry point for route confusion, uncertainty about generated t
 Run:
 
 ```bash
-python scripts/harness.py inspect debug-discipline
+just harness-doctor
 ```
 
 Replace `debug-discipline` with a route ID, skill ID, memory topic, or other harness term.
@@ -29,7 +29,7 @@ Use this before broad repository search when the question is about the harness i
 Run:
 
 ```bash
-python scripts/harness.py doctor
+just harness-doctor
 ```
 
 Use doctor when you suspect a local environment or scaffolding issue rather than a contract bug.

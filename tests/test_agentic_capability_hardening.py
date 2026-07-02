@@ -190,7 +190,7 @@ def test_authority_service_emits_authority_checked_and_coherence_break() -> None
 @pytest.mark.live_proof
 def test_live_swe_seed_harness_validate_emits_proof_completed_shape() -> None:
     result = subprocess.run(
-        [sys.executable, str(SWE_SEED_ROOT / "scripts/harness.py"), "validate"],
+        ["cargo", "run", "-q", "-p", "swe-seed", "--", "harness"],
         cwd=SWE_SEED_ROOT,
         text=True,
         capture_output=True,
@@ -203,7 +203,7 @@ def test_live_swe_seed_harness_validate_emits_proof_completed_shape() -> None:
         work_request_id="wr-live-validate",
         result="pass" if result.returncode == 0 else "fail",
         exit_code=result.returncode,
-        output_ref="scripts/harness.py validate",
+        output_ref="cargo run -q -p swe-seed -- harness",
         proof_type="live",
     )
 

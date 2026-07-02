@@ -7,7 +7,7 @@ Use these checks in order from narrowest to broadest.
 Run:
 
 ```bash
-python scripts/harness.py validate
+just harness-validate
 ```
 
 Use this when you changed route cards, trace handling, docs required by validation, render targets, memory artifacts, or core harness files.
@@ -17,7 +17,7 @@ Use this when you changed route cards, trace handling, docs required by validati
 Run:
 
 ```bash
-bash tests/validate-harness.sh
+just harness-validate
 ```
 
 Use this when you want deterministic end-to-end checks for required files, route behavior, and core CLI surfaces.
@@ -38,8 +38,8 @@ The harness is strict about this point. Running checks is not enough. Read the o
 
 ## Suggested order
 
-1. `python scripts/harness.py validate`
-2. `bash tests/validate-harness.sh`
+1. `just harness-validate`
+2. `just harness-validate`
 3. `just ci`
 
 ## Done when

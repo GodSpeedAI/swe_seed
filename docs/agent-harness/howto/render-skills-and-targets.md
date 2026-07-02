@@ -11,7 +11,7 @@ The repository ships a small built-in core skill set that covers planning, imple
 Run:
 
 ```bash
-python scripts/harness.py render-skills
+just harness-render-skills
 ```
 
 Or use:
@@ -27,7 +27,7 @@ This rewrites the generated targets from canonical Skill IR.
 After rendering, run:
 
 ```bash
-python scripts/harness.py validate
+just harness-validate
 ```
 
 This catches stale or invalid render targets and enforces the canonical-file rule.

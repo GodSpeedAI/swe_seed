@@ -4,7 +4,7 @@ Use this map when making or checking completion claims.
 
 | Claim                        | Proof command                                |
 | ---------------------------- | -------------------------------------------- |
-| Harness files exist          | `bash tests/validate-harness.sh`             |
+| Harness files exist          | `just harness-validate`                      |
 | Local CI passes              | `just ci`                                    |
 | Tooling is installed         | `just doctor`                                |
 | Formatting is clean          | `just format`                                |
@@ -15,7 +15,7 @@ Use this map when making or checking completion claims.
 
 ## Config Files
 
-- `tests/validate-harness.sh`
+- `just harness-validate`
 - `justfile`
 - `.github/workflows/ci.yml`
 
@@ -26,5 +26,5 @@ Use the narrowest proof command that supports the claim. Use `just ci` for gener
 ## Proof
 
 ```bash
-bash tests/validate-harness.sh
+just harness-validate
 ```

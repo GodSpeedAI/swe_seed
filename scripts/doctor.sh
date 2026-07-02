@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-required_commands=(git just python3)
-recommended_commands=(age direnv devbox mise pnpm sops uv)
+required_commands=(git just cargo)
+recommended_commands=(age direnv devbox mise pnpm sops)
 missing_required=()
 missing_recommended=()
 

@@ -8,11 +8,11 @@ This is not the right path for product code. Use it only when routing, proof, co
 
 Before editing, decide which artifact actually controls the behavior:
 
-- route behavior: `.agent-harness/routes/` or `scripts/harness.py`
+- route behavior: `.agent-harness/routes/` or `crates/swe-seed/src/cli.rs`
 - harness contract: `HARNESS_SPEC.md`
 - operator guidance: `docs/agent-harness/`
 - agent discovery docs: `docs/specs/`
-- deterministic checks: `.agent-harness/evals/` and `tests/validate-harness.sh`
+- deterministic checks: `.agent-harness/evals/` and `just harness-validate`
 - durable lessons: `.agent-harness/memory/`
 - lifecycle guidance: `.agent-harness/hooks/`
 
@@ -23,7 +23,7 @@ Do not change several layers at once unless the contract truly moved.
 Run:
 
 ```bash
-python scripts/harness.py route "describe the harness change"
+just harness-route "describe the harness change"
 ```
 
 For material harness work, the expected route is usually `harness_improvement`. Read that route card before changing files.
@@ -51,8 +51,8 @@ Typical validation surfaces are:
 - `.agent-harness/evals/core-conformance.md` for named conformance cases,
 - `.agent-harness/evals/route-conflicts.md` for route ambiguity,
 - `.agent-harness/evals/negative-conformance.md` for known failure modes,
-- `tests/validate-harness.sh` for deterministic scaffold checks,
-- `python scripts/harness.py validate` for structural or phrase-level validation.
+- `just harness-validate` for deterministic scaffold checks,
+- `just harness-validate` for structural or phrase-level validation.
 
 Prefer the smallest check that can prove the behavior.
 
@@ -86,8 +86,8 @@ If an agent only needs the contract, prefer `HARNESS_SPEC.md`, `docs/specs/`, ro
 For harness changes, use:
 
 ```bash
-python scripts/harness.py validate
-bash tests/validate-harness.sh
+just harness-validate
+just harness-validate
 just ci
 ```
 
@@ -98,8 +98,8 @@ Read the output. Do not stop at “command ran.”
 For longer harness work, start a trace and checkpoint stage boundaries:
 
 ```bash
-python scripts/harness.py trace start "extend harness"
-python scripts/harness.py trace checkpoint TRACE_ID --stage change --summary "spec updated" --next-action "run validation"
+just harness-trace-start "extend harness"
+just harness-trace-checkpoint TRACE_ID change "spec updated" "run validation"
 ```
 
 ## Done when

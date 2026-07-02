@@ -23,4 +23,4 @@ Stop when proof commands pass or when a blocker is supported by command output. 
 
 ## Avoid
 
-Do not duplicate work already handled by `just ci`, `scripts/harness.py validate`, route-card validation, or formatter commands. Do not add ceremony that cannot fail usefully.
+Do not duplicate work already handled by `just ci`, `just harness-validate`, route-card validation, or formatter commands. Do not add ceremony that cannot fail usefully.

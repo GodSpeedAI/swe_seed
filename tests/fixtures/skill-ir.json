@@ -1,0 +1,27 @@
+{
+  "id": "fixture-skill",
+  "version": 1,
+  "category": "test",
+  "jtbd": "exercise the skill ingest + render pipeline deterministically",
+  "description": "A small fixture Skill IR covering triggers, procedure, evidence, and all four render targets.",
+  "triggers": ["fixture", "render-smoke"],
+  "trigger_contexts": ["phase-5 golden determinism"],
+  "inputs": { "required": ["a-contract"] },
+  "procedure": [
+    "add the narrowest failing check",
+    "make the smallest change",
+    "read the proof output"
+  ],
+  "evidence_required": ["failing check", "proof output"],
+  "forbidden_behaviors": ["claiming completion without proof"],
+  "outputs": ["rendered files"],
+  "success_criteria": ["proof passes", "output is deterministic"],
+  "failure_modes": ["non-deterministic render"],
+  "status": "active",
+  "render_targets": [
+    "claude_skill",
+    "copilot_instruction",
+    "hook_prompt",
+    "checklist"
+  ]
+}

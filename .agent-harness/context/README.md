@@ -11,7 +11,7 @@ Start with the route card and the required context it names. If the task needs m
 Run:
 
 ```bash
-python scripts/harness.py context-plan "task"
+just harness-context-plan "task"
 ```
 
 The plan orders route context before optional exploration and reminds the agent where to store durable state.

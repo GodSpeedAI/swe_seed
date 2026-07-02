@@ -18,10 +18,10 @@ This repository implements the mechanism through local harness artifacts:
 
 - `.agent-harness/context/README.md` defines the operating discipline.
 - `.agent-harness/context/budget-policy.yaml` defines the context budget.
-- `python scripts/harness.py context-plan "task"` creates an executable context plan from the semantic route.
+- `just harness-context-plan "task"` creates an executable context plan from the semantic route.
 - `.agent-harness/traces/` stores route decisions, trace records, and restart evidence.
 - `AGENTS.md` requires context budget, tool-output containment, think in code, and session continuity.
 
 ## Validation
 
-`python scripts/harness.py validate` checks that the context discipline exists and names the imported invariants. `bash tests/validate-harness.sh` checks that the `context-plan` command is exposed and returns a context budget.
+`just harness-validate` checks that the context discipline exists and names the imported invariants. `just harness-validate` checks that the `context-plan` command is exposed and returns a context budget.

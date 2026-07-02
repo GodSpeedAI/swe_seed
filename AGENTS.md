@@ -15,7 +15,7 @@ Do not treat job types as labels to remember. A job type only matters because it
 For every task, run or mentally apply the semantic router:
 
 ```bash
-python scripts/harness.py route "<user task>"
+swe-seed route "<user task>"
 ```
 
 The route result is the operating plan. It provides:
@@ -56,7 +56,7 @@ Do not add a nudge because it is clever. A behavior-shaping rule has no value un
 Before broad exploration, apply the context budget:
 
 ```bash
-python scripts/harness.py context-plan "<user task>"
+swe-seed context-plan "<user task>"
 ```
 
 Use tool-output containment for high-volume reads and commands. Do not pour raw logs, whole directories, or broad search output into the conversation when a count, path list, focused excerpt, or trace note will move the task.
@@ -65,9 +65,34 @@ Use think in code for bulk analysis: write or run a small script, shell pipeline
 
 Preserve session continuity through trace records, route decisions, memory updates, and compact restart notes. The next agent should recover the task state from durable artifacts instead of relying on the conversation transcript.
 
+## Local Agent Memory
+
+Use `.agents/` as local, working memory for active agent handoffs. These files are **ignored by git and are non-authoritative scratch** — never a source of truth. Treat `.agents/CURRENT_STATUS.md`, `.agents/DEBT.md`, `.agents/OPEN_QUESTIONS.md`, `.agents/reports/`, `.agents/plans/`, and `.agents/lessons/` as per-agent scratch that may lag or diverge from committed reality; verify against the committed sources of truth (specs in `docs/specs/`, harness memory in `.agent-harness/memory/`, and the code itself) before relying on them. Agents SHOULD keep them current enough that the next agent can recover the latest outcome, blocker, and next action without reading the full transcript, but they are not load-bearing.
+
+Before material work, read any existing local memory that can change the next action:
+
+- `.agents/CURRENT_STATUS.md` for the current outcome, route, working state, proof status, blockers, and next action.
+- `.agents/OPEN_QUESTIONS.md` for load-bearing questions that cannot be answered from the codebase alone.
+- `.agents/DEBT.md` for out-of-scope issues already noticed.
+- `.agents/lessons/` for durable lessons from prior coding challenges or repeated mistakes.
+
+After material work, update local memory as follows:
+
+- Update `.agents/CURRENT_STATUS.md` when the pursued outcome, route, changed artifacts, proof status, blocker, or next action changes. Keep it short enough to serve as a handoff, not a transcript.
+- Update `.agents/OPEN_QUESTIONS.md` only for questions that block or materially change the outcome and cannot be resolved from code, docs, tests, or command output. Include a recommendation, known options or tradeoffs, and the decision needed from a human.
+- Update `.agents/DEBT.md` for problems, risks, or cleanup noticed while working that are real but out of scope for the current task. Include evidence, impact, and a suggested follow-up.
+- Add a note under `.agents/lessons/` only when the lesson is generalizable across future work in this codebase. Do not record one-off surprises, personal preferences, raw logs, or chat transcripts. Lessons that recur MAY later be promoted into `AGENTS.md` or `.agent-harness/memory/`.
+
+All local memory entries MUST be concrete, concise, source-backed when practical, and free of secrets. If a required `.agents/` file or directory is missing, create the smallest useful file or directory before relying on it.
+
 ## Source of Truth
 
-Use `HARNESS_SPEC.md` and `docs/specs/` for harness requirements. Use project specs when a task names a feature or product behavior.
+Normative sources are committed; local memory is not.
+
+- **Specs:** the numbered subsystem specs (`0001`–`0020`) live under `docs/specs/` and are the authoritative design source. The root layer contracts `SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, and `FABRICATOR_SPEC_v0.1.0.md` sit at the repo root and defer detail to `docs/specs/`. `.agents/specs/` MUST NOT exist — it is migration-only; if a spec is normative it belongs in `docs/specs/`. `.baml` contracts under `.agent-harness/baml/baml_src/` are generated/reviewed from these specs.
+- **Harness memory:** `.agent-harness/memory/` (committed) is canonical for durable harness memory — `constraints.md`, `decisions.md`, `failure-patterns.md`, `glossary.md`, `open-questions.md`, `repo-map.md`, `successful-patterns.md`. Route cards and validators read from here.
+- **Plans:** implementation plans are execution artifacts, not normative. They live as scratch (`.agents/plans/`); if a plan's requirement becomes normative, promote it back into a numbered spec under `docs/specs/`. Do not treat plans as a source of truth.
+- **Federation signing keys (spec 0011, Phase B):** SWE_Seed signs envelopes with an Ed25519 private key in gitignored `.swe-seed/federation/keys/` (SOPS-encrypt at rest via `just federation-encrypt-key <id>`). Public keys are committed under `.agent-harness/federation/keys/<id>.pub` and shared with SEA-Forge. SEA's own key lives in SEA. Workflow: `swe-seed federation keygen <id>` → `just federation-encrypt-key <id>` → sign with `swe-seed federation sign <trace> --key <id>`; verify with `swe-seed federation verify <file> --key <id>`.
 
 ## Required Job Types
 

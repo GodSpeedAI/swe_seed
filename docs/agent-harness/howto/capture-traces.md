@@ -5,23 +5,15 @@ Use traces when the task needs durable state across edits, validation, restart, 
 ## Start the trace
 
 ```bash
-python scripts/harness.py trace start "implement the requested change"
+just harness-trace-start "implement the requested change"
 ```
 
 This creates a trace record and links it to a route decision.
 
-If you want the trace itself to enter the shared observability path, run:
-
-```bash
-python scripts/harness.py trace start --capture-hook --agent copilot --agent-version local --session-id SESSION_ID --span-id TRACE_START_SPAN "implement the requested change"
-```
-
-That records a `trace.start` event through `scripts/agent-hooks` while preserving the generated `trace_id`.
-
 ## Append meaningful evidence
 
 ```bash
-python scripts/harness.py trace append TRACE_ID "validation failed because the required route example is missing"
+just harness-trace-append TRACE_ID "validation failed because the required route example is missing"
 ```
 
 Append only when the note changes understanding of the task. Do not dump raw logs into the trace.
@@ -29,34 +21,29 @@ Append only when the note changes understanding of the task. Do not dump raw log
 ## Checkpoint at stage boundaries
 
 ```bash
-python scripts/harness.py trace checkpoint TRACE_ID \
-  --stage change \
-  --summary "route behavior corrected; docs and evals still pending" \
-  --next-action "update validation" \
-  --artifact scripts/harness.py \
-  --artifact .agent-harness/evals/core-conformance.md \
-  --risk "full proof not rerun"
+just harness-trace-checkpoint TRACE_ID \
+  change \
+  "route behavior corrected; docs and evals still pending" \
+  "update validation"
 ```
 
 Use checkpoints when another agent may need to resume the task later.
 
-If you want the checkpoint boundary in the same replay surface, run:
+If you need artifact and risk fields, use the full Rust CLI surface:
 
 ```bash
-python scripts/harness.py trace checkpoint --capture-hook --agent copilot --agent-version local --session-id SESSION_ID --span-id TRACE_CHECKPOINT_SPAN TRACE_ID \
+cargo run -q -p swe-seed -- trace checkpoint TRACE_ID \
   --stage change \
   --summary "route behavior corrected; docs and evals still pending" \
   --next-action "update validation" \
-  --artifact scripts/harness.py \
+  --artifact crates/swe-seed/src/cli.rs \
   --risk "full proof not rerun"
 ```
-
-That records a `trace.checkpoint` event with the same shared-ID observability path used by route capture.
 
 ## Resume from the latest checkpoint
 
 ```bash
-python scripts/harness.py trace resume TRACE_ID
+just harness-trace-resume TRACE_ID
 ```
 
 This should give the next agent enough state to continue without rereading the transcript.
@@ -64,10 +51,10 @@ This should give the next agent enough state to continue without rereading the t
 ## Finish only after proof
 
 ```bash
-python scripts/harness.py trace finish TRACE_ID \
-  --claim "contract implemented" \
-  --command "just ci" \
-  --result "exit 0"
+just harness-trace-finish TRACE_ID \
+  "contract implemented" \
+  "just ci" \
+  "exit 0"
 ```
 
 ## Keep in mind

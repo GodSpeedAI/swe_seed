@@ -7,13 +7,13 @@ Use this flow when a task is not trivial.
 Run:
 
 ```bash
-python scripts/harness.py route "task"
+just harness-route "task"
 ```
 
-If you want the routing step itself to produce observability evidence, run:
+If you want the routing step itself to produce observability evidence, run the hook router:
 
 ```bash
-python scripts/harness.py route --capture-hook --agent copilot --agent-version local --session-id SESSION_ID --trace-id TRACE_ID --span-id SPAN_ID "task"
+.agent-harness/hooks/hook-router.sh prompt.submit --task "task" --agent copilot --agent-version local --session-id SESSION_ID --trace-id TRACE_ID --span-id SPAN_ID --capture
 ```
 
 This records a real `prompt.submit` hook event through the dev-harness observability layer while keeping the route result as the primary control surface.
@@ -33,7 +33,7 @@ If the route does not move the next action forward, treat that as a harness defe
 For implementation-like or harness-changing work, write the route decision first:
 
 ```bash
-python scripts/harness.py route --record "task"
+just harness-route-record "task"
 ```
 
 This creates a route decision ledger entry under `.agent-harness/traces/route-decisions/`.
@@ -43,7 +43,7 @@ This creates a route decision ledger entry under `.agent-harness/traces/route-de
 Start with the files named by the route. If the task still needs broader context, generate a context plan:
 
 ```bash
-python scripts/harness.py context-plan "task"
+just harness-context-plan "task"
 ```
 
 Read only enough to make the next edit or validation step clear.
@@ -53,7 +53,7 @@ Read only enough to make the next edit or validation step clear.
 Run:
 
 ```bash
-python scripts/harness.py trace start "task"
+just harness-trace-start "task"
 ```
 
 This links the task to a route decision and creates a working ledger for evidence.

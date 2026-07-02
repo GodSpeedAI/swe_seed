@@ -31,7 +31,7 @@
     "actual path traced",
     "residual risk or test gap note"
   ],
-  "proof": ["python scripts/harness.py validate"],
+  "proof": ["just harness-validate"],
   "done_when": [
     "findings are actionable and evidence-backed",
     "actual path reviewed is named",

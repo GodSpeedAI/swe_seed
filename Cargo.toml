@@ -1,0 +1,10 @@
+# SWE_Seed Rust rewrite — Cargo workspace.
+# ponytail: one bin crate + one core lib. Deps added per phase as used.
+[workspace]
+members = ["crates/swe-seed", "crates/swe-seed-core"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"

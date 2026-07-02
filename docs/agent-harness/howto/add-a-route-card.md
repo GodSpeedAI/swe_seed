@@ -63,7 +63,7 @@ Common places:
 
 - `.agent-harness/evals/core-conformance.md` for a named canonical prompt,
 - `.agent-harness/evals/route-conflicts.md` if the new route could be confused with another route,
-- `tests/validate-harness.sh` for a deterministic CLI assertion.
+- `just harness-validate` for a deterministic CLI assertion.
 
 If the route is meant to win against another plausible route, add a route-conflict eval instead of only a happy-path example.
 
@@ -78,8 +78,8 @@ If humans will need to use or interpret the route, update:
 ## 7. Run proof
 
 ```bash
-python scripts/harness.py validate
-bash tests/validate-harness.sh
+just harness-validate
+just harness-validate
 just ci
 ```
 

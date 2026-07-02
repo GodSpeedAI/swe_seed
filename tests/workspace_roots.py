@@ -52,7 +52,7 @@ _REPO_NAMES: dict[str, list[str]] = {
 # Required sentinel files — if any of these exist the folder is the right repo.
 _REPO_SENTINELS: dict[str, list[str]] = {
     "SEA": ["tools/sea_parse.py", "docs/specs", "libs"],
-    "SWE_SEED": ["scripts/harness.py", "HARNESS_SPEC.md"],
+    "SWE_SEED": ["crates/swe-seed/Cargo.toml", "HARNESS_SPEC.md"],
     "godspeed_agent": ["godspeed_nav/__init__.py", "pyproject.toml"],
     "Context_Kernel_Service_MCP": ["crates/ck-mcp", "Cargo.toml"],
 }
