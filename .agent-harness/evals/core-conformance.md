@@ -13,7 +13,7 @@ just ci
 ### Eval 11 Command
 
 ```bash
-python scripts/harness.py validate
+just harness-validate
 ```
 
 ### Eval 11 Expected
@@ -29,7 +29,7 @@ This proves the scaffold has required files, route cards, Skill IR, render targe
 **Command**
 
 ```bash
-python scripts/harness.py route "fix a failing regression test"
+just harness-route "fix a failing regression test"
 ```
 
 **Expected**
@@ -52,7 +52,7 @@ This proves routing produces action, not only a job-type label.
 **Command**
 
 ```bash
-python scripts/harness.py route "implement HARNESS_SPEC.md semantic router"
+just harness-route "implement HARNESS_SPEC.md semantic router"
 ```
 
 **Expected**
@@ -73,7 +73,7 @@ This proves harness changes route through the spec-first, validation-first workf
 **Command**
 
 ```bash
-python scripts/harness.py render-skills && python scripts/harness.py validate
+just harness-render-skills && just harness-validate
 ```
 
 **Expected**
@@ -149,7 +149,7 @@ This proves imported process invariants live in local executable artifacts, not 
 **Command**
 
 ```bash
-python scripts/harness.py validate
+just harness-validate
 ```
 
 **Expected**
@@ -165,9 +165,9 @@ This enforces the canonical-file rule: identical files should be symlinked, whil
 **Command**
 
 ```bash
-trace_json=$(python scripts/harness.py trace start "checkpoint smoke" | python -c 'import json,sys; print(json.load(sys.stdin)["trace_id"])')
-python scripts/harness.py trace checkpoint "$trace_json" --stage change --summary "spec delta captured" --next-action "run targeted validation" --artifact HARNESS_SPEC.md --risk "proof not run"
-python scripts/harness.py trace resume "$trace_json"
+trace_json=$(just harness-trace-start "checkpoint smoke" | python -c 'import json,sys; print(json.load(sys.stdin)["trace_id"])')
+just harness-trace-checkpoint "$trace_json" change "spec delta captured" "run targeted validation"
+just harness-trace-resume "$trace_json"
 ```
 
 **Expected**
@@ -188,7 +188,7 @@ This proves the harness can emit a compact handoff packet for restart or agent t
 **Command**
 
 ```bash
-python scripts/harness.py route "Let's make a react todo list"
+just harness-route "Let's make a react todo list"
 ```
 
 **Expected**
@@ -208,7 +208,7 @@ This proves the harness does real first-step routing on a fresh build prompt ins
 ### Eval 12 Command
 
 ```bash
-python scripts/harness.py route "the login form is broken"
+just harness-route "the login form is broken"
 ```
 
 ### Eval 12 Expected
@@ -228,7 +228,7 @@ This proves a broad user-reported failure enters the debugging workflow instead 
 ### Command
 
 ```bash
-python scripts/harness.py route "review my recent auth changes for risk"
+just harness-route "review my recent auth changes for risk"
 ```
 
 ### Expected

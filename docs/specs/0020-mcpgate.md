@@ -455,8 +455,8 @@ swe-seed doctor
 The existing Python/Rust compatibility commands may stand in until the target CLI exists:
 
 ```text
-python scripts/harness.py validate
-bash tests/validate-harness.sh
+just harness-validate
+just harness-validate
 just ci
 ```
 

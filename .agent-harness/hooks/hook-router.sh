@@ -76,7 +76,7 @@ capture_event() {
   local route_preview="{}"
 
   if [[ "$event_name" == "prompt.submit" && -n "$task" ]]; then
-    route_preview="$(cd "$repo_root" && python scripts/harness.py route "$task")"
+    route_preview="$(cd "$repo_root" && just harness-route "$task")"
   fi
 
   local effective_trace_id="$trace_id"
@@ -154,7 +154,7 @@ case "$event" in
     emit_or_capture \
       "prompt.submit" \
       "Convert user intent into an executable route plan." \
-      "Run or mirror python scripts/harness.py route '<task>'; if the route lacks next action, treat the router as defective." \
+      "Run or mirror just harness-route '<task>'; if the route lacks next action, treat the router as defective." \
       "Ask for clarification only when route choice materially changes the work."
     ;;
   tool.pre)

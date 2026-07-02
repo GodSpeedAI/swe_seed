@@ -6,6 +6,8 @@
 .pnpm-store/
 .pytest_cache/
 .ruff_cache/
+.omc/
+.serena/
 .secrets/
 .venv/
 __pycache__/

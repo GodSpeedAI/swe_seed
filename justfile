@@ -56,11 +56,17 @@ harness-trace-start task:
 harness-trace-append trace note:
     @{{swe}} trace append "{{trace}}" "{{note}}"
 
+harness-trace-checkpoint trace stage summary next_action="":
+    @if [ -n "{{next_action}}" ]; then {{swe}} trace checkpoint "{{trace}}" --stage "{{stage}}" --summary "{{summary}}" --next-action "{{next_action}}"; else {{swe}} trace checkpoint "{{trace}}" --stage "{{stage}}" --summary "{{summary}}"; fi
+
+harness-trace-resume trace:
+    @{{swe}} trace resume "{{trace}}"
+
 harness-trace-distill trace:
     @{{swe}} trace distill "{{trace}}"
 
-harness-trace-finish trace claim:
-    @{{swe}} trace finish "{{trace}}" --claim "{{claim}}"
+harness-trace-finish trace claim command="" result="":
+    @cmd="{{command}}"; res="{{result}}"; if [ -n "$$cmd" ] && [ -n "$$res" ]; then {{swe}} trace finish "{{trace}}" --claim "{{claim}}" --command "$$cmd" --result "$$res"; elif [ -n "$$cmd" ]; then {{swe}} trace finish "{{trace}}" --claim "{{claim}}" --command "$$cmd"; else {{swe}} trace finish "{{trace}}" --claim "{{claim}}"; fi
 
 harness-eval-run spec output="":
     @if [ -n "{{output}}" ]; then {{swe}} eval run --spec "{{spec}}" --output "{{output}}"; else {{swe}} eval run --spec "{{spec}}"; fi

@@ -41,8 +41,8 @@
       "job_type": "harness_improvement",
       "path": ".agent-harness/routes/harness_improvement.json",
       "proof": [
-        "python scripts/harness.py validate",
-        "bash tests/validate-harness.sh",
+        "just harness-validate",
+        "just ci",
         "just ci"
       ],
       "next_action": "identify the harness gap and desired behavior"
@@ -61,7 +61,7 @@
       "job_type": "review",
       "path": ".agent-harness/routes/review.json",
       "proof": [
-        "python scripts/harness.py validate"
+        "just harness-validate"
       ],
       "next_action": "identify the changed contract or intended outcome"
     },

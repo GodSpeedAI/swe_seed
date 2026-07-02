@@ -22,4 +22,4 @@ The imported behavior is normalized into local artifacts instead of copied as a 
 
 ## Validation
 
-`bash tests/validate-harness.sh` and `python scripts/harness.py validate` check that the normalized import exists, Skill IR includes the required metadata, and the generated Claude skill surface exposes bundled resources and evaluation prompts when present.
+`just harness-validate` and `just harness-validate` check that the normalized import exists, Skill IR includes the required metadata, and the generated Claude skill surface exposes bundled resources and evaluation prompts when present.

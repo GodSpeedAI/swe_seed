@@ -39,8 +39,8 @@
     "validation evidence"
   ],
   "proof": [
-    "python scripts/harness.py render-skills",
-    "python scripts/harness.py validate",
+    "just harness-render-skills",
+    "just harness-validate",
     "just ci"
   ],
   "done_when": [

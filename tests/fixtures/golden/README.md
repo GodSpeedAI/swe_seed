@@ -1,20 +1,18 @@
-# Golden fixtures — current Python harness output
+# Golden fixtures - Rust harness output
 
-Captured from the **current Python harness** (`scripts/harness.py`) on the reconciliation
-date, to serve as **parity targets** for the Rust rewrite (see `.agents/plans/0001`). Each
-Rust CLI that supersedes a Python command must reproduce the corresponding `*.out` (and exit
-behavior) — modulo the normalization notes below.
+Captured from the Rust `swe-seed` CLI after the Python harness cutover. These serve as
+golden targets for stable CLI behavior, modulo the normalization notes below.
 
 ## Files
 
 | Fixture                 | Command                                      | Notes                                                                                                                                                                               |
 | ----------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `route_test.out`        | `harness.py route "checkpoint smoke"`        | Stable (no `--record`, so no timestamps).                                                                                                                                           |
-| `context-plan_test.out` | `harness.py context-plan "checkpoint smoke"` | Stable.                                                                                                                                                                             |
-| `render-skills.out`     | `harness.py render-skills`                   | Stable.                                                                                                                                                                             |
-| `inspect_test.out`      | `harness.py inspect test`                    | Stable.                                                                                                                                                                             |
-| `doctor.out`            | `harness.py doctor`                          | Stable (short).                                                                                                                                                                     |
-| `validate.out`          | `harness.py validate`                        | **Exits 0** ("Harness validation passed") since the three root layer specs now exist. The Rust `validate` must reproduce this green state and the same root-spec / artifact checks. |
+| `route_test.out`        | `swe-seed route "checkpoint smoke"`        | Stable (no `--record`, so no timestamps).                                                                                                                                           |
+| `context-plan_test.out` | `swe-seed context-plan "checkpoint smoke"` | Stable.                                                                                                                                                                             |
+| `render-skills.out`     | `swe-seed render-skills`                   | Stable.                                                                                                                                                                             |
+| `inspect_test.out`      | `swe-seed route "review my recent auth changes for risk"` | Stable route-card inspection fixture.                                                                                                                               |
+| `doctor.out`            | `swe-seed doctor`                          | Stable (short).                                                                                                                                                                     |
+| `validate.out`          | `swe-seed harness`                         | **Exits 0** ("Harness validation passed") since the three root layer specs now exist.                                                                                                |
 
 ## Normalization rules for parity tests
 
@@ -29,12 +27,11 @@ behavior) — modulo the normalization notes below.
 - `eval run --spec <path>` — needs an eval-spec fixture.
 - `trace start|checkpoint|finish` — needs a lifecycle; normalize timestamps.
 - `fabricate <need>` — needs `.fabricator` config/templates; normalize timestamps.
-- `agent-hooks` runtime (from `scripts/agent_hooks.py`) — needs event payloads on stdin.
+- `agent-hooks` runtime - needs event payloads on stdin.
 
 ## Re-capture
 
 ```bash
-PY=.venv/bin/python3
-$PY scripts/harness.py route "checkpoint smoke" > tests/fixtures/golden/route_test.out
+cargo run -q -p swe-seed -- route "checkpoint smoke" > tests/fixtures/golden/route_test.out
 # ...etc per table above
 ```

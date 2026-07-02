@@ -98,6 +98,10 @@ const VALID_SKILL_STATUSES: &[&str] = &[
     "candidate",
 ];
 
+/// Removed proof command surfaces that route cards must not depend on.
+const REMOVED_ROUTE_PROOF_COMMANDS: &[&str] =
+    &["python scripts/harness.py", "bash tests/validate-harness.sh"];
+
 /// Incomplete-work markers that must not appear in source specs/scripts.
 const INCOMPLETE_MARKERS: &[&str] = &[
     "TODO",
@@ -258,6 +262,17 @@ pub fn validate(root: &Path) -> Vec<String> {
                 if let Some(sid) = s.as_str() {
                     if !seen_skills.contains(sid) {
                         errors.push(format!("{r} required_skill not found: {sid}"));
+                    }
+                }
+            }
+        }
+        if let Some(proof) = route.get("proof").and_then(Value::as_array) {
+            for command in proof.iter().filter_map(Value::as_str) {
+                for removed in REMOVED_ROUTE_PROOF_COMMANDS {
+                    if command.contains(removed) {
+                        errors.push(format!(
+                            "{r} proof references removed command surface: {command}"
+                        ));
                     }
                 }
             }

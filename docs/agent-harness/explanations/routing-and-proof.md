@@ -6,7 +6,7 @@ Without a router, a task starts as free-form interpretation. Different agents ca
 
 This is why the route result includes more than a job label. A useful route tells the agent what to do next. In this repository that means a route card under `.agent-harness/routes/`, relevant playbooks, and explicit proof. If the route does not change the next action, it is decorative.
 
-Proof is the second half of the contract. The harness separates work performed, proof gathered, and completion claimed. Editing files is not proof. A route is not proof. A trace record is not proof. Proof comes from the route's required commands and any justified skips. The default project proof command is `just ci`, but some routes also require focused harness checks such as `python scripts/harness.py validate`.
+Proof is the second half of the contract. The harness separates work performed, proof gathered, and completion claimed. Editing files is not proof. A route is not proof. A trace record is not proof. Proof comes from the route's required commands and any justified skips. The default project proof command is `just ci`, but some routes also require focused harness checks such as `just harness-validate`.
 
 The practical rule is simple:
 

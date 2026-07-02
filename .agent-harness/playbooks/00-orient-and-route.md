@@ -11,7 +11,7 @@ Use before `10-frame-outcome.md` for new work. Use before `30-debug-from-symptom
 ## Steps
 
 1. Read `AGENTS.md`.
-2. Run or mentally apply `python scripts/harness.py route "<task>"`.
+2. Run or mentally apply `just harness-route "<task>"`.
 3. Read the selected route card.
 4. Read only the route card's required context unless evidence says more is needed.
 5. Name the next concrete action from the route result.

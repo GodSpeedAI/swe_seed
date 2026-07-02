@@ -6,7 +6,7 @@ These evals define failures the harness must catch. They are intentionally negat
 
 Breakage: `AGENTS.md` lists job types but does not tell the agent to run or apply the router.
 
-Expected failure: `python scripts/harness.py validate` fails because the operating contract no longer makes job types executable.
+Expected failure: `just harness-validate` fails because the operating contract no longer makes job types executable.
 
 Why it matters: Labels without next action make the agent know more while moving less.
 

@@ -8,7 +8,7 @@ Memory provides durable cognition. The harness keeps a repo map, decisions, cons
 
 Learning provides controlled change. The harness can record reflections and improvement proposals, but it does not automatically rewrite its own core behavior just because one session had an idea. Material changes should move through spec, validation, implementation, and proof. That keeps learning tied to evidence instead of taste.
 
-This repository also supports trace distillation as a small executable learning step. `python scripts/harness.py trace distill TRACE_ID` turns a finished trace into a structured packet of candidate memory updates, candidate skill updates, harness-update candidates, and compaction-safe carry-forward notes. It is still proposal-oriented, not self-mutating.
+This repository also supports trace distillation as a small executable learning step. `just harness-trace-distill TRACE_ID` turns a finished trace into a structured packet of candidate memory updates, candidate skill updates, harness-update candidates, and compaction-safe carry-forward notes. It is still proposal-oriented, not self-mutating.
 
 Any future database-backed learning index remains optional. The current baseline stays filesystem-first so the harness is rebuildable from the repository alone.
 

@@ -119,7 +119,7 @@ Add vector retrieval when:
 ## Config Files
 
 - [SWE_SEED_SPEC_v0.2.0.md](../../../SWE_SEED_SPEC_v0.2.0.md)
-- `tests/validate-harness.sh`
+- `just harness-validate`
 - `.agent-hooks/config.yaml`
 - `scripts/agent-hooks`
 - `scripts/agent_hooks.py`
@@ -133,7 +133,7 @@ The dev harness owns command, CI, and adapter observability. The agent harness m
 Current proof for this contract:
 
 ```bash
-bash tests/validate-harness.sh
+just harness-validate
 just ci
 ```
 

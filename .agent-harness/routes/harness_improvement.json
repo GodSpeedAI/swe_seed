@@ -57,8 +57,7 @@
     "verification evidence"
   ],
   "proof": [
-    "python scripts/harness.py validate",
-    "bash tests/validate-harness.sh",
+    "just harness-validate",
     "just ci"
   ],
   "done_when": [

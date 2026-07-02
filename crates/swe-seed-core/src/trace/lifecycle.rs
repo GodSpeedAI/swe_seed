@@ -315,8 +315,8 @@ pub fn distill(root: &Path, trace: &str) -> Result<Value> {
             "summary": format!("Review whether the trace lesson should be promoted into the harness contract: {summary}"),
             "rationale": "Harness-facing work should convert repeated friction into a validated contract rather than a one-off note.",
             "validation": [
-                {"command": "python scripts/harness.py validate", "expected": "passes with the promoted contract"},
-                {"command": "bash tests/validate-harness.sh", "expected": "smoke checks cover the new behavior"},
+                {"command": "just harness-validate", "expected": "passes with the promoted contract"},
+                {"command": "just ci", "expected": "smoke checks cover the new behavior"},
             ],
         }));
     }

@@ -15,7 +15,7 @@ The harness exists to make agents and developers move toward verified outcomes. 
 - GitHub Actions should call `just ci` instead of duplicating check logic.
 - `AGENTS.md` is a dispatcher, not the place for long procedures.
 - `.agent-harness/routes/` contains executable route cards. A job type without a route card is not useful.
-- `scripts/harness.py route` must return a route plan with next action, context, skills, artifacts, proof, and done conditions.
+- `swe-seed route` must return a route plan with next action, context, skills, artifacts, proof, and done conditions.
 - Skill IR is stored as JSON to keep validation and rendering dependency-light.
 - Material harness self-improvement should update the spec first, then validation, then implementation.
 - Memory should stay compact. Add durable lessons, not session transcripts.

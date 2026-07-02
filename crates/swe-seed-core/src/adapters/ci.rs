@@ -42,11 +42,11 @@ impl HostAdapter for CiAdapter {
     fn project(&self) -> ProjectionPlan {
         let sh = marker::block(
             "ci-shell-policy",
-            "set -eu\nswe-seed doctor --host all\npython scripts/harness.py validate\n",
+            "set -eu\nswe-seed doctor --host all\nswe-seed harness\n",
         );
         let ps1 = marker::block(
             "ci-powershell-policy",
-            "$ErrorActionPreference = 'Stop'\nswe-seed doctor --host all\npython scripts/harness.py validate\n",
+            "$ErrorActionPreference = 'Stop'\nswe-seed doctor --host all\nswe-seed harness\n",
         );
         let workflow = marker::block(
             "ci-github-workflow",

@@ -17,7 +17,6 @@ runtime**). SWE_SEED emits `WorkRequested`, `ContextRequired`, `RouteSelected`,
 `SettlementRecorded` / `CapabilityUpdated`. Keeping these boundaries prevents
 the duplicated hook/trace/learning machinery both repos drifted toward (F-08).
 
-
 ## Why It Exists
 
 AI agents can move fast, but speed does not help when the work stops at a confident summary instead of a verified change. SWE_SEED changes the default state from "trust the agent" to "follow the route, produce the artifact, show the proof."
@@ -50,7 +49,7 @@ SWE_SEED is both a reference implementation and a portable specification.
 - `.agent-harness/traces/` records route decisions and recoverable work history.
 - `.agent-harness/hooks/` connects agent lifecycle events to routing, safety checks, trace capture, verification, and reflection.
 - `.agent-harness/reflections/` keeps learning review packets and improvement proposals separate from active instructions.
-- `scripts/harness.py` exposes routing, validation, context planning, skill rendering, and trace commands.
+- `crates/swe-seed` exposes routing, validation, context planning, skill rendering, and trace commands through the Rust `swe-seed` CLI.
 - `justfile` gives humans, agents, and CI one command surface.
 - `SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, and `FABRICATOR_SPEC_v0.1.0.md` are the root layer contracts; `docs/specs/` holds the detailed design.
 
@@ -75,9 +74,9 @@ SweSeed     (SWE_SEED_SPEC_v0.2.0.md)   governance, capability assembly, layer b
 The design lives in committed specs:
 
 - `docs/specs/0001`–`0020` define each subsystem. `0012` reconciles these specs with the existing harness and is authoritative on any vocabulary conflict.
-- `.agents/plans/0001-swe-seed-v0-1-implementation.md` is the plan of record: a full rewrite of all three layers in Rust, building to the specs, with golden-file parity against the current Python harness, after which the Python implementation is removed.
+- `.agents/plans/0001-swe-seed-v0-1-implementation.md` is the plan of record for the Rust rewrite that superseded the former Python harness.
 
-The current `scripts/harness.py` (plus `agent_hooks.py`, `fabricate.py`) is the Python reference implementation that the Rust rewrite reproduces and supersedes.
+The current implementation is the Rust workspace under `crates/`; historical Python references in reconciliation specs describe the retired reference harness.
 
 ## The Approach
 
@@ -118,7 +117,8 @@ The reader should not need to translate "process" into value. The value is fewer
 
 Prerequisites:
 
-- Python 3.12 or newer
+- Rust/Cargo, workspace `rust-version = "1.75"`
+- Python 3.12 or newer for optional `uv`/BAML tooling
 - `just`
 - `pnpm` for formatting checks
 - `uv` for Python linting
@@ -137,9 +137,9 @@ just ci
 Use the harness directly:
 
 ```bash
-python scripts/harness.py route "fix the failing checkout test"
-python scripts/harness.py context-plan "write onboarding docs"
-python scripts/harness.py validate
+just harness-route "fix the failing checkout test"
+just harness-context-plan "write onboarding docs"
+just harness-validate
 ```
 
 The most important command is:
@@ -234,12 +234,12 @@ just ci                 # run the local CI contract
 Harness commands:
 
 ```bash
-python scripts/harness.py validate
-python scripts/harness.py doctor
-python scripts/harness.py render-skills
-python scripts/harness.py route "task"
-python scripts/harness.py context-plan "task"
-python scripts/harness.py trace start "task"
+just harness-validate
+just harness-doctor
+just harness-render-skills
+just harness-route "task"
+just harness-context-plan "task"
+just harness-trace-start "task"
 ```
 
 ## License

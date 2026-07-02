@@ -24,4 +24,4 @@ The imported behavior is normalized into local artifacts instead of copied into 
 
 ## Validation
 
-`python scripts/harness.py validate` checks for the core 9arm-derived phrases in the debug skill, debug playbook, review playbook, and learning playbook. If the imported process changes, update the canonical Skill IR and regenerate render targets.
+`just harness-validate` checks for the core 9arm-derived phrases in the debug skill, debug playbook, review playbook, and learning playbook. If the imported process changes, update the canonical Skill IR and regenerate render targets.

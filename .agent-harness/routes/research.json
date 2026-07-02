@@ -30,7 +30,7 @@
     "recommendation or next question",
     "source or local evidence notes"
   ],
-  "proof": ["python scripts/harness.py validate"],
+  "proof": ["just harness-validate"],
   "done_when": [
     "the decision-maker has enough evidence for the next step",
     "recommendation names tradeoffs",

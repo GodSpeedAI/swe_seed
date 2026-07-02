@@ -12,7 +12,7 @@ Use the narrowest file that matches the behavior:
 - `.agent-harness/evals/negative-conformance.md` for breakages the harness must catch,
 - `.agent-harness/evals/route-conflicts.md` for ambiguous prompts where precedence matters.
 
-If the check also belongs in a deterministic shell assertion, add a matching line to `tests/validate-harness.sh`.
+If the check also belongs in a deterministic shell assertion, add a matching line to `just harness-validate`.
 
 ## 2. Write the smallest useful case
 
@@ -60,23 +60,23 @@ Commands should check output, files, or processable conditions.
 
 Prefer:
 
-- `python scripts/harness.py route "prompt"`
-- `python scripts/harness.py validate`
-- `bash tests/validate-harness.sh`
+- `just harness-route "prompt"`
+- `just harness-validate`
+- `just harness-validate`
 
 Avoid cases that require subjective interpretation when a small CLI assertion could prove the same thing.
 
 ## 5. Add the matching deterministic check when useful
 
-If the behavior is cheap to assert in the validation script, add a line to `tests/validate-harness.sh`.
+If the behavior is cheap to assert in the validation script, add a line to `just harness-validate`.
 
 That script is the scaffold guardrail. The eval markdown explains the contract. The shell check proves it in CI.
 
 ## 6. Rerun proof
 
 ```bash
-python scripts/harness.py validate
-bash tests/validate-harness.sh
+just harness-validate
+just harness-validate
 just ci
 ```
 

@@ -249,7 +249,7 @@ pub fn run_federation(root: &std::path::Path, action: FederationAction) -> Resul
                         serde_json::to_string_pretty(&serde_json::json!({
                             "verified": true,
                             "event_type": envelope.event_type,
-                            "namespace": envelope.namespace,
+                            "namespace": envelope.namespace(),
                         }))?
                     );
                     Ok(ExitCode::SUCCESS)

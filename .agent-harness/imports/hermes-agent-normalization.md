@@ -15,11 +15,11 @@ The local harness incorporates selected process lessons from `NousResearch/herme
 
 The imported behavior is normalized into local artifacts instead of runtime dependencies:
 
-- `python scripts/harness.py trace distill <trace>` emits a structured learning review packet.
+- `just harness-trace-distill <trace>` emits a structured learning review packet.
 - `.agent-harness/reflections/learning-review-template.yaml` defines the packet shape.
 - `HARNESS_SPEC.md` and `docs/specs/memory-system.md` define provenance and learning-review requirements.
-- `tests/validate-harness.sh` enforces the command surface and packet availability.
+- `just harness-validate` enforces the command surface and packet availability.
 
 ## Validation
 
-`bash tests/validate-harness.sh` checks that the learning review template exists, the trace distillation command is wired into the CLI surface, and a smoke trace can be distilled into a packet that includes `learning_review` and `provenance`.
+`just harness-validate` checks that the learning review template exists, the trace distillation command is wired into the CLI surface, and a smoke trace can be distilled into a packet that includes `learning_review` and `provenance`.

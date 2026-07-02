@@ -7,7 +7,7 @@ Agents fail when they burn the context window on raw logs, broad searches, and t
 The main entry point is:
 
 ```bash
-python scripts/harness.py context-plan "task"
+just harness-context-plan "task"
 ```
 
 That command combines the semantic route with local context policy. It tells the agent what to read first, how to contain output, and where continuity belongs.

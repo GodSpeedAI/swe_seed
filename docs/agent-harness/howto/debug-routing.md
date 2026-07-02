@@ -7,7 +7,7 @@ Use this when the semantic router picks the wrong route or the route result is t
 Run the exact task text through the router:
 
 ```bash
-python scripts/harness.py route "task text"
+just harness-route "task text"
 ```
 
 Do not paraphrase until you have seen the current result.
@@ -46,15 +46,15 @@ Bad fixes are broad:
 
 ## 4. Add a deterministic check
 
-If the route contract changes, add a conformance eval and a line in `tests/validate-harness.sh`.
+If the route contract changes, add a conformance eval and a line in `just harness-validate`.
 
 ## 5. Rerun proof
 
 At minimum:
 
 ```bash
-python scripts/harness.py validate
-bash tests/validate-harness.sh
+just harness-validate
+just harness-validate
 ```
 
 Run `just ci` before claiming completion.

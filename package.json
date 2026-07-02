@@ -9,7 +9,7 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "lint": "prettier --check .",
-    "test": "bash tests/validate-harness.sh"
+    "test": "just test"
   },
   "devDependencies": {
     "prettier": "^3.5.3"

@@ -13,4 +13,4 @@ Required seed fields:
 - `prototype_goal`
 
 The reference implementation accepts JSON or simple YAML objects. A minimal example lives in
-`tests/validate-harness.sh` and is used as the fabrication smoke run.
+`just harness-validate` and is used as the fabrication smoke run.

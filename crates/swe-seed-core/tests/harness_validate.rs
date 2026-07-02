@@ -66,7 +66,7 @@ fn duplicate_skill_id_and_unresolved_route_skill_are_caught() {
     // a route that requires a skill that does not exist.
     fs::write(
         h.join("routes/research.json"),
-        r#"{"id":"research","job_type":"research","required_skills":["ghost-skill"]}"#,
+        r#"{"id":"research","job_type":"research","required_skills":["ghost-skill"],"proof":["python scripts/harness.py validate"]}"#,
     )
     .unwrap();
 
@@ -79,6 +79,10 @@ fn duplicate_skill_id_and_unresolved_route_skill_are_caught() {
     assert!(
         joined.contains("required_skill not found: ghost-skill"),
         "expected unresolved skill: {joined}"
+    );
+    assert!(
+        joined.contains("proof references removed command surface"),
+        "expected removed proof command error: {joined}"
     );
     fs::remove_dir_all(&root).ok();
 }

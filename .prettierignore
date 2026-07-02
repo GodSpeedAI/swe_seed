@@ -5,6 +5,8 @@ docs/specs/
 docs/agent-harness/
 .sops.yaml
 justfile
+.omc/
+.serena/
 # Generated fixtures / golden captures must match CLI output byte-for-byte.
 tests/fixtures/
 .target/
