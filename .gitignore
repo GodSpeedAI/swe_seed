@@ -32,8 +32,6 @@ node_modules/
 .agent-hooks/artifacts/
 .agent-hooks/index/
 
-.agents/
-
 # sops plaintext and local age keys
 *.dec.*
 *.plain.*

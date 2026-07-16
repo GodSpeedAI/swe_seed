@@ -45,7 +45,8 @@ entry_n.hash = SHA256(entry_n.payload_json ‖ entry_{n-1}.hash)
 tamper-*evident* against partial edits, not tamper-*resistant* against a full
 rewrite by the writer. Full resistance arrives only when the chain root is
 **anchored outside the writer's control** — which is exactly what the signature
-+ SEA-Forge verification provide.
+
+- SEA-Forge verification provide.
 
 ## Ed25519 signing (mutual)
 
