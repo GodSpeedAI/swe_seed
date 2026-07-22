@@ -46,6 +46,7 @@ Test-suite integrity is sound: no `assert!(true)`, no `unimplemented!`, no `todo
 ### F1 — CRITICAL: The normative specs and the plan are not in version control
 
 **Evidence**
+
 ```
 $ git check-ignore .agents/specs/0013-eval-and-proof.md .agents/plans/0001-swe-seed-v0-1-implementation.md .agents/CURRENT_STATUS.md
 .agents/specs/0013-eval-and-proof.md
@@ -54,6 +55,7 @@ $ git check-ignore .agents/specs/0013-eval-and-proof.md .agents/plans/0001-swe-s
 $ git ls-files | grep -cE "00(0[1-9]|1[0-9])-[a-z]"
 0
 ```
+
 - `.gitignore` line 32: `.agents/` — the entire local-memory tree is ignored.
 - The 19 numbered specs (`0001`…`0019`) exist **only** in `.agents/specs/`.
 - The implementation plan (`0001-swe-seed-v0-1-implementation.md`) exists **only** in `.agents/plans/`.
@@ -71,6 +73,7 @@ Either (a) move `.agents/specs/` and `.agents/plans/` under `docs/` and commit t
 ### F2 — CRITICAL: Concurrent multi-agent editing with no coordination
 
 **Evidence**
+
 ```
 $ git log --oneline -6
 ff93c7c Address review feedback for CLI hardening
@@ -80,6 +83,7 @@ c2e4ed2 Implement Phase 9 host adapters with review hardening
 be9a724 Implement Phase 7 fabricator layer with chain-integrity gate   ← my commit
 6278a50 Regenerate skill render targets; update subtask log           ← my commit
 ```
+
 - `204b7ac` (Phase 8 federation), `c2e4ed2` (Phase 9 host adapters), `ff93c7c` (CLI refactor) were committed **between** my Phase 8 session and now. I did not make them.
 - My Phase 8 `envelope.rs` doc comment (`//! Pure port of agentic_capability_loop/adapters.py _load_hash / _event`) is verbatim in the tree — so my uncommitted Phase 8 work was **folded into a commit by another writer**.
 - The CLI I edited in Phases 6–8 (monolithic `cli.rs` with my `run_fabricate`/`run_run`/`run_federation`) was **refactored out from under me** into `context_cli.rs`, `doctor_cli.rs`, …, `federation_cli.rs`, `host_cli.rs` (`grep -c "fn run_fabricate" cli.rs` = 0).
@@ -110,6 +114,7 @@ Direct answer to the question asked: they do not *conflict* in purpose (`.agents
 **The real conflict is the specs seam (F1) plus the duplicated open-questions.** The rest is benign separation *if* the operating model were single-writer. Under concurrent writers (F2), the split-brain becomes a live hazard because each writer's `.agents/` is its own divergent reality while `.agent-harness/memory/` is shared-committed.
 
 **Evidence**
+
 ```
 $ ls -la .agent-harness/memory/open-questions.md .agents/OPEN_QUESTIONS.md
 -rw-r--r--  .agent-harness/memory/open-questions.md  1245  May 24 23:39
@@ -117,6 +122,7 @@ $ ls -la .agent-harness/memory/open-questions.md .agents/OPEN_QUESTIONS.md
 ```
 
 **Recommendation**
+
 1. Resolve the specs seam (F1). 2. Collapse the two `open-questions` files into one committed location (`.agent-harness/memory/open-questions.md` is the one route cards read; make `.agents/OPEN_QUESTIONS.md` a symlink or delete it). 3. Document the `.agents/` = disposable / `.agent-harness/` = committed contract in `AGENTS.md` explicitly (it's implied, not stated).
 
 ---
@@ -124,24 +130,28 @@ $ ls -la .agent-harness/memory/open-questions.md .agents/OPEN_QUESTIONS.md
 ### F4 — Phase 10 (Python cutover) is not done, and the plan's sequence is internally risky
 
 **Evidence**
+
 ```
 $ ls scripts/harness.py scripts/agent_hooks.py scripts/fabricate.py .strategy/strategy.py
 scripts/harness.py  scripts/agent_hooks.py  scripts/fabricate.py  .strategy/strategy.py   ← all present
 $ grep -rn "harness.py" scripts/ci.sh justfile tests/validate-harness.sh | wc -l
 40+ references
 ```
+
 - `just ci` → `scripts/ci.sh` → `python scripts/harness.py validate` + `bash tests/validate-harness.sh`.
 - `tests/validate-harness.sh` exercises the **full Python CLI lifecycle** (harness route/trace/eval/inspect/context-plan, fabricate new→generate→validate→handoff→proof→reflect→status, strategy new→…→decide). It is the Python parity harness.
 - The `justfile` has ~30 recipes that call `harness.py`, `fabricate.py`, `strategy.py`.
 
 **The cutover is genuinely blocked, not just unfinished:**
+
 1. `just ci` is green **only because the Python is still present**. Remove `harness.py` and `just ci` breaks (ci.sh calls it).
 2. The Rust binary has **byte-parity with Python for exactly one CLI**: `route` (`tests/route_golden.rs` vs a captured Python record). The other Rust CLIs produce **Rust-idiomatic output** (e.g. `fabricate` writes JSON artifacts; the Python `fabricate.py` writes Markdown+YAML). So `validate-harness.sh` cannot be re-pointed at the Rust binary without rewriting it, and rewriting it requires byte-parity that was never a goal of Phases 1–9 (contracts-as-data, spec 0019).
 3. The plan's Phase 10 sequence runs `just ci` *before* the `git rm` and only re-runs `cargo test` after — i.e. it **accepts `just ci` breaks post-removal**. That leaves the repo with no green CI command until `ci.sh`/`validate-harness.sh`/the `justfile` are rewired to Rust. The plan does not specify that rewire.
 
 **Recommendation**
 Treat Phase 10 as a **cutover project**, not a single phase:
-1. Decide what `just ci` should mean post-cutover (probably: `cargo test` + a Rust `harness validate` + `cargo build --release` smoke). 
+
+1. Decide what `just ci` should mean post-cutover (probably: `cargo test` + a Rust `harness validate` + `cargo build --release` smoke).
 2. Port the parts of `harness.py validate` that check **harness structure** (routes resolvable, skills valid, render-target canonical-source notices, no duplicate content) into a Rust command — that is the one piece of Python validation with no Rust equivalent. (~150 lines of `harness.py`, the block at lines 1470–1496.)
 3. Only then `git rm` the Python and delete/rewrite `validate-harness.sh` + the Python `justfile` recipes.
 4. Until then, **do not delete the Python** — it is load-bearing for `just ci`.
@@ -151,6 +161,7 @@ Treat Phase 10 as a **cutover project**, not a single phase:
 ### F5 — "baml_parity proves every Rust type matches its `.baml` contract" is **partially true**
 
 **Evidence**
+
 ```
 baml_parity: 12 pending type(s) across harness/fabricator (later phases):
 ["fabricator:FabricatorValidationRequirement", "fabricator:FabricatorReflectionTemplate",
@@ -159,6 +170,7 @@ baml_parity: 12 pending type(s) across harness/fabricator (later phases):
  "harness:ValidationRequirement", "harness:HarnessNeed", "harness:HarnessADR",
  "harness:RegenerationInput", "harness:RegenerationPlan"]
 ```
+
 - **Every *registered* Rust type matches its `.baml` counterpart** (the parity test is real and caught two drift bugs during Phase 6/7 implementation).
 - But **12 `.baml` types have no Rust implementation**: 5 fabricator learning-analogues (parallel to Phase-6 types, unneeded because the fabricator reuses the harness learning types at runtime) and 7 harness types (`ArtifactStatus`, `ProofDisposition`, `ValidationRequirement`, `HarnessNeed`, `HarnessADR`, `RegenerationInput`, `RegenerationPlan`).
 - `ValidationRequirement` is the interesting one: it is a named `.baml` class used by many types, but each Rust module defines its **own local copy** (context, hooks, route, skill, trace, learning each have one) and **none** are registered. So the parity test cannot catch drift between those local copies and `.baml`.
@@ -173,9 +185,11 @@ Either (a) register the 7 harness types (they're small) and consolidate `Validat
 ### F6 — Release build exceeds a 120 s budget (Phase 10 friction)
 
 **Evidence**
+
 ```
-$ cargo build --release   # timed out after 120000 ms in the tool
+cargo build --release   # timed out after 120000 ms in the tool
 ```
+
 `rusqlite` (bundled) + `uuid` + `flate2` + full optimization on a workspace = a heavy first-time release build. Phase 10's command sequence starts with `cargo build --release` and then runs every smoke against the release binary.
 
 **Severity:** Low–Medium (productivity, not correctness). The debug binary passes the identical standalone smoke (verified: `seed assemble`=0, `route`=0, `eval run`=0, `doctor`=0, `fabricate`=0, all under `SEA_ROOT=/nonexistent`).
@@ -188,10 +202,12 @@ Either raise the build timeout in CI/agent budgets, or run Phase 10 smoke agains
 ### F7 — Federation authority gate is implemented and tested but **not wired** into any call site
 
 **Evidence**
+
 ```
 $ grep -rn "authority_gate\|federation::" crates/swe-seed-core/src/hooks crates/swe-seed-core/src/doctor
 (empty)
 ```
+
 - `federation::authority_gate()` exists (local/delegate/hybrid, fail-closed on timeout for `Dangerous`) and is tested (`tests/federation_parity.rs::authority_modes_honor_contract`).
 - But `hooks/policy.rs::gate_action` (the real permission gate) does **not** call it. The federation gate has zero production callers.
 
@@ -205,6 +221,7 @@ Either wire `authority_gate` into `hooks::gate_action` behind `FederationConfig:
 ### F8 — Status/debt tracking has diverged and is no longer trustworthy
 
 **Evidence**
+
 - `.agents/CURRENT_STATUS.md` (my local record) stops at Phase 8; it does **not** mention Phase 9 host adapters, the CLI refactor, or commits `204b7ac`/`c2e4ed2`/`ff93c7c`.
 - `.agents/DEBT.md` was reset to "No active technical debt is currently recorded" by another writer, while my copy held four entries (root-specs, provenance cross-check, learn-promote gate, render-target notice).
 - The render-target debt is now **resolved** (`harness validate` exits 0 — verified) but was never marked resolved in the reset DEBT file because the file was wiped.
