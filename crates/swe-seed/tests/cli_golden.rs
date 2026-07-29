@@ -133,6 +133,33 @@ fn regen() {
     println!("wrote golden fixtures to {}", dir.display());
 }
 
+/// Gateway CLI help + command stability (spec 0020). The command family must
+/// exist and render deterministically; proof targets run real live checks.
+#[test]
+fn gateway_help_and_commands_are_stable() {
+    let help = run(&["gateway", "--help"]);
+    for sub in ["doctor", "list", "proof", "import", "serve"] {
+        assert!(
+            help.contains(&format!("  {sub} ")),
+            "gateway --help missing subcommand '{sub}'"
+        );
+    }
+    let doctor = run(&["gateway", "doctor"]);
+    // every capability check reports implemented after the staged build-out
+    assert!(doctor.contains("\"name\": \"models\""));
+    assert!(doctor.contains("\"name\": \"fabricator_evidence\""));
+    assert!(!doctor.contains("\"implemented\": false"));
+    // proof targets run real live checks and pass
+    let routing = run(&["gateway", "proof", "--routing"]);
+    assert!(routing.contains("\"passed\": true"));
+    assert!(routing.contains("\"target\": \"routing\""));
+    let reload = run(&["gateway", "proof", "--reload"]);
+    assert!(reload.contains("\"passed\": true"));
+    let concurrency = run(&["gateway", "proof", "--concurrency", "16"]);
+    assert!(concurrency.contains("\"passed\": true"));
+    assert!(concurrency.contains("\"overrun\": false"));
+}
+
 #[test]
 fn release_binary_smoke() {
     // A behavior parity smoke that runs against whichever binary SWE_SEED_BIN

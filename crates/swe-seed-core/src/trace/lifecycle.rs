@@ -3,11 +3,11 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 
 use super::record::TraceRecord;
-use crate::route::{build_route_result, harness_dir, write_route_decision};
+use crate::route::{build_route_result, write_route_decision};
 use crate::util::{redact_secrets, slugify, utc_now, utc_stamp};
 
 fn ledger_append_result(
@@ -41,29 +41,60 @@ fn ledger_append(root: &Path, trace_id: &str, event_type: &str, payload_json: &s
     }
 }
 
-fn records_dir(root: &Path) -> PathBuf {
-    harness_dir(root).join("traces").join("records")
+fn records_dir(root: &Path) -> Result<PathBuf> {
+    let mut dir = root
+        .canonicalize()
+        .with_context(|| format!("resolve repository root {}", root.display()))?;
+    for component in [".agent-harness", "traces", "records"] {
+        dir.push(component);
+        match std::fs::symlink_metadata(&dir) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                bail!(
+                    "trace records directory contains symlink: {}",
+                    dir.display()
+                );
+            }
+            Ok(metadata) if metadata.is_dir() => {}
+            Ok(_) => bail!("trace records path is not a directory: {}", dir.display()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                std::fs::create_dir(&dir)
+                    .with_context(|| format!("create trace records directory {}", dir.display()))?;
+            }
+            Err(error) => return Err(error).with_context(|| format!("inspect {}", dir.display())),
+        }
+    }
+    Ok(dir)
 }
 
-/// Resolve a trace id/path to its record file (port of resolve_trace_path).
-pub fn resolve_trace_path(root: &Path, trace: &str) -> PathBuf {
-    let candidate = PathBuf::from(trace);
-    if candidate.is_file() {
-        return candidate;
-    }
-    let name = if trace.ends_with(".json") {
-        trace.to_string()
-    } else {
-        format!("{trace}.json")
+/// Resolve a generated trace id to its repository-local record file.
+pub fn resolve_trace_path(root: &Path, trace: &str) -> Result<PathBuf> {
+    let trace = trace.strip_suffix(".json").unwrap_or(trace);
+    let Some((stamp, slug)) = trace.split_once('-') else {
+        bail!("trace id must be a generated timestamp-slug");
     };
-    records_dir(root).join(name)
+    let valid_stamp = stamp.len() == 16
+        && stamp.as_bytes().get(8) == Some(&b'T')
+        && stamp.as_bytes().get(15) == Some(&b'Z')
+        && stamp
+            .bytes()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 8 | 15) || byte.is_ascii_digit());
+    if !valid_stamp
+        || slug.is_empty()
+        || !slug
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+    {
+        bail!("trace id must be a generated timestamp-slug");
+    }
+    Ok(records_dir(root)?.join(format!("{trace}.json")))
 }
 
 /// `trace start`: route the task, write a route decision + trace record.
 /// Returns the printed result `{ trace_id, trace_record, route_decision_record }`.
 pub fn start(root: &Path, task: &str) -> Result<Value> {
     let route_result = build_route_result(root, task)?;
-    std::fs::create_dir_all(records_dir(root)).ok();
+    let records_dir = records_dir(root)?;
     let trace_id = format!("{}-{}", utc_stamp(), slugify(&redact_secrets(task)));
     let route_decision_record = write_route_decision(root, task, &route_result)?;
     // Genesis: the routing decision is the first chain entry (tamper-evident).
@@ -89,7 +120,7 @@ pub fn start(root: &Path, task: &str) -> Result<Value> {
         unresolved_risks: Vec::new(),
         completion_claim: None,
     };
-    let path = records_dir(root).join(format!("{trace_id}.json"));
+    let path = records_dir.join(format!("{trace_id}.json"));
     record.save(&path)?;
     Ok(json!({
         "trace_id": trace_id,
@@ -99,17 +130,45 @@ pub fn start(root: &Path, task: &str) -> Result<Value> {
 }
 
 fn load_for_update(root: &Path, trace: &str) -> Result<(PathBuf, TraceRecord)> {
-    let path = resolve_trace_path(root, trace);
-    if !path.is_file() {
+    let path = resolve_trace_path(root, trace)?;
+    let metadata = std::fs::symlink_metadata(&path)
+        .with_context(|| format!("trace record not found: {trace}"))?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
         bail!("trace record not found: {trace}");
     }
     let rec = TraceRecord::load(&path)?;
+    let trace_id = trace.strip_suffix(".json").unwrap_or(trace);
+    if rec.trace_id != trace_id {
+        bail!("trace record id does not match requested trace");
+    }
+    let db = crate::trace_ledger::default_db_path(root);
+    let conn = crate::trace_ledger::open(&db)?;
+    if !crate::trace_ledger::has_genesis(&conn, trace_id) {
+        bail!("trace record has no routing genesis");
+    }
+    let genesis_payload: serde_json::Value = conn
+        .query_row(
+            "SELECT payload_json FROM chain_entries WHERE trace_id = ?1 AND seq = 0 AND event_type = 'RouteSelected'",
+            rusqlite::params![trace_id],
+            |row| row.get::<_, String>(0),
+        )
+        .context("load trace routing genesis")
+        .and_then(|payload| serde_json::from_str(&payload).context("parse trace routing genesis"))?;
+    if genesis_payload.get("task").and_then(Value::as_str) != Some(rec.task.as_str())
+        || genesis_payload.get("job_type").and_then(Value::as_str)
+            != Some(rec.route.job_type.as_str())
+        || genesis_payload.get("route_card").and_then(Value::as_str)
+            != Some(rec.route.route_card.as_str())
+    {
+        bail!("trace record does not match routing genesis");
+    }
     Ok((path, rec))
 }
 
 /// `trace append <trace> <note>` → appends a `trace.note` event.
 pub fn append(root: &Path, trace: &str, note: &str) -> Result<Value> {
     let (path, mut record) = load_for_update(root, trace)?;
+    let note = redact_secrets(note);
     record.events.push(json!({
         "at": utc_now(),
         "type": "trace.note",
@@ -140,6 +199,17 @@ pub fn checkpoint(
     unresolved_risks: &[String],
 ) -> Result<Value> {
     let (path, mut record) = load_for_update(root, trace)?;
+    let stage = redact_secrets(stage);
+    let summary = redact_secrets(summary);
+    let next_action = next_action.map(redact_secrets);
+    let artifacts: Vec<String> = artifacts
+        .iter()
+        .map(|value| redact_secrets(value))
+        .collect();
+    let unresolved_risks: Vec<String> = unresolved_risks
+        .iter()
+        .map(|value| redact_secrets(value))
+        .collect();
     let checkpoint = json!({
         "at": utc_now(),
         "type": "trace.checkpoint",
@@ -151,7 +221,7 @@ pub fn checkpoint(
     });
     record.events.push(checkpoint.clone());
     if !unresolved_risks.is_empty() {
-        record.unresolved_risks = unresolved_risks.to_vec();
+        record.unresolved_risks = unresolved_risks;
     }
     record.save(&path)?;
     ledger_append(
@@ -190,15 +260,17 @@ pub fn finish(
 ) -> Result<Value> {
     let (path, mut record) = load_for_update(root, trace)?;
     let now = utc_now();
+    let claim = redact_secrets(claim);
     record.completion_claim = Some(super::record::CompletionClaim {
         at: now.clone(),
-        claim: claim.to_string(),
+        claim: claim.clone(),
     });
     if let Some(cmd) = command {
+        let result = result.map(redact_secrets);
         record.verification.push(json!({
             "at": now,
-            "command": cmd,
-            "result": result.unwrap_or("not recorded"),
+            "command": redact_secrets(cmd),
+            "result": result.unwrap_or_else(|| "not recorded".into()),
         }));
     }
     record.save(&path)?;

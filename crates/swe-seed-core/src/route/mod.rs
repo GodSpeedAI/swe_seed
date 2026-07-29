@@ -9,7 +9,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::contracts::parity::{BamlParity, BamlShape};
-use crate::util::{redact_secrets, slugify, utc_now, utc_stamp};
+use crate::util::{redact_secrets, secure_write, slugify, utc_now, utc_stamp};
 
 /// The 11 required job types (AGENTS.md). Each must resolve to a route card.
 pub const REQUIRED_JOB_TYPES: &[&str] = &[
@@ -290,8 +290,6 @@ fn rel(root: &Path, path: &Path) -> String {
 
 /// Write a route-decision record; returns its repo-relative path string.
 pub fn write_route_decision(root: &Path, task: &str, result: &RouteResult) -> Result<String> {
-    let dir = route_decisions_dir(root);
-    std::fs::create_dir_all(&dir).with_context(|| format!("create {}", dir.display()))?;
     let trace_id = format!("{}-{}", utc_stamp(), slugify(&redact_secrets(task)));
     let decision = serde_json::json!({
         "trace_id": trace_id,
@@ -300,11 +298,12 @@ pub fn write_route_decision(root: &Path, task: &str, result: &RouteResult) -> Re
         "route": result,
         "decision_basis": DECISION_BASIS,
     });
-    let path = dir.join(format!("{trace_id}.json"));
-    std::fs::write(
-        &path,
-        format!("{}\n", serde_json::to_string_pretty(&decision)?),
-    )
-    .with_context(|| format!("write {}", path.display()))?;
+    let path = secure_write(
+        root,
+        &[".agent-harness", "traces", "route-decisions"],
+        &format!("{trace_id}.json"),
+        format!("{}\n", serde_json::to_string_pretty(&decision)?).as_bytes(),
+        0o644,
+    )?;
     Ok(rel(root, &path))
 }

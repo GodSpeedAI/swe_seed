@@ -1,5 +1,42 @@
 # Current Status
 
+Last updated: 2026-07-29
+Note: `.agents/` is non-authoritative scratch (AGENTS.md). Verify against committed sources.
+
+Outcome: Closed the remaining MCPGate runtime gaps on top of the staged 1–10 build-out.
+Added the real `gateway serve` daemon (spec 0020 §5, §8): a bounded, dependency-free HTTP/1.1
+JSON-RPC server (`gateway/serve.rs`) that runs every request through the fail-closed
+`handle_request` pipeline (validate → policy/governance/route → audit) with redaction loaded
+from `.agent-hooks/config.yaml` (fallback to a conservative built-in policy), 1 MiB request
+size cap + depth-64 cap (`gateway/jsonrpc.rs`), loopback default with non-loopback rejected at
+bind, `--once` for deterministic tests. Namespaced calls resolve exactly one backend and forward
+real params; `tools/list` returns the local compact catalog. Also: half-open breaker tightened to
+a single concurrent probe (`health.rs`), `consume_authority` local-mode-ignores-incoming test
+(`federation_proj.rs`). CLI: `gateway serve [--bind] [--port] [--once]`; Doctor reports serve
+implemented; cli_golden expects `serve`.
+
+## Current proof
+
+- `cargo test -q --workspace` → 328 passed, 0 failed (14 new gateway::serve tests; +4 redaction,
+  +14 jsonrpc, +1 health single-probe, +1 federation-local-ignores-incoming).
+- `cargo build --release -q -p swe-seed` → 0 warnings.
+- `just ci` → exit 0.
+- Live binary smoke (`target/debug/swe-seed gateway serve --port 0 --once`): `tools/call fs.read`
+  → HTTP 200 `{"result":{"ok":true}}` (forwarded through stdio backend, id preserved);
+  `tools/list` → HTTP 200 local catalog discovery; audit.jsonl shows BOTH records written
+  before completion (allow, backend=fs, 128-bit session for the call; allow discovery).
+- Subagent (general) did the breaker tightening + federation test in parallel; its diff was
+  verified against the forbidden-file list and re-proven by the main agent before integrating.
+
+## Current next action
+
+The runtime gap-resolution is complete and proven. Remaining Minor/note items (not blocking):
+relocate `MCPServer` to `swe_seed::capability::mcp` per spec 0003 when the registry grows an MCP
+capability type; serve uses a single worker (concurrency=1) — see DEBT.md for the throughput
+upgrade path. The working tree also carries unrelated filesystem-integrity hardening changes
+(util::secure_write, route/trace/federation_cli edits, Cargo.lock) that should be committed
+separately from the gateway work.
+
 Last updated: 2026-07-02
 Note: `.agents/` is non-authoritative scratch (AGENTS.md). Verify against committed sources.
 
@@ -87,16 +124,19 @@ Outcome: Implement the 6 audit-remediation items (audit: `.agents/reports/AUDIT_
 6. **Phase 10 cutover (Python removed).** `scripts/harness.py validate` load-bearing subset ported to Rust `swe-seed harness` (`crates/swe-seed-core/src/harness_validate.rs` + `harness_cli.rs`); `scripts/ci.sh` rewired to `cargo run -p swe-seed -- harness` + `cargo test`; `tests/validate-harness.sh` deleted; justfile rewired to Rust; `scripts/agent-hooks` launcher + 4 Python files removed (`harness.py`, `agent_hooks.py`, `fabricate.py`, `.strategy/strategy.py`). `.prettierignore` added for normative docs. `just ci` green post-removal.
 
 ## Proof
+
 - `cargo test` → 158 passed, 0 failed; `cargo build` → 0 warnings.
 - `just ci` → exit 0 (doctor + format + lint + Rust validate + cargo test).
 - `cargo run -p swe-seed -- harness` → "Harness validation passed" (behavior-preserving vs the former Python validate).
 - `SEA_ROOT=/nonexistent` standalone smoke still green (seed/route/eval/doctor/fabricate).
 
 ## Surfaced gaps (deferred, not silently dropped)
+
 - The **doctrine phrase/word-count checks** from `harness.py validate` (behavior-shaping phrases in AGENTS.md, playbook min-word counts, 9arm phrases, memory phrases, reflection/eval phrase checks) were NOT ported — they are content-quality nudges, not structural integrity, and are config-driven. `swe-seed harness` covers the integrity spine (specs/baml/dirs/skills/routes/render-targets/incomplete-markers). Port the doctrine checks in a follow-up if that behavior-shaping coverage is wanted.
 - `scripts/sync-learning-store.sh` repointed to `cargo run -p swe-seed -- trace distill`; its JSON-shape assumption (`learning_review` key) was not re-verified against the Rust distill output.
 - `docs/**/*.md` and root specs still prose-reference the old Python CLIs (stale documentation, not load-bearing).
 - Audit F2 (concurrent multi-agent editing) is a **process** decision, not code — needs an operating-model choice (single-writer vs worktree-per-agent).
 
 ## Next
+
 Decide on concurrent-writer model (audit F2); optionally port the doctrine checks; Phase 10 final parity gate (release build + golden CLI parity beyond `route`).

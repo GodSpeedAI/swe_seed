@@ -21,7 +21,7 @@ pub use consume::{
 pub use context_client::{ContextKernelClient, ContextPacket};
 pub use emit::{
     dispatch, emit_context_required, emit_proof_completed, emit_proof_started, emit_route_selected,
-    emit_work_requested, Dispatch, PROOF_TYPE_LIVE, PROOF_TYPE_SIMULATION,
+    emit_settlement_recorded, emit_work_requested, Dispatch, PROOF_TYPE_LIVE, PROOF_TYPE_SIMULATION,
 };
 pub use envelope::{
     fallback_hash, idempotency_key, make_event, resolve_domain_model_hash, resolve_from,

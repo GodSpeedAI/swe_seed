@@ -123,6 +123,26 @@ pub fn emit_proof_completed(
     make_event("ProofCompleted", payload, hash)
 }
 
+/// `SettlementRecorded` — a completed gateway request outcome was settled
+/// (spec 0020 §13; GodSpeed is a log-only consumer in v0.1).
+pub fn emit_settlement_recorded(
+    hash: &str,
+    settlement_id: &str,
+    work_request_id: &str,
+    outcome: &str,
+    proof_ref: Option<&str>,
+    recorded_at: &str,
+) -> Envelope {
+    let payload = payload_from(json!({
+        "settlement_id": settlement_id,
+        "work_request_id": work_request_id,
+        "outcome": outcome,
+        "proof_ref": proof_ref,
+        "recorded_at": recorded_at,
+    }));
+    make_event("SettlementRecorded", payload, hash)
+}
+
 /// Dispatch outcome: whether the envelope reached its sink.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Dispatch {

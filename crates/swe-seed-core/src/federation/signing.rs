@@ -80,37 +80,25 @@ pub fn write_keypair(
     key_id: &str,
     secret: &SigningKey,
 ) -> std::io::Result<(std::path::PathBuf, std::path::PathBuf)> {
-    let pub_path = public_key_path(root, key_id)?;
-    let priv_path = private_key_path(root, key_id)?;
-    if let Some(p) = pub_path.parent() {
-        std::fs::create_dir_all(p)?;
-    }
-    if let Some(p) = priv_path.parent() {
-        std::fs::create_dir_all(p)?;
-    }
-    std::fs::write(&pub_path, public_key_b64(&secret.verifying_key()))?;
-    write_private_key(&priv_path, B64.encode(secret.to_bytes()).as_bytes())?;
+    let root = root.canonicalize()?;
+    let key_id = validate_key_id(key_id)?;
+    let public_key = public_key_b64(&secret.verifying_key());
+    let pub_path = crate::util::secure_write(
+        &root,
+        &[".agent-harness", "federation", "keys"],
+        &format!("{key_id}.pub"),
+        public_key.as_bytes(),
+        0o644,
+    )?;
+    let private_key = B64.encode(secret.to_bytes());
+    let priv_path = crate::util::secure_write(
+        &root,
+        &[".swe-seed", "federation", "keys"],
+        &format!("{key_id}.key"),
+        private_key.as_bytes(),
+        0o600,
+    )?;
     Ok((pub_path, priv_path))
-}
-
-#[cfg(unix)]
-fn write_private_key(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    use std::os::unix::fs::OpenOptionsExt;
-
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .mode(0o600)
-        .open(path)?;
-    file.write_all(bytes)
-}
-
-#[cfg(not(unix))]
-fn write_private_key(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
-    std::fs::write(path, bytes)
 }
 
 /// Load a signing key from a private-key file. Accepts either:

@@ -12,6 +12,7 @@ use crate::doctor_cli::run_doctor_cmd;
 use crate::eval_cli::{run_eval_cmd, run_validate, EvalAction};
 use crate::fabricate_cli::{run_fabricate, FabricateAction};
 use crate::federation_cli::{run_federation, run_run, FederationAction, FederationFlag};
+use crate::gateway_cli::{run_gateway, GatewayAction};
 use crate::hooks_cli::{run_agent_hooks, HooksAction};
 use crate::host_cli::{self, HostSelection};
 use crate::learning_cli::{run_adapt, run_learn, run_reflect, LearnAction};
@@ -134,6 +135,11 @@ enum Command {
     },
     /// Harness structure validation (CI integrity; Rust port of harness validate)
     Harness,
+    /// MCPGate runtime: capability/tool gateway plane (spec 0020)
+    Gateway {
+        #[command(subcommand)]
+        action: GatewayAction,
+    },
     /// Routing enforcement gate: exits 0 iff <trace> has a RouteSelected genesis
     /// (and the chain verifies, with --verify)
     Gate {
@@ -201,6 +207,7 @@ pub fn run() -> Result<ExitCode> {
         Command::Run { task, federation } => run_run(&root, task, federation),
         Command::Federation { action } => run_federation(&root, action),
         Command::Harness => crate::harness_cli::run_harness_validate(&root),
+        Command::Gateway { action } => run_gateway(&root, action),
         Command::Gate { trace, verify } => crate::gate_cli::run_gate(&root, &trace, verify),
     }
 }

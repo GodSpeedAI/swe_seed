@@ -158,7 +158,7 @@ pub fn run_federation(root: &std::path::Path, action: FederationAction) -> Resul
                     return Ok(ExitCode::from(1));
                 }
             };
-            let trace_path = swe_seed_core::trace::lifecycle::resolve_trace_path(root, &trace);
+            let trace_path = swe_seed_core::trace::lifecycle::resolve_trace_path(root, &trace)?;
             let trace_record = match swe_seed_core::trace::TraceRecord::load(&trace_path) {
                 Ok(record) => record,
                 Err(e) => {
