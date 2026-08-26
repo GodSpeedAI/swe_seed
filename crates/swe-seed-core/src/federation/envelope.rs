@@ -24,6 +24,12 @@ pub const NAMESPACE: &str = "agentic_capability_loop";
 const MANIFEST_REL: &str =
     "docs/specs/domains/agentic_capability_loop/agentic_capability_loop.manifest.json";
 
+/// The manifest-relative path, for identity gates that must name what they
+/// could not resolve.
+pub(crate) fn manifest_rel() -> &'static str {
+    MANIFEST_REL
+}
+
 /// The fallback hash input — `sha256("agentic_capability_loop")` (Python parity).
 const FALLBACK_INPUT: &[u8] = b"agentic_capability_loop";
 
@@ -156,7 +162,7 @@ pub fn resolve_from(
     }
 }
 
-fn read_manifest_hash(path: &Path) -> Option<String> {
+pub(crate) fn read_manifest_hash(path: &Path) -> Option<String> {
     let bytes = std::fs::read(path).ok()?;
     let v: Value = serde_json::from_slice(&bytes).ok()?;
     v.get("meta")?
@@ -225,16 +231,138 @@ pub fn make_event(event_type: &str, payload: Map<String, Value>, hash: &str) -> 
 /// Content-derived dedup key (F-10). Mirrors SEA/GSA: sha256 over
 /// `"{correlation_id}|{event_type}|{canonical_payload_json}"`. Stable across
 /// re-wraps that reassign event_id/occurred_at but leave the payload intact.
-pub fn idempotency_key(
-    event_type: &str,
-    payload: &Value,
-    correlation_id: Option<&str>,
-) -> String {
+pub fn idempotency_key(event_type: &str, payload: &Value, correlation_id: Option<&str>) -> String {
     let payload_json = super::signing::canonical_payload_json(payload);
-    let content = format!("{}|{}|{}", correlation_id.unwrap_or(""), event_type, payload_json);
+    let content = format!(
+        "{}|{}|{}",
+        correlation_id.unwrap_or(""),
+        event_type,
+        payload_json
+    );
     let mut h = Sha256::new();
     h.update(content.as_bytes());
     format!("{:x}", h.finalize())
+}
+
+// --- T01: canonical-identity construction + causal derivation ---------------
+
+/// Provenance-chain entry prefix marking a causal parent envelope id
+/// (preregistration ENV-I4: derived envelopes MUST identify their parents).
+pub const CAUSALITY_PREFIX: &str = "caused_by:";
+
+/// Why an envelope could not be derived from declared parents.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DeriveError {
+    /// Causality requires at least one parent.
+    NoParents,
+    /// The same parent was declared twice.
+    DuplicateParent { event_id: String },
+    /// Frozen invariant ENV-I3: `work_request_id` is stable across one cycle.
+    /// A derived envelope may not declare a different correlation than its
+    /// parents carry.
+    CorrelationMismatch {
+        parent_work_request_id: Option<String>,
+        given: Option<String>,
+    },
+}
+
+impl std::fmt::Display for DeriveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoParents => write!(f, "derived envelopes require at least one causal parent"),
+            Self::DuplicateParent { event_id } => {
+                write!(f, "causal parent declared twice: {event_id}")
+            }
+            Self::CorrelationMismatch {
+                parent_work_request_id,
+                given,
+            } => write!(
+                f,
+                "correlation mismatch: parent carries {parent_work_request_id:?}, derivation declared {given:?}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for DeriveError {}
+
+/// Build a canonical v1 envelope whose `domain_model_hash` has passed the
+/// T01 identity gate. Unlike [`make_event`], this cannot stamp a fallback or
+/// placeholder digest: only a [`VerifiedDomainIdentity`] unlocks construction.
+pub fn make_event_verified(
+    event_type: &str,
+    payload: Map<String, Value>,
+    identity: &super::identity::VerifiedDomainIdentity,
+) -> Envelope {
+    make_event(event_type, payload, identity.as_str())
+}
+
+/// Derive a child envelope from one or more parent envelopes (ENV-I4/I3):
+///
+/// * every distinct parent id is recorded in `provenance.chain` as a
+///   `caused_by:<event_id>` entry;
+/// * the frozen correlation (`work_request_id`) is carried unchanged from the
+///   parents when they agree on one, and a caller-supplied correlation that
+///   disagrees is a [`DeriveError::CorrelationMismatch`].
+pub fn derive_event(
+    parents: &[&Envelope],
+    event_type: &str,
+    payload: Map<String, Value>,
+    hash: &str,
+    correlation: Option<&str>,
+) -> Result<Envelope, DeriveError> {
+    if parents.is_empty() {
+        return Err(DeriveError::NoParents);
+    }
+    let mut seen: Vec<&str> = Vec::with_capacity(parents.len());
+    for p in parents {
+        if seen.contains(&p.event_id.as_str()) {
+            return Err(DeriveError::DuplicateParent {
+                event_id: p.event_id.clone(),
+            });
+        }
+        seen.push(&p.event_id);
+    }
+    // ENV-I3: correlation stability. All agreeing parents fix the child's
+    // work_request_id; disagreement between given and parents is fatal.
+    let mut parent_correlation: Option<Option<&str>> = None;
+    for p in parents {
+        let w = p.work_request_id();
+        match parent_correlation {
+            None => parent_correlation = Some(w),
+            Some(prev) if prev != w => {
+                return Err(DeriveError::CorrelationMismatch {
+                    parent_work_request_id: w.map(str::to_string),
+                    given: correlation.map(str::to_string),
+                })
+            }
+            _ => {}
+        }
+    }
+    let fixed = parent_correlation.flatten();
+    if let (Some(given), Some(fixed)) = (correlation, fixed) {
+        if given != fixed {
+            return Err(DeriveError::CorrelationMismatch {
+                parent_work_request_id: Some(fixed.to_string()),
+                given: Some(given.to_string()),
+            });
+        }
+    }
+    let effective_correlation = fixed.or(correlation);
+
+    let mut child = make_event(event_type, payload, hash);
+    if let (Some(obj), Some(w)) = (child.payload.as_object_mut(), effective_correlation) {
+        obj.insert("work_request_id".into(), Value::String(w.to_string()));
+    }
+    // Record causality after construction (make_event built the base chain).
+    if let Some(prov) = child.provenance.as_mut() {
+        if let Some(chain) = prov.get_mut("chain").and_then(Value::as_array_mut) {
+            for id in seen {
+                chain.push(Value::String(format!("{CAUSALITY_PREFIX}{id}")));
+            }
+        }
+    }
+    Ok(child)
 }
 
 impl Envelope {
@@ -266,5 +394,31 @@ impl Envelope {
     /// The carried `trace_chain_root`, if any.
     pub fn trace_chain_root(&self) -> Option<&str> {
         self.payload.get("trace_chain_root").and_then(Value::as_str)
+    }
+
+    /// The frozen cycle correlation (`work_request_id`), if carried.
+    pub fn work_request_id(&self) -> Option<&str> {
+        self.payload.get("work_request_id").and_then(Value::as_str)
+    }
+
+    /// Causal parent envelope ids recorded in `provenance.chain`
+    /// (`caused_by:<event_id>` entries), in declaration order (ENV-I4).
+    pub fn causal_parents(&self) -> Vec<&str> {
+        let mut out = Vec::new();
+        if let Some(chain) = self
+            .provenance
+            .as_ref()
+            .and_then(|p| p.get("chain"))
+            .and_then(Value::as_array)
+        {
+            for entry in chain {
+                if let Some(s) = entry.as_str() {
+                    if let Some(id) = s.strip_prefix(CAUSALITY_PREFIX) {
+                        out.push(id);
+                    }
+                }
+            }
+        }
+        out
     }
 }

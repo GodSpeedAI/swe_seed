@@ -200,6 +200,25 @@ Optional fields:
 MCPGate MUST verify `pinned_hash` at call time when it is present. A hash mismatch returns a
 typed error and blocks forwarding.
 
+### Live Catalog Discovery
+
+The declared catalog (`MCPServer.catalog`) is the deterministic, hash-pinnable baseline. MCPGate
+MAY augment it by issuing live discovery (`tools/list`/`resources/list`/`prompts/list`) to
+registered backends. When live discovery is performed it MUST observe these rules:
+
+- Discovery runs at gateway startup and on each validated reload, not once per inbound client
+  request. The merged catalog is part of the compiled runtime snapshot.
+- A live entry is namespaced with the owning backend's namespace and is subject to the same
+  namespace-format and uniqueness validation as declared entries.
+- Declared entries win conflicts: when a declared entry and a live entry claim the same
+  namespaced name, the declared entry (with its `pinned_hash` and provenance) is authoritative.
+- A live entry that conflicts with a declared entry, fails validation, or is malformed MUST be
+  dropped and reported; it MUST NOT silently replace or suppress a declared entry.
+- Per-backend isolation: a discovery timeout, connection failure, or malformed response from one
+  backend MUST NOT break discovery for the other backends. An unavailable backend contributes no
+  live entries; its declared entries (if any) remain.
+- A live-only entry (no declared counterpart) is added to the catalog without a `pinned_hash`.
+
 ### GatewaySession
 
 `GatewaySession` is the per-client runtime sandbox.
@@ -408,6 +427,21 @@ Live reload is a post-v0.1 MCPGate runtime requirement. Reload MUST parse and va
 snapshot before applying it. In-flight requests continue on the snapshot they started with.
 Invalid reload keeps the last-known-good snapshot and emits `invalid_reload_error`.
 
+### Concurrency and Overload
+
+The serving endpoint MUST bound concurrency so that a single slow backend cannot exhaust process
+resources or indefinitely block other clients.
+
+- The gateway serves inbound requests through a bounded worker pool. The pool size is
+  implementation-defined but MUST be finite and documented; the default is 4 workers.
+- Work is dispatched through a bounded queue; when the queue is full, the gateway MUST reject the
+  request with HTTP 503 rather than spawning an unbounded number of threads.
+- Governance counters, audit writes, and breaker state remain exact under concurrency. The shared
+  runtime (`Arc`) relies on the existing internal locks of `Governance` and `AuditWriter`; no new
+  shared mutable state is introduced at the request boundary.
+- Two in-flight requests to independent backends MUST be able to overlap; two requests that
+  contend on a single session's call limit MUST still respect that limit exactly.
+
 ## 16. Import Contract
 
 MCPGate may import two categories into the registry:
@@ -510,6 +544,8 @@ Evidence failure:
 | Routing              | backend down for `backend.tool`               | `BackendUnavailable`; no alternate backend receives call                             |
 | Hash pin             | catalog definition changes after list         | call-time `CapabilityHashMismatch`                                                   |
 | Hot reload           | valid then invalid reload under load          | valid applies to future calls; invalid keeps last-known-good; in-flight calls finish |
+| Live discovery       | backend exposes a tool absent from its config | live entry added namespaced at startup; declared entry wins conflict; dropped live entry reported; one unavailable backend does not break the others |
+| Bounded concurrency  | two slow requests to independent backends     | requests overlap; queue is bounded; HTTP 503 under overload; governance/audit counts exact |
 | Semantic envelope    | online request emits configured outcome event | local audit cites envelope id and event type                                         |
 | Context Kernel       | `federation.context=external` timeout         | local ContextPack used, envelope timeout recorded                                    |
 | SEA Forge            | external deny in delegate mode                | `AuthorityChecked` denial blocks risky request                                       |
@@ -531,6 +567,9 @@ MCPGate is implemented in SWE_SEED only when:
 - per-backend health and circuit breakers prevent unbounded retries and never reroute
   namespaced tools;
 - hot reload uses validated snapshots and last-known-good rollback;
+- live catalog discovery (when performed) merges live backend entries with declared-wins
+  semantics and per-backend failure isolation;
+- serving bounds concurrency through a finite worker pool and rejects overload with HTTP 503;
 - context uses `ContextBudget` and optional Context Kernel federation only through spec 0011;
 - SEA-Forge and GodSpeed integration remain flag-gated and default-off;
 - Fabricator integration happens only through traceable proof artifacts;

@@ -168,21 +168,65 @@ pub fn project_catalog(servers: &[MCPServer]) -> (Vec<GatewayCatalogEntry>, Vec<
             });
         }
     }
-    catalog
-        .sort_by(|a, b| a.namespaced_name.cmp(&b.namespaced_name));
+    catalog.sort_by(|a, b| a.namespaced_name.cmp(&b.namespaced_name));
     dropped.sort_by(|a, b| {
-        (
-            a.namespace.as_str(),
-            a.name.as_str(),
-            a.reason.as_str(),
-        )
-            .cmp(&(
-                b.namespace.as_str(),
-                b.name.as_str(),
-                b.reason.as_str(),
-            ))
+        (a.namespace.as_str(), a.name.as_str(), a.reason.as_str()).cmp(&(
+            b.namespace.as_str(),
+            b.name.as_str(),
+            b.reason.as_str(),
+        ))
     });
     (catalog, dropped)
+}
+
+/// Merge declared catalog entries with live-discovered entries (spec 0020 §7
+/// "Live Catalog Discovery"). Declared entries win any conflict on
+/// `namespaced_name`; a conflicting or duplicate live entry is dropped and
+/// reported. Catalog construction has ONE owner — this function — so the
+/// declared/live boundary never produces two sources of truth.
+pub fn merge_live(
+    declared: Vec<GatewayCatalogEntry>,
+    live: Vec<GatewayCatalogEntry>,
+) -> (Vec<GatewayCatalogEntry>, Vec<DroppedEntry>) {
+    use std::collections::HashSet;
+    let declared_names: HashSet<String> =
+        declared.iter().map(|e| e.namespaced_name.clone()).collect();
+    let mut seen_live: HashSet<String> = HashSet::new();
+    let mut merged = declared;
+    let mut dropped = Vec::new();
+    for entry in live {
+        if declared_names.contains(&entry.namespaced_name) {
+            dropped.push(dropped_from_entry(&entry, "conflicts_with_declared"));
+            continue;
+        }
+        if !seen_live.insert(entry.namespaced_name.clone()) {
+            dropped.push(dropped_from_entry(&entry, "duplicate_live"));
+            continue;
+        }
+        merged.push(entry);
+    }
+    merged.sort_by(|a, b| a.namespaced_name.cmp(&b.namespaced_name));
+    dropped.sort_by(|a, b| {
+        (a.namespace.as_str(), a.name.as_str(), a.reason.as_str()).cmp(&(
+            b.namespace.as_str(),
+            b.name.as_str(),
+            b.reason.as_str(),
+        ))
+    });
+    (merged, dropped)
+}
+
+fn dropped_from_entry(entry: &GatewayCatalogEntry, reason: &str) -> DroppedEntry {
+    let (namespace, name) = entry
+        .namespaced_name
+        .split_once('.')
+        .unwrap_or((&entry.namespaced_name, ""));
+    DroppedEntry {
+        server_id: entry.backend_id.clone(),
+        namespace: namespace.to_string(),
+        name: name.to_string(),
+        reason: reason.to_string(),
+    }
 }
 
 /// Compact discovery item (spec 0020 §11): name + kind + short description only.
@@ -241,8 +285,7 @@ pub fn search_catalog<'a>(
     let q = query.to_ascii_lowercase();
     let matches_desc = |e: &&GatewayCatalogEntry| {
         e.namespaced_name.to_ascii_lowercase().contains(&q)
-            || e
-                .wire_definition
+            || e.wire_definition
                 .get("description")
                 .and_then(|d| d.as_str())
                 .map(|d| d.to_ascii_lowercase().contains(&q))

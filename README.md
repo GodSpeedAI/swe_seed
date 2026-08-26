@@ -1,247 +1,261 @@
 # SWE_SEED
 
-SWE_SEED is a low-touch development harness for teams that use AI coding agents and still need dependable software outcomes.
+Your coding agent wrote a convincing summary of the change. Did the change actually happen — and does it pass the checks that matter?
 
-It gives humans and agents one shared way to decide what kind of work is being requested, load only the context that matters, make the change, and prove the result before anyone calls it done. When hooks are enabled, the harness can guide that loop as the agent works instead of waiting for a human to remember every step.
+SWE_SEED is a CLI harness that turns a coding-agent request into a verifiable work contract: a selected route, the context that route requires, the artifact the task must produce, the proof commands chosen before work starts, and a trace that records what happened. The agent's final message ends the conversation. It does not close the work.
 
-## Boundary
-
-SWE_SEED is the **dev-work harness**: it owns **routing** (prompt → route card),
-**hooks**, **traces**, and **proof gating** (completion claims depend on proof
-commands). It is the sole repo that should be called "harness" in this stack.
-
-It does **not** own settlement classification or the capability lifecycle — that
-is [godspeed_agent](../godspeed_agent)'s job (the **settlement / navigation
-runtime**). SWE_SEED emits `WorkRequested`, `ContextRequired`, `RouteSelected`,
-`ProofStarted`/`ProofCompleted`; godspeed_agent consumes evidence and emits
-`SettlementRecorded` / `CapabilityUpdated`. Keeping these boundaries prevents
-the duplicated hook/trace/learning machinery both repos drifted toward (F-08).
-
-## Why It Exists
-
-AI agents can move fast, but speed does not help when the work stops at a confident summary instead of a verified change. SWE_SEED changes the default state from "trust the agent" to "follow the route, produce the artifact, show the proof."
-
-Use it when you want a project where:
-
-- a vague request turns into a concrete next action,
-- the agent reads the right project context before editing,
-- every job type has a clear route,
-- completion claims depend on proof commands,
-- failures leave enough evidence for the next person or agent to recover,
-- useful lessons improve the harness without turning it into a pile of prompts,
-- the system can grow from files to indexes only when the project actually needs that power.
-
-The result is a calmer development loop. Contributors know where to start, agents know what procedure to follow, and reviewers can ask for evidence instead of reconstructing intent from a transcript.
-
-SWE_SEED is designed to feel powerful without feeling heavy. Hooks can respond to the agent lifecycle, route new prompts, check risky tool use before it happens, capture proof after commands run, and block premature completion language at turn end. The harness does the routine steering, so humans can focus on intent, judgment, and review.
-
-It also solves a concrete team problem: process gets better only when someone notices friction, writes it down, and turns it into a safer default. SWE_SEED makes that part of the loop. Sessions can produce reflections and improvement proposals with evidence, risk, rollback, and validation plans. The harness can recommend better routes, skills, checks, memory, or hook behavior as the project teaches it what actually fails.
-
-## What This Repository Provides
-
-SWE_SEED is both a reference implementation and a portable specification.
-
-- `AGENTS.md` gives agents the operating contract.
-- `.agent-harness/routes/` maps work types to required context, work loops, artifacts, and proof.
-- `.agent-harness/skills/` stores reusable work procedures in a portable format.
-- `.agent-harness/playbooks/` keeps common workflows short and inspectable.
-- `.agent-harness/memory/` captures durable project context, decisions, constraints, and patterns.
-- `.agent-harness/traces/` records route decisions and recoverable work history.
-- `.agent-harness/hooks/` connects agent lifecycle events to routing, safety checks, trace capture, verification, and reflection.
-- `.agent-harness/reflections/` keeps learning review packets and improvement proposals separate from active instructions.
-- `crates/swe-seed` exposes routing, validation, context planning, skill rendering, and trace commands through the Rust `swe-seed` CLI.
-- `justfile` gives humans, agents, and CI one command surface.
-- `SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, and `FABRICATOR_SPEC_v0.1.0.md` are the root layer contracts; `docs/specs/` holds the detailed design.
-
-## Layered Architecture
-
-SWE_SEED is a three-layer stack. Each layer is governed by the one above it, and ownership flows downward only.
-
-```
-SweSeed     (SWE_SEED_SPEC_v0.2.0.md)   governance, capability assembly, layer boundaries
-  Harness   (HARNESS_SPEC.md)           routing, proof, context, hooks, traces, learning
-    Fabricator (FABRICATOR_SPEC_v0.1.0.md)  product to prototype semantic chain
-```
-
-- The **SweSeed** layer centralizes and governs capabilities, assembles a capability package, and validates layer boundaries.
-- The **Harness** layer routes each request to a route card, gates completion on proof, manages context budgets, hooks, traces, and the learning loop.
-- The **Fabricator** layer runs a bounded product-to-prototype pass over a traceable semantic chain.
-
-`LayerName` is `{ SweSeed, Harness, Fabricator }`. The data model for all three layers is defined as `.baml` contracts under `.agent-harness/baml/baml_src/` and consumed as data, with no language model called at run time.
-
-## Design Specs and the Rust Rewrite
-
-The design lives in committed specs:
-
-- `docs/specs/0001`–`0020` define each subsystem. `0012` reconciles these specs with the existing harness and is authoritative on any vocabulary conflict.
-- `.agents/plans/0001-swe-seed-v0-1-implementation.md` is the plan of record for the Rust rewrite that superseded the former Python harness.
-
-The current implementation is the Rust workspace under `crates/`; historical Python references in reconciliation specs describe the retired reference harness.
-
-## The Approach
-
-SWE_SEED treats process as part of the product. The harness does not try to make the agent smarter by adding more instructions everywhere. It narrows the moment:
-
-1. Route the task by the outcome the user wants.
-2. Read the context that route requires.
-3. Follow the route's work loop.
-4. Produce the required artifact.
-5. Run the proof command.
-6. Leave a trace when recovery or learning matters.
-
-This keeps attention on the work that changes the outcome. The harness uses small, visible constraints because small constraints are easier to trust, debug, and improve.
-
-The hook layer is what makes the harness low touch. A prompt can trigger routing. A tool call can trigger a safety check. A command result can trigger evidence capture. A final response can trigger proof review. Instead of asking every contributor to memorize the operating model, SWE_SEED puts the right reminder at the moment it matters.
-
-The learning layer is how it improves without becoming reckless. SWE_SEED does not silently rewrite its own rules because one session felt awkward. It captures evidence, proposes the change, names the risk, defines rollback, and asks for validation. That gives teams the benefit of a self-improving harness while keeping humans in control of material changes.
-
-The storage model follows the same discipline. The baseline is files because files are easy to inspect, review, back up, and rebuild. As the project grows, the harness can propose a rusql index when recent failures, sessions, hooks, or trace lookups become too slow for simple tools. It can propose vector search later, only when exact and structured search stop answering real recovery questions. The project gets stronger memory when it earns the weight.
-
-## When It Helps
-
-Use SWE_SEED when your team asks an agent to:
-
-- implement a feature and prove it with tests,
-- fix a bug without guessing at the cause,
-- review code with findings before summaries,
-- write documentation that helps a reader act,
-- prepare a release with explicit checks,
-- keep agent sessions on track through lifecycle hooks,
-- turn repeated friction into reviewed improvement proposals,
-- decide when trace search has outgrown files and needs rusql or vector retrieval,
-- improve the harness only when evidence shows the change is useful.
-
-The reader should not need to translate "process" into value. The value is fewer hidden assumptions, fewer missed checks, and a shorter path from request to verified result.
-
-## Quick Start
-
-Prerequisites:
-
-- Rust/Cargo, workspace `rust-version = "1.75"`
-- Python 3.12 or newer for optional `uv`/BAML tooling
-- `just`
-- `pnpm` for formatting checks
-- `uv` for Python linting
-- `mise`, recommended for tool installation
-
-Set up the repository:
-
-```bash
-git clone https://github.com/GodSpeedAI/swe_seed.git
-cd swe_seed
-just bootstrap
-just doctor
-just ci
-```
-
-Use the harness directly:
+It works with the agents you already use — Claude Code, Codex, OpenCode, GitHub Copilot, Antigravity — and it runs locally against the repository, with no server and no model provider of its own.
 
 ```bash
 just harness-route "fix the failing checkout test"
-just harness-context-plan "write onboarding docs"
-just harness-validate
 ```
 
-The most important command is:
+## The failure pattern
+
+AI coding agents made code cheap. They did not make proof cheap. The verification burden did not disappear; it moved onto whoever reviews the agent's work.
+
+The familiar loop:
+
+```text
+prompt → agent activity → completion summary → human forensic investigation
+```
+
+The summary says "implemented, tested, complete." The repository may show missing files, omitted tests, unrelated edits, or a check that never ran. The reviewer becomes the forensic layer: open the diff, rediscover the original request, figure out which context the agent missed, run the checks it skipped, and decide whether the narration matches reality.
+
+The failure has structure, not just symptoms:
+
+- **Narration closes claims.** The agent writes the code, chooses which tests to run, and grades its own homework. Asking one system to do all three is an efficient way to automate optimism.
+- **Context selection is a lottery.** The agent can read the whole repository without knowing which files carry the decisive constraints. Repository access is not the same as relevant context.
+- **Proof is chosen after the work.** Tests selected after the diff exists are vulnerable to convenience — easy checks get run, expensive ones get skipped, and "tested" loses its meaning.
+- **Every host gets a different operating system.** The team's rules live in one file for Claude, another for Copilot, a third in somebody's head. They drift, and nobody notices until behavior diverges.
+- **Failures evaporate.** A session that failed for an instructive reason leaves nothing structured behind. The next session starts from the same ignorance.
+
+The problem is not that agents are careless. The problem is that nothing in the default workflow requires the work to prove itself.
+
+## What SWE_SEED changes
+
+The correction is to move proof from after the summary to before it, and to make the terms of the work explicit before execution:
+
+```text
+work request
+→ route            which work pattern applies
+→ bounded context  which files the agent must read
+→ required artifact what must exist when the work is done
+→ proof commands   which checks must pass, declared up front
+→ trace            a structured record of the whole chain
+```
+
+The vocabulary, defined once:
+
+- A **route** is the work pattern selected for a request. This repository ships route cards for bugfix, implementation, refactor, review, documentation, test, release, and more — each declaring its required context, work loop, artifacts, proof commands, and done conditions. A bugfix route demands a root cause before a fix; a review route demands findings before a summary.
+- **Bounded context** is the explicit list of files the route requires the agent to read, instead of the whole repository treated as equally relevant.
+- The **artifact** is what the task must produce — a diff, a test, a root-cause note, a reproduction. A convincing explanation without the artifact is not success.
+- **Proof** is the set of commands bound to the route before work begins. If a required check never ran, "tested" has no standing.
+- The **trace** is a JSON record linking request, route, context, events, and completion claim — written to `.agent-harness/traces/records/` so a reviewer inspects evidence instead of reconstructing a transcript.
+
+Together these form the **work contract**: route, context, artifact, proof, trace, agreed before execution. That is the whole mechanism. It does not make the agent smarter; it makes the agent's claims falsifiable.
+
+One boundary stays explicit: SWE_SEED makes the claim falsifiable. It does not grant the claim final standing. Review, security judgment, and settlement of the outcome still belong to humans — or, in the wider GodSpeed stack, to a separate settlement system.
+
+## See it work
+
+Prerequisites: Rust 1.75+ (`cargo`), and [`just`](https://github.com/casey/just). Clone, then:
 
 ```bash
-just ci
+just bootstrap   # install or sync local tools
+just doctor      # report anything missing
 ```
 
-That is the default local proof command. CI should call the same contract, so the local result and remote result stay aligned.
+Route a real request:
 
-## Adopt It In Another Project
+```bash
+just harness-route "fix the failing checkout test"
+```
 
-You can use SWE_SEED in two ways.
+What it prints is the work contract for that task, as JSON:
 
-### 1. Start From This Repository
+```json
+{
+  "job_type": "bugfix",
+  "route_card": ".agent-harness/routes/bugfix.json",
+  "required_context": ["AGENTS.md", ".agent-harness/playbooks/30-debug-from-symptom.md", "..."],
+  "required_skills": ["debug-discipline"],
+  "work_loop": ["establish reliable reproduction ...", "trace the fail path end-to-end ...", "..."],
+  "required_artifacts": ["reliable reproduction", "observed failure", "root cause note", "..."],
+  "proof": ["just ci"],
+  "done_when": ["original failure no longer reproduces", "root cause is connected to the fix", "..."],
+  "next_action": "Read required context, then execute work_loop[0]: establish reliable reproduction ..."
+}
+```
 
-Clone it, keep the harness structure, and adapt the specs, routes, skills, and checks to your project.
+That output is the point. Before anyone — human or agent — touches a file, the task already has a defined shape: what to read, what to produce, what to run, and what "done" means. Add `--record` (or use `just harness-route-record`) to write the route decision into the trace ledger.
 
-This is the best path when you want the working reference implementation and validation scripts.
+Record the work as it happens:
 
-### 2. Rebuild From The Specs
+```bash
+just harness-trace-start "fix the failing checkout test"
+just harness-trace-finish <trace-id> "fixed checkout regression" "just ci" "pass"
+```
 
-Copy these files into a target project:
+This writes a trace record under `.agent-harness/traces/records/` containing the route, timestamped events, the completion claim, and the proof command with its result. Inspect it directly — it is plain JSON.
 
-- `HARNESS_SPEC.md`
-- `SWE_SEED_SPEC_v0.2.0.md`
-- `AGENTS.md`
-- `.github/copilot-instructions.md`
+What failure looks like: `swe-seed gate <trace-id> --verify` exits non-zero if the trace was never routed or its chain fails verification. The `gate-merge` just recipe uses this as a merge gate — a change that bypassed routing cannot produce a passing gate. Missing proof is a failed obligation, not an empty field.
 
-Then ask your agent to follow the specs and implement the harness in that environment. This is the best path when your repository already has its own structure and you want to port the operating model.
+Two more commands worth running in the first five minutes:
 
-## How To Work With An Agent
+```bash
+just harness-context-plan "write onboarding docs"   # the bounded context set for a task
+just harness-validate                                # structural integrity of the harness itself
+```
 
-Start with the outcome, not the implementation guess.
+## What the mechanism buys you
 
-Good requests look like:
+| Without SWE_SEED | What changes | What you can verify |
+| --- | --- | --- |
+| The agent improvises a procedure from one prompt | The route card fixes the work pattern for the task type | `swe-seed route "<task>"` shows the selected route and its obligations |
+| The agent reads whatever it finds | The route names the required context up front | `swe-seed context-plan "<task>"` shows the bounded context set |
+| "Done" means the agent stopped talking | The route declares required artifacts and done conditions | The route output lists `required_artifacts` and `done_when` |
+| Tests are chosen after the diff exists | Proof commands are bound to the route before work starts | `proof: [...]` in the route; `swe-seed gate` fails on an unrouted trace |
+| The summary is the only record | A JSON trace links request, route, events, claim, and proof | `.agent-harness/traces/records/*.json` |
+| Every host gets hand-maintained instructions | Host files are regenerated projections of one canonical harness | `swe-seed sync --host <host> --dry-run`; `swe-seed doctor --host <host>` detects drift |
+| Failed sessions teach nothing | Traces can be reflected into reviewed learning candidates | `swe-seed reflect <trace-id>` proposes; nothing promotes without review |
+
+## How it works
+
+SWE_SEED is a Rust CLI (`swe-seed`) plus a directory of canonical harness state (`.agent-harness/`) that lives in the repository. There is no daemon and no network surface of its own.
+
+**Routing.** `swe-seed route` matches a request against the route cards in `.agent-harness/routes/` and returns the card's obligations as JSON. Route cards are data, not prompts: they declare required context, skills, an ordered work loop, artifacts, proof commands, done conditions, and failure modes.
+
+**Traces.** The trace lifecycle (`trace start`, `append`, `checkpoint`, `resume`, `finish`) records what happened while work ran. Records are JSON files under `.agent-harness/traces/records/`; route decisions land in `traces/route-decisions/`. The `gate` command verifies a trace chain and exits non-zero on a trace that was never routed — the merge gate in `justfile` builds on this.
+
+**Host projection.** Canonical policy, hooks, and skills live once in `.agent-harness/`; `swe-seed sync --host <host>` renders them into the host's own format (for Claude, that is `.claude/settings.json`). `swe-seed hosts` lists the supported adapters and their capability matrices — what each host can actually enforce, not what the docs promise. `doctor --host <host>` detects drift when a generated file was hand-edited; `rollback --host <host>` restores the last snapshot. Edit the harness source; regenerate the projections.
+
+**Hooks.** Where a host supports lifecycle hooks, `.agent-hooks/` responds to agent events — routing on prompt submission, safety checks before tool calls, evidence capture after commands, completion-language review at turn end. Enforcement strength depends on the host's capability matrix; advisory instructions are not marketed as enforcement.
+
+**Eval and proof.** `swe-seed eval run --spec <spec>` executes eval specs against the harness; `just ci` is the default local proof command — the same contract CI calls, so local and remote results stay aligned.
+
+**Learning.** `swe-seed reflect <trace-id>` turns a finished trace into a proposed learning record; `learn` promotes reviewed records into skill proposals or regression cases. The harness does not silently rewrite its own rules because one session felt awkward — a proposal names evidence, risk, and rollback, and a human approves material changes.
+
+**Contracts.** The data model for all layers is defined as `.baml` contracts under `.agent-harness/baml/baml_src/` and consumed as data. No language model is called at run time.
+
+Three layers, each governed by the one above it:
 
 ```text
-Fix the failing CI check and show the proof.
+SweSeed      (SWE_SEED_SPEC_v0.2.0.md)    capability assembly, layer boundaries
+  Harness    (HARNESS_SPEC.md)            routing, proof, context, hooks, traces, learning
+    Fabricator (FABRICATOR_SPEC_v0.1.0.md)  bounded product-to-prototype runs
 ```
 
-```text
-Add documentation that helps a new contributor run local CI.
+## What it is not
+
+- **Not a coding agent.** SWE_SEED does not reason, edit, or run tools. The host agent does the work; SWE_SEED defines the terms and keeps the evidence.
+- **Not an agent platform or orchestrator.** No dashboard, no server, no hosted control plane. A CLI and files in the repository.
+- **Not a CI replacement.** Keep CI. SWE_SEED binds proof to the task before work starts and uses CI output as proof; CI remains the independent downstream check.
+- **Not a settlement authority.** SWE_SEED produces the route, artifact, proof, and trace needed to judge whether work is complete. It does not decide that the outcome counts.
+- **Not a runtime authority.** Host hooks can check risky tool use where the host supports it. Governing consequential side effects — commits, deploys, secrets — is a different problem, owned by a different layer.
+
+## Where it fits in the GodSpeed stack
+
+SWE_SEED is useful standalone: one repository, one supported agent, one routed task with proof is a complete deployment.
+
+In the full stack, the boundaries are deliberate:
+
+> DomainForge defines the domain. SEA Forge governs the work. SWE_SEED proves the change. GodSpeed-Agent compounds the capability.
+
+- **Context Kernel** owns context authority — bounded, cited context packets. SWE_SEED requests and consumes context; it does not become a competing context source. (Federation support for this exists behind `swe-seed federation`.)
+- **SEA Forge** owns pre-action authority and governed side effects. SWE_SEED emits work and proof events; it does not enforce runtime authority.
+- **[godspeed_agent](https://github.com/GodSpeedAI/GodSpeed-Agent)** owns settlement classification and the capability lifecycle. SWE_SEED produces evidence; it consumes evidence and decides what the outcome counts for.
+
+Integration is opt-in. Standalone SWE_SEED requires none of it.
+
+## Current status
+
+This is a draft reference implementation. The core harness contracts are expressed in specs, route cards, validation, and the CLI; expect the shape to evolve as real usage shows which constraints help and which add noise.
+
+| Status | Capability |
+| --- | --- |
+| **Implemented** | Routing and route cards; context planning; trace lifecycle and JSON trace records; harness structure validation (`swe-seed harness`); host projection (`sync`), drift detection (`doctor --host`), and rollback for Claude, Codex, OpenCode, GitHub Copilot, Antigravity, and CI; hook runtime and exports (OTel, JUnit); eval specs (`eval run`); learning reflection and reviewed promotion; seed assembly, boundary validation, and provenance verification; trace-chain merge gate (`gate --verify`) |
+| **Implemented, narrower than the vision** | Host enforcement strength varies by host capability matrix — check `swe-seed hosts` before assuming pre-action blocking; the learning store (rusql/vector retrieval) is opt-in tooling, not the default file-based path |
+| **Experimental** | MCP gateway (`swe-seed gateway`, spec 0020); federation envelope exchange and SEA Forge verification (`swe-seed federation`, spec 0011) |
+| **Architectural target** | Full Context Kernel integration; GodSpeed-Agent settlement handoff; cross-host behavioral parity beyond projection determinism |
+| **Roadmap** | Vector retrieval for trace search (proposed only when files stop answering real recovery questions); broader host coverage |
+
+The honest summary: the routing → trace → proof → gate loop is real and tested (337 tests in the workspace at last count). Host projection is real for the six hosts listed. Deeper stack integration is where the proof thins out — treat it as design direction, not shipped capability.
+
+## Adopt it in your own project
+
+Two paths:
+
+1. **Start from this repository.** Clone it, keep the harness structure, and adapt the specs, route cards, skills, and checks to your project. Best when you want the working reference implementation and its validation.
+2. **Rebuild from the specs.** Copy `HARNESS_SPEC.md`, `SWE_SEED_SPEC_v0.2.0.md`, `AGENTS.md`, and `.github/copilot-instructions.md` into a target project, then have your agent follow the specs to implement the harness there. Best when your repository already has its own structure and you want to port the operating model.
+
+Either way, start small: one repository, one agent, one task type, one proof set. Prove failure behavior early — a missing route, a missing artifact, a failing proof — because the harness is credible when failure is explicit, not when success is easy.
+
+## Technical reference
+
+### Commands
+
+Everyday commands (via `just`; the `swe-seed` CLI runs through `cargo run -q -p swe-seed --`):
+
+```bash
+just bootstrap             # install or synchronize local tools
+just doctor                # report missing required or recommended tools
+just ci                    # the local CI contract — the default proof command
+just format / lint / test  # the individual CI stages
+
+just harness-route "task"              # select a route and print the work contract
+just harness-route-record "task"       # route and write the decision to the ledger
+just harness-context-plan "task"       # plan bounded context for a task
+just harness-validate                  # validate harness structure
+just harness-doctor                    # doctor checks, including drift
+just harness-render-skills             # render skills to host formats
+
+just harness-trace-start "task"                              # open a trace
+just harness-trace-append <id> "note"                        # append an event
+just harness-trace-checkpoint <id> <stage> "summary" ["next"] # checkpoint for recovery
+just harness-trace-resume <id>                               # resume from a trace
+just harness-trace-finish <id> "claim" ["command" "result"]  # close with claim + proof
 ```
 
-```text
-Review this PR for regressions and missing tests.
+Direct CLI commands with no `just` wrapper (see `swe-seed --help` for the full surface):
+
+```bash
+swe-seed hosts                          # supported hosts and capability matrices
+swe-seed sync --host <host> [--dry-run] # project harness state into a host
+swe-seed rollback --host <host>         # restore the last projection snapshot
+swe-seed gate <trace-id> --verify       # routing/chain verification; exits non-zero on failure
+swe-seed eval run --spec <spec>         # run an eval spec
+swe-seed reflect <trace-id>             # propose a learning record from a trace
+swe-seed seed assemble                  # build the seed package manifest
+swe-seed provenance verify              # fail closed on missing hash or license
 ```
 
-The harness routes those requests into different procedures. A bugfix needs cause before fix. Documentation needs a reader and action. A review needs findings before summary. The route keeps those differences visible.
+### Repository layout
 
-## Safety Boundaries
+- `AGENTS.md` — the operating contract agents are expected to follow.
+- `.agent-harness/routes/` — route cards mapping work types to context, work loops, artifacts, and proof.
+- `.agent-harness/skills/`, `playbooks/`, `memory/` — reusable procedures, short workflows, and durable project context.
+- `.agent-harness/traces/` — route decisions and trace records (JSON); the sqlite learning store is opt-in.
+- `.agent-harness/baml/baml_src/` — the contract schemas, consumed as data.
+- `.agent-harness/reflections/` — learning review packets, kept separate from active instructions.
+- `.agent-hooks/` — the hook surface for agent lifecycle events.
+- `crates/swe-seed`, `crates/swe-seed-core` — the CLI and the core library.
+- `docs/specs/0001`–`0020` — the numbered design specifications; `0012` is authoritative on vocabulary conflicts.
+- `SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, `FABRICATOR_SPEC_v0.1.0.md` — the root layer contracts.
 
-SWE_SEED is intentionally small.
-
-- It is not a coding agent.
-- It is not an IDE.
-- It is not a project management system.
-- It does not require a database, dashboard, or model provider.
-- It does not store secrets in traces, memory, examples, or rendered instructions.
-- It does not auto-apply material harness changes without an explicit policy.
-
-The harness governs process, context, evidence, and recovery. Native agents still do the reasoning, editing, command execution, and tool use.
-
-That is the core tradeoff: SWE_SEED stays ridiculously lightweight at the start, then proposes heavier capabilities only when they solve an observed job.
-
-## Project Status
-
-This project is a draft reference implementation. The core harness contracts are expressed in specs, route cards, validation scripts, and local commands. Expect the shape to evolve as proof from real usage shows which constraints help and which ones add noise.
-
-If you change the harness, change it with evidence. The standard is not "more process." The standard is whether the change helps a future contributor produce a better verified outcome with less recovery cost.
-
-## Documentation Map
+### Documentation map
 
 - [Agent operating contract](AGENTS.md)
 - [Harness specification](HARNESS_SPEC.md)
-- [SWE_SEED dev harness specification](SWE_SEED_SPEC_v0.2.0.md)
+- [SWE_SEED layer specification](SWE_SEED_SPEC_v0.2.0.md)
+- [Fabricator specification](FABRICATOR_SPEC_v0.1.0.md)
 - [Dev harness guide](docs/dev-harness/README.md)
 - [Agent harness spec index](docs/specs/agentic-swe-harness.md)
 
-## Development Commands
+### Security and privacy
 
-```bash
-just bootstrap          # install or synchronize local tools
-just doctor             # report missing required or recommended tools
-just format             # check formatting
-just lint               # run static checks
-just test               # run harness validation tests
-just ci                 # run the local CI contract
-```
+SWE_SEED stores its state in the repository and local files; it has no network surface of its own. It does not store secrets in traces, memory, examples, or rendered instructions — treat that as a convention the specs and validation enforce, not a guarantee against a determined agent writing to a trace. Federation keys, when used, are SOPS-encrypted at rest (see the `secrets-*` and `federation-encrypt-key` recipes). Host hooks can check tool calls before they run where the host supports it, but that is a host capability, not an authorization boundary — consequential actions need a real authority layer.
 
-Harness commands:
-
-```bash
-just harness-validate
-just harness-doctor
-just harness-render-skills
-just harness-route "task"
-just harness-context-plan "task"
-just harness-trace-start "task"
-```
-
-## License
+### License
 
 No license file is included yet. Add one before publishing this project for reuse outside your organization.

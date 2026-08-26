@@ -21,6 +21,7 @@ use serde_json::Value;
 pub mod audit;
 pub mod catalog;
 pub mod config;
+pub mod discover;
 pub mod fabricator;
 pub mod federation_proj;
 pub mod governance;
@@ -35,7 +36,7 @@ pub mod serve;
 
 pub use audit::{AuditRecord, AuditWriter, AUDIT_DIR_REL, AUDIT_FILE};
 pub use catalog::{
-    canonical_json, definition_hash, list_catalog, project_catalog, search_catalog,
+    canonical_json, definition_hash, list_catalog, merge_live, project_catalog, search_catalog,
     validate_local_name, validate_namespace, CompactCatalogItem, DroppedEntry, NamespaceError,
     DEFAULT_DISCOVERY_CAP,
 };
@@ -43,19 +44,26 @@ pub use config::{
     project_backend, DeclaredCatalogEntry, GatewayConfig, ListenerConfig, MCPServer,
     GATEWAY_CONFIG_REL,
 };
-pub use policy::{evaluate_invoke, is_risky, scan_is_clear, InvokeDecision};
-pub use redaction::{builtin_redaction, load_redaction};
-pub use request::{handle_request, RequestContext};
+pub use discover::{discover_live, DiscoveryNote};
+pub use fabricator::{cite_gateway_evidence, evidence_link};
+pub use federation_proj::{
+    consume_authority, project_route_selected, project_settlement_recorded, reject_on_drift,
+    Disposition,
+};
 pub use governance::{generate_session_id, Governance, GOVERNANCE_JOURNAL_REL};
 pub use health::{
     BackendMetrics, BreakerConfig, HealthBook, Metrics, MetricsSnapshot, SnapshotManager,
 };
 pub use import::import_openapi;
-pub use jsonrpc::{is_allowed_method, json_depth, parse_jsonrpc, validate_request, JsonRpcRequest, JSON_DEPTH_CAP, REQUEST_SIZE_CAP};
-pub use federation_proj::{consume_authority, project_route_selected, project_settlement_recorded, reject_on_drift, Disposition};
-pub use fabricator::{cite_gateway_evidence, evidence_link};
+pub use jsonrpc::{
+    is_allowed_method, json_depth, parse_jsonrpc, validate_request, JsonRpcRequest, JSON_DEPTH_CAP,
+    REQUEST_SIZE_CAP,
+};
+pub use policy::{evaluate_invoke, is_risky, scan_is_clear, InvokeDecision};
+pub use redaction::{builtin_redaction, load_redaction};
+pub use request::{handle_request, RequestContext};
 pub use routing::{
-    ALLOWED_METHODS, BackendTransport, HttpTransport, MockTransport, Router, StdioTransport,
+    BackendTransport, HttpTransport, MockTransport, Router, StdioTransport, ALLOWED_METHODS,
 };
 pub use serve::GatewayServer;
 
@@ -230,7 +238,10 @@ pub enum GatewayError {
     /// Dangerous tool group requires explicit approval (spec 0020 §10).
     ApprovalRequired { namespaced_name: String },
     /// Unscanned dangerous capability fail-closed (spec 0020 §10).
-    ScanBlocked { namespaced_name: String, reason: String },
+    ScanBlocked {
+        namespaced_name: String,
+        reason: String,
+    },
     /// Risky capability lacks live proof / provenance (spec 0020 §10).
     ProvenanceMissing { namespaced_name: String },
     /// Budget counter exceeded (spec 0020 §7, §18).
@@ -278,7 +289,10 @@ impl std::fmt::Display for GatewayError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             GatewayError::BackendUnavailable { backend } => {
-                write!(f, "backend '{backend}' unavailable (timeout/refused/breaker open)")
+                write!(
+                    f,
+                    "backend '{backend}' unavailable (timeout/refused/breaker open)"
+                )
             }
             GatewayError::BackendError { backend, reason } => {
                 write!(f, "backend '{backend}' error: {reason}")

@@ -31,8 +31,8 @@ use super::governance::Governance;
 use super::jsonrpc::{validate_request, JsonRpcRequest};
 use super::routing::{HttpTransport, Router, StdioTransport};
 use super::{
-    handle_request, load_redaction, parse_jsonrpc, AuditWriter, GatewayCatalogEntry,
-    GatewayError, ListenerConfig, RequestContext, REQUEST_SIZE_CAP,
+    handle_request, load_redaction, parse_jsonrpc, AuditWriter, GatewayCatalogEntry, GatewayError,
+    ListenerConfig, RequestContext, REQUEST_SIZE_CAP,
 };
 
 /// JSON-RPC error codes (spec 0020 §8).
@@ -47,13 +47,23 @@ const HEADER_CAP: usize = 64 * 1024;
 /// Default per-backend forward timeout.
 const DEFAULT_FORWARD_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Default worker-pool size (spec 0020 §15: finite, documented; default 4).
+pub const DEFAULT_WORKERS: usize = 4;
+
+/// Default bounded queue depth between accept and the worker pool. When full,
+/// the accept thread rejects with HTTP 503 rather than spawning unbounded work.
+pub const DEFAULT_QUEUE: usize = 16;
+
 /// A bound gateway server. Owns the listener + the compiled runtime snapshot.
+/// The runtime is `Arc`-shared across the worker pool (spec 0020 §15).
 pub struct GatewayServer {
     listener: TcpListener,
-    runtime: Runtime,
+    runtime: std::sync::Arc<Runtime>,
 }
 
-/// Compiled runtime: router, governance, audit, policy, catalog.
+/// Compiled runtime: router, governance, audit, policy, catalog. `Send + Sync`
+/// via the internal locks of `Governance`/`AuditWriter`; safe to share across
+/// worker threads through `Arc`.
 struct Runtime {
     router: Router,
     governance: Governance,
@@ -68,11 +78,7 @@ impl GatewayServer {
     /// `bind`/`port` override the config listener for this run (after exposure
     /// validation). `port=0` lets the OS choose; the selected port is available
     /// via [`Self::local_addr`].
-    pub fn bind(
-        root: &Path,
-        bind: Option<&str>,
-        port: Option<u16>,
-    ) -> Result<Self, GatewayError> {
+    pub fn bind(root: &Path, bind: Option<&str>, port: Option<u16>) -> Result<Self, GatewayError> {
         let mut config = GatewayConfig::load(root).map_err(|e| GatewayError::InvalidRequest {
             reason: format!("load gateway config: {e}"),
         })?;
@@ -89,6 +95,26 @@ impl GatewayServer {
         let mut router = Router::new();
         for server in &config.servers {
             register_transport(&mut router, server)?;
+        }
+        // Live discovery (spec 0020 §7): augment the declared catalog with live
+        // backend entries, declared-wins, per-backend failure isolation. Dropped
+        // live entries and per-backend notes are REPORTED (spec §7: "dropped and
+        // reported") so an operator can see discovery outcomes.
+        let (live, notes) = super::discover_live(&router, &config.servers);
+        if !notes.is_empty() {
+            for n in &notes {
+                eprintln!(
+                    "gateway serve: discovery note backend={} method={} reason={}",
+                    n.backend_id, n.method, n.reason
+                );
+            }
+        }
+        let (catalog, dropped_live) = super::merge_live(catalog, live);
+        for d in &dropped_live {
+            eprintln!(
+                "gateway serve: dropped live entry {}.{} ({}): {}",
+                d.namespace, d.name, d.server_id, d.reason
+            );
         }
         let redaction = load_redaction(root).map_err(|e| GatewayError::InvalidRequest {
             reason: format!("load redaction: {e}"),
@@ -112,13 +138,13 @@ impl GatewayServer {
 
         Ok(Self {
             listener,
-            runtime: Runtime {
+            runtime: std::sync::Arc::new(Runtime {
                 router,
                 governance,
                 audit,
                 policy: config.policy.clone(),
                 catalog,
-            },
+            }),
         })
     }
 
@@ -135,28 +161,112 @@ impl GatewayServer {
             .map_err(|e| GatewayError::InvalidRequest {
                 reason: format!("accept: {e}"),
             })?;
-        self.handle_connection(stream)
+        self.runtime.handle_connection(stream)
     }
 
-    /// Serve connections until the listener errors. Single-worker loop.
+    /// Serve connections with the default worker pool until the listener
+    /// errors (spec 0020 §15).
     pub fn serve_loop(&self) -> Result<(), GatewayError> {
-        loop {
+        self.serve_bounded(DEFAULT_WORKERS, DEFAULT_QUEUE, None)
+    }
+
+    /// Serve exactly `n` accepted connections then return (bounded pool). For
+    /// deterministic overload/concurrency tests.
+    pub fn serve_n(&self, workers: usize, queue: usize, n: usize) -> Result<(), GatewayError> {
+        self.serve_bounded(workers, queue, Some(n))
+    }
+
+    /// Bounded worker pool (spec 0020 §15). `workers` threads pull accepted
+    /// connections from a bounded `sync_channel(queue)`; when the queue is full
+    /// the accept thread rejects with HTTP 503 rather than spawning unbounded
+    /// work. `max_accepts = None` runs forever; `Some(n)` returns after `n`
+    /// accepted connections (served + rejected).
+    fn serve_bounded(
+        &self,
+        workers: usize,
+        queue: usize,
+        max_accepts: Option<usize>,
+    ) -> Result<(), GatewayError> {
+        use std::sync::mpsc::sync_channel;
+        use std::sync::{Arc, Mutex};
+        let workers = workers.max(1);
+        let queue = queue.max(0);
+        let (tx, rx) = sync_channel::<TcpStream>(queue.max(1));
+        let rx = Arc::new(Mutex::new(rx));
+        let runtime = Arc::clone(&self.runtime);
+        // Worker threads: each pulls a connection and handles it. A handler
+        // error is logged, not fatal — the pool keeps serving.
+        let handles: Vec<_> = (0..workers)
+            .map(|_| {
+                let rx = Arc::clone(&rx);
+                let runtime = Arc::clone(&runtime);
+                std::thread::spawn(move || loop {
+                    let stream = {
+                        let guard = match rx.lock() {
+                            Ok(g) => g,
+                            Err(p) => p.into_inner(),
+                        };
+                        match guard.recv() {
+                            Ok(s) => s,
+                            Err(_) => return, // sender dropped → shutdown
+                        }
+                    };
+                    if let Err(e) = runtime.handle_connection(stream) {
+                        eprintln!("gateway serve: connection ended with {e}");
+                    }
+                })
+            })
+            .collect();
+        // Accept loop. try_send caps in-flight work; overflow → HTTP 503.
+        let mut accepted = 0usize;
+        let result = loop {
             let (stream, _) = match self.listener.accept() {
                 Ok(p) => p,
                 Err(e) => {
-                    return Err(GatewayError::InvalidRequest {
+                    break Err(GatewayError::InvalidRequest {
                         reason: format!("accept: {e}"),
                     });
                 }
             };
-            // One connection at a time (bounded concurrency = 1). A handler
-            // error is logged to stderr but does not stop the loop.
-            if let Err(e) = self.handle_connection(stream) {
-                eprintln!("gateway serve: connection ended with {e}");
+            match tx.try_send(stream) {
+                Ok(()) => {}
+                Err(std::sync::mpsc::TrySendError::Full(mut s)) => {
+                    // Drain the bounded request body before responding so the
+                    // client's write completes and the 503 is delivered cleanly
+                    // (a 503 lost to a TCP RST is not a real rejection). Errors
+                    // during drain are ignored — we respond 503 regardless.
+                    drain_request(&mut s);
+                    let body = serde_json::to_string(&jsonrpc_error_obj(
+                        None,
+                        INTERNAL_ERROR,
+                        "gateway overloaded (queue full)",
+                    ))
+                    .unwrap_or_else(|_| "{}".into());
+                    let _ = write_response(&mut s, 503, &body);
+                }
+                Err(std::sync::mpsc::TrySendError::Disconnected(_)) => {
+                    break Err(GatewayError::InvalidRequest {
+                        reason: "worker pool disconnected".into(),
+                    });
+                }
             }
+            accepted += 1;
+            if let Some(n) = max_accepts {
+                if accepted >= n {
+                    break Ok(());
+                }
+            }
+        };
+        // Drop the sender so workers' recv returns Err and they exit.
+        drop(tx);
+        for h in handles {
+            let _ = h.join();
         }
+        result
     }
+}
 
+impl Runtime {
     /// Handle a single HTTP/1.1 connection: parse, dispatch, respond.
     fn handle_connection(&self, mut stream: TcpStream) -> Result<(), GatewayError> {
         stream
@@ -164,16 +274,17 @@ impl GatewayServer {
             .map_err(|e| GatewayError::InvalidRequest {
                 reason: format!("set read timeout: {e}"),
             })?;
-        let mut reader = BufReader::new(stream.try_clone().map_err(|e| {
-            GatewayError::InvalidRequest {
-                reason: format!("clone stream: {e}"),
-            }
-        })?);
+        let mut reader =
+            BufReader::new(
+                stream
+                    .try_clone()
+                    .map_err(|e| GatewayError::InvalidRequest {
+                        reason: format!("clone stream: {e}"),
+                    })?,
+            );
         let (status, body) = self.read_and_dispatch(&mut reader, &mut stream);
-        write_response(&mut stream, status, &body).map_err(|e| {
-            GatewayError::InvalidRequest {
-                reason: format!("write response: {e}"),
-            }
+        write_response(&mut stream, status, &body).map_err(|e| GatewayError::InvalidRequest {
+            reason: format!("write response: {e}"),
         })?;
         Ok(())
     }
@@ -226,8 +337,12 @@ impl GatewayServer {
                 "result": result,
             }))
             .unwrap_or_else(|_| {
-                serde_json::to_string(&jsonrpc_error_obj(Some(&id), INTERNAL_ERROR, "serialize response"))
-                    .unwrap()
+                serde_json::to_string(&jsonrpc_error_obj(
+                    Some(&id),
+                    INTERNAL_ERROR,
+                    "serialize response",
+                ))
+                .unwrap()
             }),
             Err((code, msg)) => {
                 serde_json::to_string(&jsonrpc_error_obj(Some(&id), code, &msg)).unwrap()
@@ -244,7 +359,7 @@ impl GatewayServer {
         // Discovery: serve the compact catalog locally (no backend forward).
         if req.method.ends_with("/list") {
             let (items, _truncated) =
-                super::list_catalog(&self.runtime.catalog, super::DEFAULT_DISCOVERY_CAP);
+                super::list_catalog(&self.catalog, super::DEFAULT_DISCOVERY_CAP);
             let result = serde_json::json!({ "items": items });
             // Audit the local discovery response (allow, no backend).
             let _ = self.write_discovery_audit(req, &occurred_at);
@@ -261,18 +376,27 @@ impl GatewayServer {
             None => {
                 return (
                     req.id.clone(),
-                    Err((INVALID_REQUEST, "missing namespaced 'name' in params".into())),
+                    Err((
+                        INVALID_REQUEST,
+                        "missing namespaced 'name' in params".into(),
+                    )),
                     400,
                 );
             }
         };
-        let entry = self.runtime.catalog.iter().find(|e| e.namespaced_name == namespaced);
+        let entry = self
+            .catalog
+            .iter()
+            .find(|e| e.namespaced_name == namespaced);
         let (entry_ref, backend_id, scan_status) = match entry {
             Some(e) => (Some(e), Some(e.backend_id.as_str()), e_scan(e)),
             None => {
                 return (
                     req.id.clone(),
-                    Err((METHOD_NOT_FOUND, format!("unknown capability '{namespaced}'"))),
+                    Err((
+                        METHOD_NOT_FOUND,
+                        format!("unknown capability '{namespaced}'"),
+                    )),
                     404,
                 );
             }
@@ -292,17 +416,21 @@ impl GatewayServer {
             backend_id,
             scan_status,
             entry_ref.map(|e| e.source_hash.is_some()).unwrap_or(false),
-            &self.runtime.policy,
-            &self.runtime.governance,
-            &self.runtime.router,
+            &self.policy,
+            &self.governance,
+            &self.router,
             DEFAULT_FORWARD_TIMEOUT,
-            &self.runtime.audit,
+            &self.audit,
             &occurred_at,
         ) {
             Ok(v) => (req.id.clone(), Ok(v), 200),
             Err(e) => {
                 let code = error_code_for(&e);
-                (req.id.clone(), Err((code, e.to_string())), error_http_status(&e))
+                (
+                    req.id.clone(),
+                    Err((code, e.to_string())),
+                    error_http_status(&e),
+                )
             }
         }
     }
@@ -328,7 +456,7 @@ impl GatewayServer {
         };
         // Best-effort: discovery is read-only local. A write failure here does
         // not block the response (no backend was consulted), but is logged.
-        if let Err(e) = self.runtime.audit.write(&record) {
+        if let Err(e) = self.audit.write(&record) {
             eprintln!("gateway serve: discovery audit write failed: {e}");
         }
     }
@@ -364,7 +492,10 @@ fn register_transport(
         super::GatewayTransport::Stdio => {
             router.register(
                 &server.id,
-                Box::new(StdioTransport::new(&server.command_or_url, server.args.clone())),
+                Box::new(StdioTransport::new(
+                    &server.command_or_url,
+                    server.args.clone(),
+                )),
             );
         }
         super::GatewayTransport::Http => {
@@ -378,13 +509,29 @@ fn register_transport(
     Ok(())
 }
 
-// ── HTTP parsing (minimal, bounded) ──────────────────────────────────────────
+/// Read and discard the request head + body (bounded by HEADER_CAP +
+/// REQUEST_SIZE_CAP) so the client's write completes before we send an error
+/// response. Errors are ignored — this is best-effort cleanup on a connection
+/// we are about to reject anyway.
+fn drain_request(stream: &mut TcpStream) {
+    let Ok(reader) = stream.try_clone() else {
+        return;
+    };
+    let mut reader = BufReader::new(reader);
+    let (_, _, content_length) = match read_request_head(&mut reader) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    let _ = read_body(&mut reader, content_length.min(REQUEST_SIZE_CAP));
+}
 
 /// Read the request line + headers. Returns `(method, path, content_length)`.
 fn read_request_head<R: BufRead>(reader: &mut R) -> Result<(String, String, usize), String> {
     let mut total = 0usize;
     let mut request_line = String::new();
-    let n = reader.read_line(&mut request_line).map_err(|e| format!("read request line: {e}"))?;
+    let n = reader
+        .read_line(&mut request_line)
+        .map_err(|e| format!("read request line: {e}"))?;
     if n == 0 {
         return Err("empty request".into());
     }
@@ -399,7 +546,9 @@ fn read_request_head<R: BufRead>(reader: &mut R) -> Result<(String, String, usiz
     let mut content_length: Option<usize> = None;
     loop {
         let mut header = String::new();
-        let n = reader.read_line(&mut header).map_err(|e| format!("read header: {e}"))?;
+        let n = reader
+            .read_line(&mut header)
+            .map_err(|e| format!("read header: {e}"))?;
         if n == 0 {
             return Err("unexpected EOF in headers".into());
         }
@@ -463,7 +612,9 @@ fn http_reason(status: u16) -> &'static str {
 fn error_code_for(e: &GatewayError) -> i64 {
     match e {
         GatewayError::InvalidRequest { .. } => INVALID_REQUEST,
-        GatewayError::BackendUnavailable { .. } | GatewayError::BackendError { .. } => INTERNAL_ERROR,
+        GatewayError::BackendUnavailable { .. } | GatewayError::BackendError { .. } => {
+            INTERNAL_ERROR
+        }
         GatewayError::ScopeDenied { .. } | GatewayError::ApprovalRequired { .. } => -32603,
         GatewayError::ScanBlocked { .. } | GatewayError::ProvenanceMissing { .. } => -32603,
         GatewayError::BudgetExceeded { .. } | GatewayError::SessionLimitExceeded { .. } => -32603,
@@ -476,8 +627,10 @@ fn error_code_for(e: &GatewayError) -> i64 {
 fn error_http_status(e: &GatewayError) -> u16 {
     match e {
         GatewayError::InvalidRequest { .. } => 400,
-        GatewayError::ScopeDenied { .. } | GatewayError::ApprovalRequired { .. }
-        | GatewayError::ScanBlocked { .. } | GatewayError::ProvenanceMissing { .. } => 403,
+        GatewayError::ScopeDenied { .. }
+        | GatewayError::ApprovalRequired { .. }
+        | GatewayError::ScanBlocked { .. }
+        | GatewayError::ProvenanceMissing { .. } => 403,
         GatewayError::BudgetExceeded { .. } | GatewayError::SessionLimitExceeded { .. } => 429,
         GatewayError::BackendUnavailable { .. } => 503,
         GatewayError::BackendError { .. } => 502,
@@ -497,7 +650,10 @@ fn jsonrpc_error_obj(id: Option<&Value>, code: i64, message: &str) -> Value {
 
 /// Package an error object + http status.
 fn error_http(status: u16, body: Value) -> (u16, String) {
-    (status, serde_json::to_string(&body).unwrap_or_else(|_| "{}".into()))
+    (
+        status,
+        serde_json::to_string(&body).unwrap_or_else(|_| "{}".into()),
+    )
 }
 
 #[cfg(test)]
@@ -579,7 +735,9 @@ mod tests {
 
     #[test]
     fn backend_unavailable_maps_to_503() {
-        let e = GatewayError::BackendUnavailable { backend: "fs".into() };
+        let e = GatewayError::BackendUnavailable {
+            backend: "fs".into(),
+        };
         assert_eq!(error_http_status(&e), 503);
     }
 
@@ -645,6 +803,51 @@ mod tests {
     }
 
     #[test]
+    fn live_discovery_augments_catalog_through_real_bind() {
+        // A backend whose declared catalog is EMPTY but which advertises a
+        // `live` tool via tools/list. Live discovery at bind must add `fs.live`
+        // so a subsequent tools/call resolves and forwards (wiring proof).
+        let root = temp_root("livediscovery");
+        use super::super::{config::MCPServer, GatewayTransport};
+        let responder = MCPServer {
+            id: "fs".into(),
+            namespace: "fs".into(),
+            transport: GatewayTransport::Stdio,
+            command_or_url: "sh".into(),
+            args: vec![
+                "-c".into(),
+                r#"read line; if echo "$line" | grep -q 'tools/list'; then echo '{"jsonrpc":"2.0","id":null,"result":{"tools":[{"name":"live"}]}}'; else echo '{"jsonrpc":"2.0","id":1,"result":{"ok":true}}'; fi"#.into(),
+            ],
+            // NO declared catalog — the only entry is the discovered one.
+            ..Default::default()
+        };
+        write_config(&root, vec![responder]);
+        let server = GatewayServer::bind(&root, Some("127.0.0.1"), Some(0)).unwrap();
+        let addr = server.local_addr().unwrap();
+        let body = serde_json::json!({
+            "jsonrpc":"2.0","id":1,"method":"tools/call",
+            "params":{"name":"fs.live"}
+        })
+        .to_string();
+        let handle = std::thread::spawn(move || {
+            let mut s = std::net::TcpStream::connect(addr).unwrap();
+            write!(
+                s,
+                "POST /mcp HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            )
+            .unwrap();
+            std::io::read_to_string(s).unwrap()
+        });
+        let _ = server.serve_once();
+        let resp = handle.join().unwrap();
+        // The live-only tool resolved through the merged catalog and forwarded.
+        assert!(resp.contains("HTTP/1.1 200"), "response was: {resp}");
+        assert!(resp.contains("\"ok\":true"));
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
     fn serve_once_forwards_namespaced_call_through_pipeline() {
         let root = temp_root("call");
         write_config(&root, vec![list_responder_server()]);
@@ -653,13 +856,15 @@ mod tests {
             let cfg_path = root.join(super::super::config::GATEWAY_CONFIG_REL);
             let mut cfg: GatewayConfig =
                 serde_json::from_slice(&std::fs::read(&cfg_path).unwrap()).unwrap();
-            cfg.servers[0].catalog.push(super::super::config::DeclaredCatalogEntry {
-                kind: super::super::CatalogKind::Tool,
-                name: "read".into(),
-                description: "read a file".into(),
-                input_schema: None,
-                policy_tags: vec![],
-            });
+            cfg.servers[0]
+                .catalog
+                .push(super::super::config::DeclaredCatalogEntry {
+                    kind: super::super::CatalogKind::Tool,
+                    name: "read".into(),
+                    description: "read a file".into(),
+                    input_schema: None,
+                    policy_tags: vec![],
+                });
             std::fs::write(&cfg_path, serde_json::to_vec(&cfg).unwrap()).unwrap();
         }
         let server = GatewayServer::bind(&root, Some("127.0.0.1"), Some(0)).unwrap();
@@ -774,6 +979,154 @@ mod tests {
         let _ = server.serve_once();
         let resp = handle.join().unwrap();
         assert!(resp.contains("HTTP/1.1 404"), "response was: {resp}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    /// A slow stdio responder: discovery methods return instantly with empty
+    /// results; tools/call sleeps `secs` then echoes id-matched success.
+    fn slow_responder_server(secs: u64) -> super::super::config::MCPServer {
+        use super::super::{config::MCPServer, GatewayTransport};
+        let script = format!(
+            "read line\ncase \"$line\" in\n  *tools/list*) echo '{tl}';;\n  *resources/list*) echo '{empty}';;\n  *prompts/list*) echo '{empty}';;\n  *) sleep {secs}; echo '{ok}';;\nesac",
+            tl = r#"{"jsonrpc":"2.0","id":null,"result":{"tools":[]}}"#,
+            empty = r#"{"jsonrpc":"2.0","id":null,"result":{}}"#,
+            ok = r#"{"jsonrpc":"2.0","id":1,"result":{"ok":true}}"#,
+        );
+        MCPServer {
+            id: "fs".into(),
+            namespace: "fs".into(),
+            transport: GatewayTransport::Stdio,
+            command_or_url: "sh".into(),
+            args: vec!["-c".into(), script],
+            catalog: vec![super::super::config::DeclaredCatalogEntry {
+                kind: super::super::CatalogKind::Tool,
+                name: "read".into(),
+                description: "slow read".into(),
+                input_schema: None,
+                policy_tags: vec![],
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn post_call(addr: std::net::SocketAddr, name: &str) -> String {
+        let body = serde_json::json!({
+            "jsonrpc":"2.0","id":1,"method":"tools/call",
+            "params":{"name":name}
+        })
+        .to_string();
+        let mut s = std::net::TcpStream::connect(addr).unwrap();
+        write!(
+            s,
+            "POST /mcp HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        )
+        .unwrap();
+        std::io::read_to_string(s).unwrap_or_default()
+    }
+
+    #[test]
+    fn pool_serves_two_slow_calls_concurrently_not_serially() {
+        // Overlap proof (spec 0020 §15): two slow calls under a 2-worker pool
+        // must complete in ~1 sleep window, not ~2.
+        let root = temp_root("overlap");
+        write_config(&root, vec![slow_responder_server(2)]);
+        let server = GatewayServer::bind(&root, Some("127.0.0.1"), Some(0)).unwrap();
+        let addr = server.local_addr().unwrap();
+        // 2 workers, serve exactly 2 accepts.
+        let srv = std::thread::spawn(move || server.serve_n(2, 16, 2));
+        let a1 = addr;
+        let a2 = addr;
+        let h1 = std::thread::spawn(move || post_call(a1, "fs.read"));
+        let h2 = std::thread::spawn(move || post_call(a2, "fs.read"));
+        let started = std::time::Instant::now();
+        let r1 = h1.join().unwrap();
+        let r2 = h2.join().unwrap();
+        let elapsed = started.elapsed();
+        let _ = srv.join();
+        assert!(r1.contains("HTTP/1.1 200"), "r1: {r1}");
+        assert!(r2.contains("HTTP/1.1 200"), "r2: {r2}");
+        // Serial would be ~4.0s of backend sleep (2×2s); concurrent ~2.0s.
+        // Allow a full sleep window of slack for spawn/scheduling jitter but
+        // reject the serial floor decisively.
+        assert!(
+            elapsed < std::time::Duration::from_millis(3000),
+            "calls were not concurrent: {elapsed:?}"
+        );
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn pool_rejects_overflow_with_503_when_queue_full() {
+        // Bounded-queue proof (spec 0020 §15): workers=1, queue=1 ⇒ capacity 2.
+        // Flooding more connections than capacity must yield HTTP 503 for the
+        // overflow rather than unbounded work.
+        let root = temp_root("overflow");
+        write_config(&root, vec![slow_responder_server(2)]);
+        let server = GatewayServer::bind(&root, Some("127.0.0.1"), Some(0)).unwrap();
+        let addr = server.local_addr().unwrap();
+        // 1 worker, queue depth 1, accept exactly 5 connections.
+        let srv = std::thread::spawn(move || server.serve_n(1, 1, 5));
+        // Fire 5 calls concurrently; capacity 2 served, the rest 503'd.
+        let mut handles = Vec::new();
+        for _ in 0..5 {
+            let a = addr;
+            handles.push(std::thread::spawn(move || post_call(a, "fs.read")));
+        }
+        let responses: Vec<String> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+        let _ = srv.join();
+        let ok200 = responses
+            .iter()
+            .filter(|r| r.contains("HTTP/1.1 200"))
+            .count();
+        let overload = responses
+            .iter()
+            .filter(|r| r.contains("HTTP/1.1 503"))
+            .count();
+        assert!(
+            overload >= 1,
+            "expected at least one 503 overload; got {responses:?}"
+        );
+        assert!(ok200 >= 1, "expected at least one 200; got {responses:?}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn pool_keeps_governance_counts_exact_under_concurrency() {
+        // Count-exactness proof (spec 0020 §15): overlapping calls must not
+        // double-count or drop governance call counters.
+        let root = temp_root("counts");
+        write_config(&root, vec![slow_responder_server(1)]);
+        let server = GatewayServer::bind(&root, Some("127.0.0.1"), Some(0)).unwrap();
+        let addr = server.local_addr().unwrap();
+        // 4 workers, serve 4 accepts.
+        let srv = std::thread::spawn(move || server.serve_n(4, 16, 4));
+        let mut handles = Vec::new();
+        for _ in 0..4 {
+            let a = addr;
+            handles.push(std::thread::spawn(move || post_call(a, "fs.read")));
+        }
+        for h in handles {
+            let r = h.join().unwrap();
+            assert!(r.contains("HTTP/1.1 200"), "{r}");
+        }
+        let _ = srv.join();
+        // Every call wrote exactly one audit line; 4 calls ⇒ 4 allow lines.
+        let audit_path = root
+            .join(super::super::AUDIT_DIR_REL)
+            .join(super::super::AUDIT_FILE);
+        let content = std::fs::read_to_string(&audit_path).unwrap();
+        let allows = content
+            .lines()
+            .filter(|l| {
+                l.contains("\"decision\":\"allow\"")
+                    && l.contains("\"namespaced_name\":\"fs.read\"")
+            })
+            .count();
+        assert_eq!(
+            allows, 4,
+            "expected 4 allow records, got {allows}; full:\n{content}"
+        );
         std::fs::remove_dir_all(&root).ok();
     }
 }

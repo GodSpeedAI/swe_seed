@@ -1,0 +1,52 @@
+{
+  "domain_model_sha256": "5571dc4c03952c1f935123bfc7cd56dada4dc77aad5d65f8cda8b469e3b04bce",
+  "expected_chain": [
+    "68889fa6-e75e-4e71-ac4d-72bb68803c9d",
+    "890b22727c748540b01de8f36e5b8c94"
+  ],
+  "originating_work_request_id": "wr-gsf-001",
+  "settlement": {
+    "event_id": "472fc804-808d-4a9d-9caa-ace3b4dfb74e",
+    "event_type": "OperationalSettlement",
+    "idempotency_key": "df3c9fb70fc25bb8390746bd655062b34f2d3accd6dc9f31658c09dbf8e7bcb3",
+    "occurred_at": "2026-08-26T19:21:55+00:00",
+    "payload": {
+      "authority_decision_id": "auth_01",
+      "domain_model_hash": "5571dc4c03952c1f935123bfc7cd56dada4dc77aad5d65f8cda8b469e3b04bce",
+      "domain_model_ref": {
+        "model_hash": "5571dc4c03952c1f935123bfc7cd56dada4dc77aad5d65f8cda8b469e3b04bce",
+        "namespace": "agentic_capability_loop"
+      },
+      "evidence_refs": [
+        "sha256:1287b82a14d9d1ffa85443d1904971c36c040b28e2a2f143047364ad8d64519f",
+        "authorized_invocation:68889fa6-e75e-4e71-ac4d-72bb68803c9d",
+        "execution_observation:890b22727c748540b01de8f36e5b8c94"
+      ],
+      "execution_status": "completed",
+      "invocation_id": "inv_7e7faffe1043f1ee",
+      "namespace": "agentic_capability_loop",
+      "observed_effects": [
+        {
+          "effect": "health check green",
+          "probe": "lb/ready"
+        },
+        {
+          "effect": "zero-downtime observed",
+          "window_ms": 0
+        }
+      ],
+      "operational_settlement_status": "accepted",
+      "work_request_id": "wr-gsf-001"
+    },
+    "provenance": {
+      "chain": [
+        "domain_model_hash:5571dc4c03952c1f935123bfc7cd56dada4dc77aad5d65f8cda8b469e3b04bce",
+        "caused_by:68889fa6-e75e-4e71-ac4d-72bb68803c9d",
+        "caused_by:890b22727c748540b01de8f36e5b8c94"
+      ],
+      "origin": "sea-forge"
+    },
+    "schema_version": "v1",
+    "source_agent": "sea-forge"
+  }
+}

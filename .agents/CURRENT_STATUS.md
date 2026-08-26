@@ -3,39 +3,37 @@
 Last updated: 2026-07-29
 Note: `.agents/` is non-authoritative scratch (AGENTS.md). Verify against committed sources.
 
-Outcome: Closed the remaining MCPGate runtime gaps on top of the staged 1–10 build-out.
-Added the real `gateway serve` daemon (spec 0020 §5, §8): a bounded, dependency-free HTTP/1.1
-JSON-RPC server (`gateway/serve.rs`) that runs every request through the fail-closed
-`handle_request` pipeline (validate → policy/governance/route → audit) with redaction loaded
-from `.agent-hooks/config.yaml` (fallback to a conservative built-in policy), 1 MiB request
-size cap + depth-64 cap (`gateway/jsonrpc.rs`), loopback default with non-loopback rejected at
-bind, `--once` for deterministic tests. Namespaced calls resolve exactly one backend and forward
-real params; `tools/list` returns the local compact catalog. Also: half-open breaker tightened to
-a single concurrent probe (`health.rs`), `consume_authority` local-mode-ignores-incoming test
-(`federation_proj.rs`). CLI: `gateway serve [--bind] [--port] [--once]`; Doctor reports serve
-implemented; cli_golden expects `serve`.
+Outcome: Promoted the two recorded DEBT items into spec 0020 as normative requirements and
+implemented both. (1) Live catalog discovery (spec §7 "Live Catalog Discovery"): at startup and
+on each validated reload, the gateway fans out `tools/list`/`resources/list`/`prompts/list` to
+registered backends, namespaces the live entries, and merges them declared-wins; per-backend
+isolation (one unavailable backend contributes no live entries but doesn't break the others);
+dropped live entries + per-backend notes are reported to stderr (spec §7 "dropped and reported").
+Catalog construction has one owner: `catalog::merge_live`; the I/O fan-out lives in `discover.rs`.
+(2) Bounded concurrency (spec §15 "Concurrency and Overload"): a finite worker pool
+(`DEFAULT_WORKERS=4`, `DEFAULT_QUEUE=16`) pulls accepted connections from a bounded
+`sync_channel`; on overflow the accept thread drains the bounded request body and rejects with
+HTTP 503. Runtime is `Arc`-shared; governance/audit/breaker locks remain exact under concurrency.
 
 ## Current proof
 
-- `cargo test -q --workspace` → 328 passed, 0 failed (14 new gateway::serve tests; +4 redaction,
-  +14 jsonrpc, +1 health single-probe, +1 federation-local-ignores-incoming).
-- `cargo build --release -q -p swe-seed` → 0 warnings.
-- `just ci` → exit 0.
-- Live binary smoke (`target/debug/swe-seed gateway serve --port 0 --once`): `tools/call fs.read`
-  → HTTP 200 `{"result":{"ok":true}}` (forwarded through stdio backend, id preserved);
-  `tools/list` → HTTP 200 local catalog discovery; audit.jsonl shows BOTH records written
-  before completion (allow, backend=fs, 128-bit session for the call; allow discovery).
-- Subagent (general) did the breaker tightening + federation test in parallel; its diff was
-  verified against the forbidden-file list and re-proven by the main agent before integrating.
+- `cargo test -q --workspace` → 337 passed, 0 failed.
+- New: 5 discovery tests (live namespacing, backend-failure isolation, no-transport note,
+  declared-wins conflict, duplicate-live drop) + 1 end-to-end live-discovery-through-real-bind
+  + 3 concurrency tests (two slow calls overlap not serially, 503 on queue-full overload with
+  bounded drain, governance/audit counts exact under 4-way concurrency).
+- `cargo build --release -q -p swe-seed` → 0 warnings. `just ci` → exit 0.
+- neatcode critique (Deep depth): scored correctness 4 · fit 5 · semantics 4 · restraint 5 ·
+  operations 4 · evidence 5. One spec-MUST finding (§7 "reported") fixed mid-critique: discovery
+  drops/notes now eprintln'd at bind rather than discarded.
 
 ## Current next action
 
-The runtime gap-resolution is complete and proven. Remaining Minor/note items (not blocking):
-relocate `MCPServer` to `swe_seed::capability::mcp` per spec 0003 when the registry grows an MCP
-capability type; serve uses a single worker (concurrency=1) — see DEBT.md for the throughput
-upgrade path. The working tree also carries unrelated filesystem-integrity hardening changes
-(util::secure_write, route/trace/federation_cli edits, Cargo.lock) that should be committed
-separately from the gateway work.
+Both promoted requirements are implemented and proven. Remaining Minor (not blocking): discovery
+notes/drops go to stderr only — surface via `gateway doctor`/`list` if operator observability is
+wanted. The neatcode skill lives at `.agents/skills/neatcode/` (not in the opencode skill index;
+loaded by path). The working tree still carries unrelated filesystem-integrity hardening changes
+that should be committed separately from the gateway work.
 
 Last updated: 2026-07-02
 Note: `.agents/` is non-authoritative scratch (AGENTS.md). Verify against committed sources.
