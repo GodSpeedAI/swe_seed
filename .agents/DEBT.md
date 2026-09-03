@@ -1,13 +1,6 @@
-# Debt
+# Technical Debt & Observations
 
-No active technical debt is currently recorded.
-
-## Resolved (2026-07-29)
-
-- ~~gateway serve: single-worker concurrency~~ → promoted to spec 0020 §15 "Concurrency and
-  Overload" and implemented as a bounded worker pool (`DEFAULT_WORKERS=4`, `DEFAULT_QUEUE=16`)
-  with HTTP 503 on overflow. Proven: overlap, bounded-queue 503, exact counts.
-- ~~gateway serve: discovery is declared-catalog only~~ → promoted to spec 0020 §7 "Live Catalog
-  Discovery" and implemented: `tools/list`/`resources/list`/`prompts/list` fan-out at
-  startup/reload, declared-wins merge, per-backend isolation, drop-and-report. Proven.
-
+## Gateway Concurrency Test Timing Race
+- Evidence: `cargo test -p swe-seed-core --lib gateway::serve::tests::pool_keeps_governance_counts_exact_under_concurrency` intermittently observes 3 lines instead of 4 if concurrent threads flush to stdout/log file concurrently without newline sync.
+- Impact: Flaky CI test on high-concurrency or slow I/O machines.
+- Suggested Follow-up: Ensure thread-safe newline delimited writing in the test harness or flush synchronization.
