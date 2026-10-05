@@ -73,6 +73,9 @@ impl AuditRecord {
 pub struct AuditWriter {
     dir: PathBuf,
     redaction: RedactionConfig,
+    /// Serializes appends. `writeln!` on an unbuffered file is two writes (record, then newline), so
+    /// concurrent callers could otherwise interleave and fuse two records into one line.
+    append: std::sync::Mutex<()>,
 }
 
 impl AuditWriter {
@@ -80,6 +83,7 @@ impl AuditWriter {
         Self {
             dir: root.join(AUDIT_DIR_REL),
             redaction,
+            append: std::sync::Mutex::new(()),
         }
     }
 
@@ -105,6 +109,10 @@ impl AuditWriter {
             reason: format!("create {}: {e}", self.dir.display()),
         })?;
         let path = self.file_path();
+        // One buffer, one write: the record and its newline can never be split by another appender.
+        let mut bytes = line.into_bytes();
+        bytes.push(b'\n');
+        let _guard = self.append.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         let file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -114,7 +122,7 @@ impl AuditWriter {
             })?;
         use std::io::Write;
         let mut file = file;
-        writeln!(file, "{line}").map_err(|e| GatewayError::AuditWriteFailed {
+        file.write_all(&bytes).map_err(|e| GatewayError::AuditWriteFailed {
             reason: format!("write {}: {e}", path.display()),
         })
     }
@@ -154,5 +162,51 @@ mod tests {
             }),
             "deny"
         );
+    }
+
+    /// Concurrent appends must each stay one whole line. Before the single-write fix, the record and its
+    /// newline were separate writes, so two threads could fuse records and drop one.
+    #[test]
+    fn concurrent_appends_never_fuse_or_drop_records() {
+        let root = std::env::temp_dir().join(format!("swe-seed-audit-race-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let writer = std::sync::Arc::new(AuditWriter::new(
+            &root,
+            crate::gateway::redaction::builtin_redaction(),
+        ));
+        let (threads, each) = (8, 100);
+        let handles: Vec<_> = (0..threads)
+            .map(|t| {
+                let w = writer.clone();
+                std::thread::spawn(move || {
+                    for n in 0..each {
+                        let record: AuditRecord = serde_json::from_value(serde_json::json!({
+                            "occurred_at": "2026-10-05T00:00:00+00:00",
+                            "request_id": format!("{t}-{n}"),
+                            "session_id": "s",
+                            "client_id": "c",
+                            "method": "tools/call",
+                            "decision": "allow",
+                        }))
+                        .unwrap();
+                        w.write(&record).unwrap();
+                    }
+                })
+            })
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
+        let content = std::fs::read_to_string(writer.file_path()).unwrap();
+        let ids: std::collections::BTreeSet<String> = content
+            .lines()
+            .map(|l| {
+                let v: serde_json::Value =
+                    serde_json::from_str(l).unwrap_or_else(|e| panic!("fused or torn line: {e}: {l}"));
+                v["request_id"].as_str().unwrap().to_string()
+            })
+            .collect();
+        assert_eq!(ids.len(), threads * each, "an audit record was dropped");
+        std::fs::remove_dir_all(&root).ok();
     }
 }
