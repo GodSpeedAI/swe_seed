@@ -20,6 +20,7 @@ Connect one or more external MCP servers (such as a local filesystem server or r
 ## 3. Procedure
 
 ### Step 1: Update MCPGate Configuration
+
 Open `.agent-harness/config.yaml` (or your gateway configuration block):
 
 ```yaml
@@ -29,7 +30,8 @@ gateway:
     filesystem:
       transport: "stdio"
       command: "npx"
-      args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
+      args:
+        ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
     github:
       transport: "stdio"
       command: "npx"
@@ -52,6 +54,7 @@ gateway:
 ```
 
 ### Step 2: Test Server Discovery
+
 Inspect the virtualized catalog to confirm that tools are correctly discovered and namespaced:
 
 ```bash
@@ -59,6 +62,7 @@ cargo run -q -p swe-seed -- gateway list-tools
 ```
 
 ### Expected Output:
+
 ```text
 Discovered 2 backend servers:
   - filesystem:
@@ -72,8 +76,10 @@ Discovered 2 backend servers:
 ```
 
 ### Step 3: Configure Coding Agent Host
+
 Point your coding agent (e.g. Claude Code or Antigravity) to MCPGate:
 In `.claude/settings.json` or host configuration:
+
 ```json
 {
   "mcpServers": {

@@ -7,6 +7,7 @@ This tutorial guides you through executing a real task under SWE_SEED from begin
 ## 1. Prerequisites
 
 Before starting, ensure your local environment is initialized:
+
 - Rust 1.75+ and `just` installed.
 - Repository bootstrapped:
   ```bash
@@ -22,7 +23,7 @@ Before starting, ensure your local environment is initialized:
 
 ## 2. Step 1: Select the Route and Record Genesis
 
-Imagine you are asked to resolve a bug: *"fix the checkout race condition"*.
+Imagine you are asked to resolve a bug: _"fix the checkout race condition"_.
 
 Execute the semantic router with `--record` to bind the work contract and establish trace genesis:
 
@@ -31,6 +32,7 @@ just harness-route-record "fix the checkout race condition"
 ```
 
 ### Expected Output:
+
 ```json
 {
   "job_type": "bugfix",
@@ -41,9 +43,7 @@ just harness-route-record "fix the checkout race condition"
     "docs/dev-harness/README.md",
     ".agent-harness/memory/constraints.md"
   ],
-  "required_skills": [
-    "debug-discipline"
-  ],
+  "required_skills": ["debug-discipline"],
   "work_loop": [
     "establish reliable reproduction before editing code",
     "trace the fail path end-to-end to identify root cause",
@@ -57,9 +57,7 @@ just harness-route-record "fix the checkout race condition"
     "targeted fix",
     "passing proof output"
   ],
-  "proof": [
-    "just ci"
-  ],
+  "proof": ["just ci"],
   "done_when": [
     "original failure no longer reproduces",
     "root cause is connected to the fix",
@@ -82,6 +80,7 @@ just harness-context-plan "fix the checkout race condition"
 ```
 
 ### Expected Output:
+
 ```text
 Context pack for 'fix the checkout race condition':
   1. AGENTS.md
@@ -103,6 +102,7 @@ just harness-trace-start "fix the checkout race condition"
 ```
 
 ### Expected Output:
+
 ```text
 Started trace: 20260902T204500Z-fix-checkout-race
 Record: .agent-harness/traces/records/20260902T204500Z-fix-checkout-race.json
@@ -133,6 +133,7 @@ just ci
 ```
 
 Observe the output. All formatting, linting, harness validation, and cargo tests will execute. Confirm that the final line states:
+
 ```text
 All checks passed!
 ```
@@ -158,6 +159,7 @@ swe-seed gate <trace_id> --verify
 ```
 
 ### Expected Output:
+
 ```text
 Gate check PASSED for trace '20260902T204500Z-fix-checkout-race'
 Genesis: RouteSelected (.agent-harness/routes/bugfix.json)

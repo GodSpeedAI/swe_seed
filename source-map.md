@@ -3,6 +3,7 @@
 The authoritative mapping from architecture, concepts, and capabilities to concrete implementation source files is maintained in [docs/source-map.md](docs/source-map.md).
 
 For quick navigation:
+
 - **SweSeed Governance**: See `crates/swe-seed-core/src/seed/` and `.swe-seed/manifest.toml`.
 - **Semantic Routing**: See `crates/swe-seed-core/src/route/` and `.agent-harness/routes/`.
 - **Trace Ledger & Gate**: See `crates/swe-seed-core/src/trace_ledger.rs` and `crates/swe-seed-core/src/routing_gate.rs`.

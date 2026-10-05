@@ -19,17 +19,22 @@ SweSeed     (Outer: governance, capability assembly, boundaries)
 ## 2. Confirmed Design Rationale
 
 ### A. Preventing Governance Leakage
+
 Each layer has a fundamentally different scope and lifecycle:
+
 - **SweSeed**: Operates at the **organization and repository repository scope**. It governs which tools, skills, and MCP servers are permitted, ensures license compliance, and validates architectural boundaries.
 - **Harness**: Operates at the **task and session scope**. It routes requests, limits context, logs tool calls, records traces, and gates merges.
 - **Fabricator**: Operates at the **product feature scope**. It converts an ambiguous user need into a 10-node specification chain and hands off a prototype task.
 
 If these concerns are merged:
+
 - Prototyping logic (like EARS requirements or Gherkin parsing) would pollute low-level routing and hook interception.
 - Capability governance (like license checks or boundary audits) would slow down everyday bugfix routing.
 
 ### B. Downward-Only Governance
+
 By enforcing that ownership and dependencies flow downward only:
+
 1. **The Harness remains independent of the Fabricator**: You can use SWE_SEED purely as a coding-agent harness for existing codebases without adopting the Fabricator prototype pipeline.
 2. **SweSeed remains independent of runtime tools**: The governance layer can validate boundaries and assembly manifests without running tests or invoking agents.
 3. **No circular dependencies**: An inner layer never governs an outer layer concern, preventing architectural spaghetti.

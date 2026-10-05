@@ -7,12 +7,15 @@ This guide walks through establishing a verified local development environment a
 ## 1. Prerequisites
 
 ### Required Tools
+
 - **Rust Toolchain**: Rust 1.75+ (including `cargo`, `rustc`). Verify with `cargo --version`.
 - **Just**: Command runner used for developer workflows. Verify with `just --version`.
 - **Git**: Modern version control system.
 
 ### Recommended (Optional) Tools
+
 The repository operates standalone without these, but they are recommended for extended workflows:
+
 - **devbox** or **mise**: Environment and package management.
 - **sops** and **age**: For encrypting and decrypting federation private keys at rest.
 - **pnpm**: For Prettier formatting checks (`package.json`).
@@ -40,9 +43,11 @@ just doctor
 ```
 
 Expected output from `just doctor`:
+
 ```text
 Required development commands are available
 ```
+
 If any recommended tools are missing, `just doctor` reports them as notices without blocking execution.
 
 ---
@@ -56,11 +61,13 @@ just harness-validate
 ```
 
 Expected output:
+
 ```text
 Harness validation passed
 ```
 
 This command executes `swe-seed harness`, running static validation over:
+
 - Root specification presence (`SWE_SEED_SPEC_v0.2.0.md`, `HARNESS_SPEC.md`, `FABRICATOR_SPEC_v0.1.0.md`).
 - Canonical BAML contract definitions in `.agent-harness/baml/baml_src/`.
 - The 11 mandatory route cards in `.agent-harness/routes/`.
@@ -77,6 +84,7 @@ just harness-route "fix the failing checkout test"
 ```
 
 Behind the scenes, this runs:
+
 ```bash
 cargo run -q -p swe-seed -- route "fix the failing checkout test"
 ```
@@ -95,9 +103,7 @@ The router prints a structured JSON work contract:
     "docs/dev-harness/README.md",
     ".agent-harness/memory/constraints.md"
   ],
-  "required_skills": [
-    "debug-discipline"
-  ],
+  "required_skills": ["debug-discipline"],
   "work_loop": [
     "establish reliable reproduction before editing code",
     "trace the fail path end-to-end to identify root cause",
@@ -111,9 +117,7 @@ The router prints a structured JSON work contract:
     "targeted fix",
     "passing proof output"
   ],
-  "proof": [
-    "just ci"
-  ],
+  "proof": ["just ci"],
   "done_when": [
     "original failure no longer reproduces",
     "root cause is connected to the fix",
@@ -124,6 +128,7 @@ The router prints a structured JSON work contract:
 ```
 
 This output forms the pre-execution contract:
+
 - **job_type**: Specifies which operational pattern applies (`bugfix`).
 - **required_context**: Exactly what files the agent must load into memory before editing code.
 - **work_loop**: Ordered stages required to complete the task.
@@ -140,6 +145,7 @@ just harness-context-plan "fix the failing checkout test"
 ```
 
 Expected output:
+
 ```text
 Context pack for 'fix the failing checkout test':
   1. AGENTS.md
@@ -161,6 +167,7 @@ just ci
 ```
 
 `just ci` executes in sequence:
+
 1. `doctor`: Verifies toolchain presence.
 2. `format`: Checks formatting with Prettier (if `pnpm` is installed).
 3. `lint`: Executes Python linter `ruff` (if `uv` is installed).
@@ -175,6 +182,7 @@ just ci
 ## 7. Next Steps
 
 Now that your local environment is verified:
+
 - Review the [System Mental Model](mental-model.md) to understand how the three layers interact.
 - Read the [Architecture Overview](architecture.md) for deep logical and runtime models.
 - Step through the [First Routed Task Tutorial](tutorials/first-routed-task.md) to record and gate a real task end-to-end.

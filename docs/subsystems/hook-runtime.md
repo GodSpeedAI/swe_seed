@@ -33,7 +33,7 @@ When coding agents execute tool calls or process prompts, actions must be captur
 ```mermaid
 graph TD
     Agent["Host Agent (Claude, Copilot, etc.)"] -->|Lifecycle Call| HookRuntime["Hook Runtime (crates/swe-seed-core/src/hooks/)"]
-    
+
     subgraph Sanitization["Sanitization & Policy"]
         HookRuntime --> Redactor["Redaction Engine (Strip secrets, tokens)"]
         HookRuntime --> Policy["PermissionPolicy (Allow / Block / Gated)"]
@@ -41,7 +41,7 @@ graph TD
 
     Sanitization --> JSONL[".agent-hooks/events.jsonl (Append-Only)"]
     Sanitization --> SQLite[".agent-hooks/hooks.db (Indexed)"]
-    
+
     subgraph ExportPlane["Export & Compaction"]
         SQLite --> OTel["OTel Trace Exporter"]
         SQLite --> JUnit["JUnit XML Exporter"]

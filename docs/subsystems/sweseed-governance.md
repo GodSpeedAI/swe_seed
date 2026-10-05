@@ -55,6 +55,7 @@ graph TD
 ## 6. Internal Operation
 
 When `swe-seed seed validate-boundaries` runs:
+
 1. `validate_layer_boundaries()` scans all registered capabilities.
 2. It checks whether any inner layer capability references an outer layer asset or claims ownership of an outer concern.
 3. It checks whether required specifications or artifacts are missing from disk.

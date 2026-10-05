@@ -37,7 +37,7 @@ When coding agents generate software prototypes directly from vague prompts, the
 graph TD
     UserNeed["Product Need Input"] --> CLI["swe-seed fabricate <product-need>"]
     CLI --> FabricatorEngine["Fabricator Engine (crates/swe-seed-core/src/fabricator/)"]
-    
+
     subgraph SemanticChain["10-Node Semantic Chain (.fabricator/runs/<id>/)"]
         Seed["ProductSeed"] --> Story["JobStory"]
         Story --> Hypo["ProductHypothesis"]
@@ -63,8 +63,8 @@ graph TD
 ## 5. Core Abstractions
 
 - `ProductSeed`: The foundational description of target user, problem statement, and constraints.
-- `JobStory`: Formatted as: *When [situation], I want to [motivation], so I can [expected outcome]*.
-- `ProductADR`: Formatted using the Y-statement pattern: *In the context of [context], facing [concern], we decided for [option], to achieve [benefit], accepting [downside]*.
+- `JobStory`: Formatted as: _When [situation], I want to [motivation], so I can [expected outcome]_.
+- `ProductADR`: Formatted using the Y-statement pattern: _In the context of [context], facing [concern], we decided for [option], to achieve [benefit], accepting [downside]_.
 - `EARSRequirements`: Requirements classified into Ubiquitous, Event-driven, State-driven, Unwanted behavior, or Optional features.
 - `TraceabilityLink`: Cryptographic or URI link binding child artifacts to parent artifacts.
 - `SemanticChainValidationReport`: Audit result validating unbroken upstream and downstream link continuity.

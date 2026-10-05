@@ -20,6 +20,7 @@ Introduce a new standardized work pattern (for example, a custom migration or be
 ## 3. Procedure
 
 ### Step 1: Create the Route Card JSON File
+
 Create a new file in `.agent-harness/routes/<card-id>.json`. For example, `.agent-harness/routes/benchmark.json`:
 
 ```json
@@ -54,25 +55,19 @@ Create a new file in `.agent-harness/routes/<card-id>.json`. For example, `.agen
     "record throughput and latency metrics",
     "compile comparative analysis note"
   ],
-  "required_artifacts": [
-    "benchmark output",
-    "comparative metrics note"
-  ],
-  "proof": [
-    "cargo bench --no-run"
-  ],
+  "required_artifacts": ["benchmark output", "comparative metrics note"],
+  "proof": ["cargo bench --no-run"],
   "done_when": [
     "benchmarks complete without errors",
     "metrics are recorded in trace ledger"
   ],
-  "failure_modes": [
-    "noisy neighbor interference during benchmark execution"
-  ],
+  "failure_modes": ["noisy neighbor interference during benchmark execution"],
   "fallback_policy": "If performance metrics fluctuate wildly, repeat run after reboot."
 }
 ```
 
 ### Step 2: Validate the Route Card
+
 Execute the static harness validator:
 
 ```bash
@@ -82,6 +77,7 @@ just harness-validate
 If the card JSON is malformed or missing required schema fields, `harness-validate` reports the exact line and error.
 
 ### Step 3: Verify Route Selection
+
 Test that the router matches your new card:
 
 ```bash

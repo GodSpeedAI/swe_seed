@@ -33,7 +33,7 @@ When an agent completes a complex task or encounters an instructive failure, the
 graph TD
     FinishedTrace[".agent-harness/traces/records/<id>.json"] --> ReflectCmd["swe-seed reflect <trace_id>"]
     ReflectCmd --> ReflectionDir[".agent-harness/reflections/<id>.md (Review Dossier)"]
-    
+
     subgraph HumanReview["Human Review & Promotion Gate"]
         ReflectionDir --> Reviewer["Human Architect / Maintainer"]
         Reviewer --> LearnCmd["swe-seed learn promote <id>"]

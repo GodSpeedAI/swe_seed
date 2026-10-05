@@ -3,6 +3,7 @@
 The complete, authoritative catalog of all documentation pages in the SWE_SEED knowledge system is maintained in [docs/documentation-map.md](docs/documentation-map.md).
 
 For quick navigation:
+
 - **Orientation & Hub**: [docs/README.md](docs/README.md)
 - **Getting Started**: [docs/getting-started.md](docs/getting-started.md)
 - **Mental Model**: [docs/mental-model.md](docs/mental-model.md)
