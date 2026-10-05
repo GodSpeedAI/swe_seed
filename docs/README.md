@@ -6,9 +6,10 @@ Welcome to the technical documentation system for SWE_SEED. This repository func
 
 ## 1. What This Project Is
 
-SWE_SEED is a single-binary CLI harness and capability governance layer written in Rust (`swe-seed`). It translates AI coding-agent requests into pre-declared, verifiable work contracts. 
+SWE_SEED is a single-binary CLI harness and capability governance layer written in Rust (`swe-seed`). It translates AI coding-agent requests into pre-declared, verifiable work contracts.
 
 Before execution starts, SWE_SEED binds five explicit dimensions to every task:
+
 1. **Route**: A deterministic work pattern matched to the task type.
 2. **Bounded Context**: An explicit set of files required for the task, preventing context poisoning and prompt flooding.
 3. **Required Artifacts**: Concrete outputs (diffs, test cases, root cause analyses) that must be produced.
@@ -22,6 +23,7 @@ SWE_SEED operates locally on repository files (`.agent-harness/`, `.agent-hooks/
 ## 2. What Problem It Solves
 
 AI coding agents make code generation inexpensive, but verification remains expensive. In standard agent workflows:
+
 - Agents choose their own tests after code is written, grading their own work and skipping difficult checks.
 - Agents consume unbounded repository context or miss critical constraints.
 - A task is considered done simply when the agent outputs a conversational completion summary ("I fixed it"), regardless of whether tests passed or code was modified.
@@ -38,7 +40,7 @@ SWE_SEED addresses this by shifting proof and constraints from post-summary fore
 graph TD
     UserReq["User / Agent Request"] --> Router["Semantic Router (swe-seed route)"]
     Router --> Contract["Work Contract\n- RouteCard\n- Bounded Context\n- Required Artifacts\n- Pre-bound Proof Commands\n- Trace Genesis"]
-    
+
     subgraph ExecutionPlane["Execution & Observation Plane"]
         Contract --> AgentExec["Host Coding Agent\n(Claude, Codex, Copilot, Antigravity)"]
         AgentExec --> Hooks["Hook Runtime (.agent-hooks/)\n(Logging, Redaction, Policy Gating)"]
@@ -54,11 +56,13 @@ graph TD
 ```
 
 ### What to Notice in this Diagram
+
 - Execution cannot bypass routing: the work contract is generated before the agent modifies source files.
 - The trace records events continuously during execution.
 - The gate checks the trace chain cryptographically before any completion or merge is permitted.
 
 ### What This Diagram Omits
+
 This diagram omits the three-layer governance hierarchy (SweSeed -> Harness -> Fabricator), host configuration projection engines, and the external SEA-Loop federation interface. These details appear in subsequent architectural layers.
 
 ---
@@ -81,30 +85,38 @@ This diagram omits the three-layer governance hierarchy (SweSeed -> Harness -> F
 Consider an engineer or agent addressing a regression:
 
 1. **Routing**:
+
    ```bash
    just harness-route "fix the failing checkout test"
    ```
+
    The router parses the intent, selects `.agent-harness/routes/bugfix.json`, and emits the required context files, required artifacts (reproduction script, root cause note), and proof command (`just ci`).
 
 2. **Context Intake**:
+
    ```bash
    just harness-context-plan "fix the failing checkout test"
    ```
+
    SWE_SEED inspects the route obligations and outputs the bounded list of files to read, avoiding full-repository scanning.
 
 3. **Starting the Trace**:
+
    ```bash
    just harness-trace-start "fix the failing checkout test"
    ```
+
    A new trace record is initialized with a `RouteSelected` genesis entry and written to `.agent-harness/traces/records/<trace-id>.json`.
 
 4. **Making the Change**:
    The engineer or host agent follows the route card's work loop: reproduces the bug, identifies the root cause, and applies the targeted fix.
 
 5. **Executing Proof and Closing Trace**:
+
    ```bash
    just harness-trace-finish <trace-id> "repaired checkout race condition" "just ci" "pass"
    ```
+
    SWE_SEED verifies the proof output and records the final claim and evidence in the trace.
 
 6. **Gate Verification**:
@@ -118,17 +130,20 @@ Consider an engineer or agent addressing a regression:
 ## 6. Navigation by Reader Intent
 
 ### I want to run or adopt SWE_SEED
+
 - [Getting Started](getting-started.md): Installation, environment bootstrap, and health checks.
 - [First Routed Task Tutorial](tutorials/first-routed-task.md): Hands-on walkthrough of a complete routed task.
 - [CLI Reference](reference/cli.md): Full documentation of all `swe-seed` commands and flags.
 
 ### I want to understand the architecture and design
+
 - [System Mental Model](mental-model.md): Conceptual model, sovereign loop, and state ownership.
 - [Architecture Guide](architecture.md): Logical, runtime, dependency, data flow, control flow, and security models.
 - [Domain & Concept Guide](concepts.md): Formal definitions of all repository terms.
 - [Design Explanations](explanations/): Architectural rationale for contracts-as-data, pre-execution proof, and three-layer separation.
 
 ### I want to explore specific subsystems
+
 - [SweSeed Governance](subsystems/sweseed-governance.md): Capability registry, boundary validation, and provenance.
 - [Routing Engine](subsystems/routing-engine.md): Semantic routing and route card mechanics.
 - [Context Budget Plane](subsystems/context-budget.md): Bounded context packs and containment policies.
@@ -141,14 +156,17 @@ Consider an engineer or agent addressing a regression:
 - [Doctor & Drift Detection](subsystems/doctor-and-drift.md): Aggregate verification and drift scanning.
 
 ### I want to perform a task or make a change
+
 - [How-To Guides](howto/): Practical guides for adding route cards, implementing host adapters, configuring MCP servers, and managing federation keys.
 - [Building a Prototype with Fabricator](tutorials/building-a-prototype-with-fabricator.md): Bounded product specification and prototype generation.
 - [Authoring a Skill](tutorials/authoring-a-new-skill.md): Normalizing and rendering skills to host targets.
 
 ### I am debugging an issue
+
 - [Troubleshooting Guide](troubleshooting.md): Diagnosis, error codes, and recovery procedures for common failures.
 - [Debugging Routing](howto/debug-routing-mismatches.md): Resolving router misclassifications.
 
 ### I need source code traceability
+
 - [Source Map](source-map.md): Matrix mapping architectural concepts to concrete Rust source files, BAML schemas, and tests.
 - [Documentation Map](documentation-map.md): Meta-catalog of every documentation file in the repository.

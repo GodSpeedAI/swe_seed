@@ -20,6 +20,7 @@ Establish cryptographically verified signing identities for participating in SEA
 ## 3. Procedure
 
 ### Step 1: Generate a New Keypair
+
 Run the keygen command with a unique key identifier:
 
 ```bash
@@ -27,10 +28,12 @@ cargo run -q -p swe-seed -- federation keygen node-alpha
 ```
 
 ### Generated Files:
+
 - Committed Public Key: `.agent-harness/federation/keys/node-alpha.pub`
 - Gitignored Private Key: `.swe-seed/federation/keys/node-alpha.key`
 
 ### Step 2: Encrypt the Private Key at Rest
+
 Immediately encrypt the private key using the `just` recipe:
 
 ```bash
@@ -38,11 +41,13 @@ just federation-encrypt-key node-alpha
 ```
 
 Behind the scenes, this runs:
+
 ```bash
 sops --encrypt --in-place .swe-seed/federation/keys/node-alpha.key
 ```
 
 ### Step 3: Verify Encryption
+
 Inspect the file to confirm it is encrypted:
 
 ```bash
@@ -52,6 +57,7 @@ cat .swe-seed/federation/keys/node-alpha.key
 Verify that the file contains SOPS metadata and encrypted cipher blocks, not a plaintext private key.
 
 ### Step 4: Decrypt for Inspection (Optional)
+
 To inspect the decrypted private key in memory:
 
 ```bash
@@ -59,7 +65,9 @@ just federation-decrypt-key node-alpha
 ```
 
 ### Step 5: Rotate Keys
+
 To retire an old key and activate a new key:
+
 1. Generate `node-beta`:
    ```bash
    cargo run -q -p swe-seed -- federation keygen node-beta

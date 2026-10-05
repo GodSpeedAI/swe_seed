@@ -36,6 +36,12 @@ pub enum SubmissionError {
     Boundary(super::ConsumeError),
     /// Derivation failed (causality/correlation mechanics).
     Derive(super::DeriveError),
+    /// The work request or the context packet names no world, or a world
+    /// different from the accepted work contract (CEP-0008 `world_ref`).
+    World {
+        artifact: &'static str,
+        error: super::world::WorldRefError,
+    },
 }
 
 impl std::fmt::Display for SubmissionError {
@@ -55,6 +61,9 @@ impl std::fmt::Display for SubmissionError {
             ),
             Self::Boundary(e) => write!(f, "upstream envelope rejected at boundary: {e}"),
             Self::Derive(e) => write!(f, "{e}"),
+            Self::World { artifact, error } => {
+                write!(f, "{artifact} is not in the contract's world: {error}")
+            }
         }
     }
 }
@@ -132,6 +141,18 @@ pub fn build_governed_work_request(
     validate_envelope(work_requested, identity.as_str()).map_err(SubmissionError::Boundary)?;
     validate_envelope(context_packet, identity.as_str()).map_err(SubmissionError::Boundary)?;
 
+    // 1b. World binding: both parents must sit in the contract's world. A
+    //     context packet retrieved for another world never reaches SEA-Forge.
+    for (artifact, parent) in [
+        ("work_requested", work_requested),
+        ("context_packet", context_packet),
+    ] {
+        sub.contract
+            .world_ref
+            .require_same(parent.world_ref())
+            .map_err(|error| SubmissionError::World { artifact, error })?;
+    }
+
     // 2. Correlation binding: contract, E1 envelope, and E3 packet must all
     //    name the same work_request_id before anything is derived.
     let work_request_id = sub.contract.work_request_id.as_str();
@@ -186,6 +207,10 @@ pub fn build_governed_work_request(
     payload.insert("actor".into(), Value::Object(actor));
     payload.insert("intent".into(), Value::String(intent));
     payload.insert("context_packet_ref".into(), Value::String(packet_ref));
+    payload.insert(
+        "world_ref".into(),
+        Value::String(sub.contract.world_ref.to_string()),
+    );
     // Same canonical DomainModelRef the upstream edges used — realized in the
     // v1 wire family by make_event's `domain_model_hash` injection below, and
     // named explicitly here per the frozen payload contract.

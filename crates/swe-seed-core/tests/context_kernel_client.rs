@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 use sha2::{Digest, Sha256};
 use swe_seed_core::federation::{
     verify_declared_hash, ContextClientError, ContextKernelClient, ContextRequest,
-    VerifiedDomainIdentity,
+    RetrievalCompleteness, VerifiedDomainIdentity, WorldRef,
 };
 
 fn ck_bin() -> Option<PathBuf> {
@@ -25,6 +25,10 @@ fn ck_bin() -> Option<PathBuf> {
 fn model_hash() -> &'static str {
     static H: OnceLock<String> = OnceLock::new();
     H.get_or_init(|| format!("{:x}", Sha256::digest(b"t02-live-model")))
+}
+
+fn world() -> WorldRef {
+    WorldRef::parse(&format!("world:t02-live@sha256:{}", "b".repeat(64))).unwrap()
 }
 
 fn identity() -> VerifiedDomainIdentity {
@@ -73,6 +77,8 @@ fn context_kernel_returns_cited_packet_satisfying_policy() {
             corpus_id: "policy",
             query: Some("context packet"),
             domain_identity: &identity(),
+            world_ref: &world(),
+            require_complete: true,
             authority_decision_id: Some("sea-decision-test"),
             authority_reference: Some("AuthorityChecked#evt_test"),
             required: true,
@@ -82,6 +88,11 @@ fn context_kernel_returns_cited_packet_satisfying_policy() {
     assert!(packet.citation_count() >= 1, "POL-ACL-003: >=1 citation");
     assert_eq!(packet.work_request_id(), Some("wr-int"));
     assert_eq!(packet.domain_model_hash(), Some(model_hash()));
+    // CEP-0008: the real Context Kernel echoes the pinned world and states
+    // that one matching document, returned in full, is a complete retrieval.
+    assert_eq!(packet.world_ref(), Some(world().as_str()));
+    assert_eq!(packet.retrieval_completeness(), RetrievalCompleteness::Complete);
+    assert!(packet.omissions().is_empty());
     assert_eq!(
         packet.authority_reference(),
         Some("AuthorityChecked#evt_test")
@@ -96,6 +107,8 @@ fn context_kernel_returns_cited_packet_satisfying_policy() {
             corpus_id: "absent-corpus",
             query: None,
             domain_identity: &identity(),
+            world_ref: &world(),
+            require_complete: false,
             authority_decision_id: None,
             authority_reference: None,
             required: true,

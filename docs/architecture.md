@@ -38,10 +38,12 @@ graph TD
 ```
 
 ### What to Notice in this Diagram
+
 - **Downward Governance**: SweSeed governs Harness; Harness governs Fabricator. An inner layer cannot govern an outer layer concern.
 - **Clear Separation**: Outer layers handle governance and cross-host integration; middle layers handle routing, proof, and execution integrity; inner layers handle product-to-prototype synthesis.
 
 ### What This Diagram Omits
+
 This diagram omits physical file paths, runtime processes, and external network services (which are covered in subsequent views).
 
 ---
@@ -68,6 +70,7 @@ graph LR
 ```
 
 ### Key Runtime Characteristics
+
 - **No Background Daemon**: SWE_SEED does not require a background daemon, long-running service, or local server for core workflows.
 - **Fast Execution**: Written in Rust, commands execute in milliseconds, allowing integration into pre-commit hooks and interactive shell sessions.
 - **SQLite Ledgers**: High-throughput event indexing and cryptographic hash validation utilize embedded SQLite 3 databases (`ledger.db`, `hooks.db`) without external database servers.
@@ -77,7 +80,9 @@ graph LR
 ## 3. Dependency Architecture
 
 ### Crate Structure
+
 The codebase is structured as a Cargo workspace with two members:
+
 - **`swe-seed` (`crates/swe-seed`)**: The binary CLI crate. It owns argument parsing (`clap`), CLI dispatch, terminal formatting, and top-level exit code resolution.
 - **`swe-seed-core` (`crates/swe-seed-core`)**: The core library crate. It owns all domain logic, BAML parsing, cryptographic verification, routing algorithms, host adapters, and trace management.
 
@@ -103,6 +108,7 @@ graph TD
 ```
 
 ### Invariants:
+
 1. `swe-seed-core` contains zero CLI presentation logic; it is fully testable as a standalone library.
 2. No LLM runtime libraries exist in either crate. All contract interactions occur through deserialization of BAML schemas (`contracts-as-data`).
 
@@ -136,6 +142,7 @@ flowchart TD
 ```
 
 ### Data Lifecycles:
+
 - **Canonical Schemas**: Immutable during execution; updated only through RFCs and versioned Git commits.
 - **Trace Records**: Append-only. Every transition produces a new immutable record or state append.
 - **Hash Chains**: Each event in `ledger.db` contains `sha256(previous_hash + current_event_payload)`. Altering any historical event invalidates the ledger.
@@ -222,6 +229,7 @@ graph TD
 ```
 
 ### Security Principles:
+
 1. **No Secrets in State**: Hook and trace runtimes scrub API keys, bearer tokens, and credentials before writing records to disk.
 2. **Fail-Closed Gates**: If a trace ledger is missing, corrupted, or lacks a routing genesis, `swe-seed gate` fails closed with an exit code of 1, blocking merges.
 3. **Encrypted Keys at Rest**: Ed25519 federation keys in `.swe-seed/federation/keys/` are encrypted using SOPS and age.

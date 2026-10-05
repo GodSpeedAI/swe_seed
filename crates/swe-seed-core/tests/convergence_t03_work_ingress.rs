@@ -14,6 +14,9 @@ use swe_seed_core::federation::{
     accept_work_requested, fallback_hash, make_event, verify_declared_hash, ConsumeError, Envelope,
 };
 
+const WORLD: &str =
+    "world:t03@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
 fn digest(seed: &[u8]) -> String {
     format!("{:x}", Sha256::digest(seed))
 }
@@ -33,6 +36,7 @@ fn forge(event_type: &str, source_agent: &str, hash: &str) -> Envelope {
 fn full_payload() -> serde_json::Map<String, Value> {
     json!({
         "work_request_id": "wr-t03",
+        "world_ref": WORLD,
         "affordance_id": "aff-1",
         "desired_outcome": "deploy via blue-green",
         "settlement_criteria": ["health check green", "zero-downtime observed"],
@@ -62,6 +66,7 @@ fn e1_complete_work_contract_is_accepted() {
     assert_eq!(contract.affordance_id, "aff-1");
     assert_eq!(contract.desired_outcome, "deploy via blue-green");
     assert_eq!(contract.settlement_criteria.len(), 2);
+    assert_eq!(contract.world_ref.as_str(), WORLD);
 }
 
 // --- frozen falsifier: producer direction/authority --------------------------
@@ -192,4 +197,52 @@ fn t03_golden_fixture_from_gsa_projector_is_accepted() {
         .expect("GSA-projected WorkRequested must pass the canonical ingress gate");
     assert!(!contract.settlement_criteria.is_empty());
     assert_eq!(contract.affordance_id, "aff-blue-green-001");
+    // The real GSA projector pins a well-formed world.
+    assert!(contract.world_ref.as_str().starts_with("world:"));
+}
+
+// --- CEP-0008 world_ref (Stage 9) ---------------------------------------------
+
+fn payload_without_world() -> serde_json::Map<String, Value> {
+    let mut p = full_payload();
+    p.remove("world_ref");
+    p
+}
+
+#[test]
+fn t03_work_request_without_a_world_cannot_enter() {
+    let err = accept_work_requested(
+        &godspeed_envelope(payload_without_world(), &model_hash()),
+        &model_hash(),
+    )
+    .unwrap_err();
+    assert!(
+        matches!(err, ConsumeError::World(swe_seed_core::federation::WorldRefError::Missing)),
+        "{err}"
+    );
+}
+
+#[test]
+fn t03_alias_and_malformed_worlds_cannot_enter() {
+    for bad in [
+        "world:t03",
+        "",
+        "t03@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "world:T03@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    ] {
+        let mut p = full_payload();
+        p.insert("world_ref".into(), json!(bad));
+        let err = accept_work_requested(&godspeed_envelope(p, &model_hash()), &model_hash())
+            .unwrap_err();
+        assert!(matches!(err, ConsumeError::World(_)), "accepted {bad:?}: {err}");
+    }
+}
+
+#[test]
+fn t03_world_ref_is_not_derived_from_the_legacy_hash() {
+    // A request that only carries domain_model_hash has no world at all.
+    let env = godspeed_envelope(payload_without_world(), &model_hash());
+    assert!(env.domain_model_hash().is_some());
+    assert!(env.world_ref().is_none());
+    assert!(accept_work_requested(&env, &model_hash()).is_err());
 }

@@ -17,6 +17,7 @@ pub mod producers;
 pub mod proof_completed;
 pub mod signing;
 pub mod work_ingress;
+pub mod world;
 
 /// The signature algorithm label carried on signed envelopes.
 pub const SIGNING_ALGORITHM: &str = "ed25519";
@@ -28,7 +29,7 @@ pub use consume::{
 };
 pub use context_client::{
     adjudicate_context_response, ContextClientError, ContextKernelClient, ContextPacket,
-    ContextRequest, ExpectedContext,
+    ContextRequest, ExpectedContext, RetrievalCompleteness,
 };
 pub use emit::{
     dispatch, emit_context_required, emit_proof_completed, emit_proof_started, emit_route_selected,
@@ -70,3 +71,4 @@ pub use signing::{
     verify_envelope, write_keypair, LoadError, SignaturePayload, VerifyError,
 };
 pub use work_ingress::{accept_work_requested, WorkRequestContract};
+pub use world::{WorldRef, WorldRefError};

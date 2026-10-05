@@ -32,7 +32,7 @@ Different AI coding tools use different configuration formats: Claude Code uses 
 ```mermaid
 graph TD
     CanonicalSpecs[".agent-harness/\n(memory, playbooks, routes, skills)"] --> ProjectionEngine["Host Projection Engine\n(crates/swe-seed-core/src/adapters/)"]
-    
+
     subgraph HostTargets["Projected Host Targets"]
         Claude[".claude/settings.json, CLAUDE.md"]
         Copilot[".github/copilot-instructions.md"]
@@ -63,6 +63,7 @@ graph TD
 ## 6. Internal Operation
 
 ### The Sync Lifecycle
+
 1. **Snapshot**: Copies current target host files to `.agent-harness/snapshots/<host>/<timestamp>/`.
 2. **Render**: Loads canonical specs and renders templates for the selected host adapter.
 3. **Marker Delimitation**: Checks whether target files exist:

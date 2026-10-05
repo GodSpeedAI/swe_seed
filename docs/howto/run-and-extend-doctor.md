@@ -19,6 +19,7 @@ Maintain full visibility over environment health, harness integrity, and host pr
 ## 3. Running Doctor Diagnostics
 
 ### Everyday Developer Health Check
+
 Run the developer-level check verifying basic tools:
 
 ```bash
@@ -26,6 +27,7 @@ just doctor
 ```
 
 ### Comprehensive Harness & Drift Audit
+
 Run the full harness audit including host projection drift checks:
 
 ```bash
@@ -33,11 +35,13 @@ just harness-doctor
 ```
 
 Behind the scenes, this executes:
+
 ```bash
 cargo run -q -p swe-seed -- doctor
 ```
 
 ### Emitting Machine-Readable JSON (for CI)
+
 ```bash
 cargo run -q -p swe-seed -- doctor --json
 ```
@@ -47,6 +51,7 @@ cargo run -q -p swe-seed -- doctor --json
 ## 4. Extending Doctor with a Custom Check
 
 ### Step 1: Define the Check Function
+
 Open `crates/swe-seed-core/src/doctor/check.rs`. Add your custom check:
 
 ```rust
@@ -64,6 +69,7 @@ pub fn check_custom_license_file(root: &Path) -> CheckResult {
 ```
 
 ### Step 2: Register the Check in the Doctor Runner
+
 Open `crates/swe-seed-core/src/doctor/mod.rs`. In `run_doctor()`:
 
 ```rust
@@ -72,6 +78,7 @@ results.push(check::check_custom_license_file(root));
 ```
 
 ### Step 3: Verify the Custom Check
+
 Run the doctor test suite:
 
 ```bash

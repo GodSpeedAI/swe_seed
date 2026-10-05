@@ -13,29 +13,34 @@ Many agent frameworks build custom desktop applications, custom terminal front-e
 ## 2. Confirmed Design Rationale
 
 ### A. Meeting Engineers Where They Already Work
+
 Developers already have established workflows with tools like Claude Code, GitHub Copilot, Codex, and Antigravity. Requiring teams to abandon their preferred tools in favor of a proprietary wrapper creates adoption friction. By projecting canonical rules directly into the host's native configuration files, developers continue using their existing tools without modification.
 
 ### B. Avoiding the "Fork and Wrapper Maintenance Trap"
+
 AI coding assistants evolve rapidly. Building a wrapper around Claude or Copilot creates an ongoing maintenance burden: upstream CLI changes, authentication updates, or UI redesigns constantly break wrapper layers. Projection treats the host tool as a compiler target: SWE_SEED emits standard markdown, JSON, or YAML, leaving runtime execution to the host vendor.
 
 ### C. Honest Degradation via Capability Matrices
+
 Different host tools provide different levels of capability:
+
 - Some hosts support pre-tool execution hooks that can strictly block dangerous commands.
 - Other hosts only support prompt-injection instructions (advisory guidance).
 
 By using explicit host adapters, SWE_SEED documents the exact enforcement strength (`Strict`, `Advisory`, or `Unsupported`) in `swe-seed hosts`. This prevents the dangerous illusion that advisory prompts provide guaranteed security enforcement.
 
 ### D. Preserving Developer Edits via Managed Blocks
+
 Using delimited markers (`<!-- BEGIN SWE_SEED MANAGED BLOCK -->` and `<!-- END SWE_SEED MANAGED BLOCK -->`), SWE_SEED updates canonical doctrine while leaving human customizations outside the markers untouched.
 
 ---
 
 ## 3. Trade-offs and Consequences
 
-| Trade-off | Description |
-|---|---|
+| Trade-off                   | Description                                                                                                                                                                   |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Enforcement Limitations** | In hosts that lack native lifecycle hooks (e.g. Copilot prompt files), SWE_SEED cannot forcefully block commands before execution; it must rely on downstream CI proof gates. |
-| **Drift Risk** | Because files reside in the workspace, users might edit projected blocks directly. Addressed by `swe-seed doctor --host <host>` which flags drift. |
+| **Drift Risk**              | Because files reside in the workspace, users might edit projected blocks directly. Addressed by `swe-seed doctor --host <host>` which flags drift.                            |
 
 ---
 

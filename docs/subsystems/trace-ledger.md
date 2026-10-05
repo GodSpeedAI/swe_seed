@@ -33,7 +33,7 @@ graph TD
     Agent["Host Agent / CLI"] -->|Lifecycle Commands| TraceEngine["Trace Engine (crates/swe-seed-core/src/trace/)"]
     TraceEngine --> Records[".agent-harness/traces/records/<id>.json (Human Readable)"]
     TraceEngine --> LedgerDB[".agent-harness/traces/ledger.db (SHA-256 Chained SQLite)"]
-    
+
     subgraph CI_Gate["CI & Merge Gate"]
         LedgerDB --> Gate["Routing Gate (swe-seed gate <id> --verify)"]
         Gate --> Merge["Merge Approval / just gate-merge"]
@@ -58,13 +58,16 @@ graph TD
 ## 6. Internal Operation
 
 ### 1. Hash Chaining
+
 When `trace start` executes:
+
 - An initial genesis event (`RouteSelected`) is created.
 - The hash of the genesis event is computed: `H_0 = sha256("GENESIS" + payload)`.
 - Subsequent events compute: `H_n = sha256(H_{n-1} + payload_n)`.
 - Hashes are stored alongside payloads in `ledger.db`.
 
 ### 2. Gate Verification (`swe-seed gate <id> --verify`)
+
 - Reads all events for `trace_id` in ascending sequence order.
 - Asserts that event index 0 is a `RouteSelected` event.
 - Iteratively recomputes hashes from index 0 to N, comparing computed hashes against stored hashes.
@@ -94,15 +97,15 @@ sequenceDiagram
 
     Agent->>CLI: trace start "task description"
     CLI->>Ledger: Insert RouteSelected genesis (H_0)
-    
+
     loop During Execution
         Agent->>CLI: trace append <id> "checkpoint note"
         CLI->>Ledger: Insert Event (H_n = sha256(H_n-1 + data))
     end
-    
+
     Agent->>CLI: trace finish <id> --claim "verified" --command "just ci"
     CLI->>Ledger: Insert ProofRecord event
-    
+
     Agent->>Gate: swe-seed gate <id> --verify
     Gate->>Ledger: verify_chain(id)
     Ledger-->>Gate: Valid (Allow)

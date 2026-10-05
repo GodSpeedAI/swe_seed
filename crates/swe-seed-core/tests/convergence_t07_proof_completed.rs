@@ -25,7 +25,7 @@ use swe_seed_core::federation::{
     check_conformance, emit_proof_completed_verified, idempotency_key, make_event,
     operational_settlement_ref, validate_producer, Adjudication, AdjudicationError, EmissionError,
     Envelope, HashSource, IdentityError, OperationalOutcome, ProducerAuthorityError,
-    ProofCompletion, ProofContract, ResolvedHash, VerifiedDomainIdentity,
+    ProofCompletion, ProofContract, ResolvedHash, VerifiedDomainIdentity, WorldRef,
 };
 use swe_seed_core::federation::{
     OperationalSettlementAdjudicator, OperationalSettlementFacts, PROOF_STATUSES,
@@ -53,6 +53,14 @@ fn fallback_pseudo_hash() -> String {
 }
 
 const WORK_REQUEST_ID: &str = "wr-gsf-001";
+const WORLD: &str =
+    "world:t07@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const OTHER_WORLD: &str =
+    "world:t07@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+fn world() -> WorldRef {
+    WorldRef::parse(WORLD).unwrap()
+}
 const AUTH_DECISION_ID: &str = "dec_01T07AUTHORITY000000";
 const E5A_EVENT_ID: &str = "aaaa7777-2222-4333-8444-555555555555";
 const E5B_EVENT_ID: &str = "bbbb7777-2222-4333-8444-555555555555";
@@ -74,6 +82,7 @@ fn settlement_envelope(
 ) -> Value {
     let payload = json!({
         "domain_model_hash": model_hash,
+        "world_ref": WORLD,
         "namespace": "agentic_capability_loop",
         "work_request_id": work_request_id,
         "authority_decision_id": AUTH_DECISION_ID,
@@ -139,6 +148,7 @@ fn real_adjudicated_settlement(
             work_request_id,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .expect("REAL sea_forge settlement must adjudicate");
     match outcome {
@@ -303,8 +313,11 @@ fn e7_golden_fixture_from_real_emitter_round_trips_and_carries_the_frozen_payloa
 
     // Cross-repo golden fixture: regenerate into the sxr checkout when
     // present so the REAL ingestion gate consumes REAL emitter output.
-    let sxr_root = std::env::var("SXR_ROOT")
-        .unwrap_or_else(|_| format!("{}/projects/sxr", std::env::var("HOME").unwrap_or_default()));
+    // Writes into ANOTHER checkout, so it only runs when SXR_ROOT is set.
+    let Ok(sxr_root) = std::env::var("SXR_ROOT") else {
+        eprintln!("SKIP: set SXR_ROOT to regenerate the sxr golden fixture");
+        return;
+    };
     let fixture_path =
         PathBuf::from(&sxr_root).join("sxr-core/tests/fixtures/t07_proof_completed.json");
     if !PathBuf::from(&sxr_root).join("sxr-core").exists() {
@@ -433,6 +446,7 @@ fn e7_a_restamped_or_drifted_settlement_envelope_is_refused_before_projection() 
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::Boundary(_))
     ));
@@ -847,4 +861,38 @@ fn e7_rejected_operational_outcomes_still_bind_honestly() {
         envelope.payload["operational_settlement_ref"],
         operational_settlement_ref(&settlement)
     );
+}
+
+// --- CEP-0008 world_ref (Stage 9) ---------------------------------------------
+
+#[test]
+fn e7_proof_completed_pins_the_adjudicated_world() {
+    let (settlement, facts) = real_adjudicated_settlement(
+        "world-pin",
+        WORK_REQUEST_ID,
+        "accepted",
+        attesting_effects(),
+    );
+    let inputs = CompletionInputs::default();
+    let c = contract(&inputs);
+    let proof = complete(&settlement, &facts, &[], &inputs, &c).unwrap();
+    assert_eq!(proof.world_ref(), Some(WORLD));
+    assert_eq!(facts.world_ref, WORLD);
+}
+
+#[test]
+fn e7_facts_from_one_world_cannot_back_a_settlement_naming_another() {
+    let (settlement, facts) = real_adjudicated_settlement(
+        "world-cross",
+        WORK_REQUEST_ID,
+        "accepted",
+        attesting_effects(),
+    );
+    // The same settlement bytes, re-pointed at another world.
+    let mut moved = settlement.clone();
+    moved.payload["world_ref"] = json!(OTHER_WORLD);
+    let inputs = CompletionInputs::default();
+    let c = contract(&inputs);
+    let err = complete(&moved, &facts, &[], &inputs, &c).unwrap_err();
+    assert!(matches!(err, EmissionError::SettlementNotAdjudicated(_)), "{err}");
 }

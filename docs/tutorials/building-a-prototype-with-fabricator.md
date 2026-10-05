@@ -20,6 +20,7 @@ cargo run -q -p swe-seed -- fabricate "CLI tool that parses markdown headers and
 ```
 
 ### Expected Output:
+
 ```text
 Initialized Fabricator run: 20260902T210000Z-md-toc
 Run directory: .fabricator/runs/20260902T210000Z-md-toc/
@@ -50,6 +51,7 @@ ls -la .fabricator/runs/<run_id>/
 ```
 
 Key artifacts to inspect:
+
 - `PRODUCT_SEED.md`: Bounded statement of user, problem, and constraints.
 - `JOB_STORY.md`: Standardized user situation and motivation.
 - `EARS_REQUIREMENTS.md`: Structured requirements using Ubiquitous and Event-Driven patterns.
@@ -69,6 +71,7 @@ cargo run -q -p swe-seed -- fabricate validate-chain <run_id>
 ```
 
 ### Expected Output:
+
 ```text
 Validating semantic chain for run '20260902T210000Z-md-toc'...
   Check 1: Node presence (10/10 present) ......................... PASS

@@ -30,7 +30,7 @@ In distributed multi-host environments, software tools silently drift out of syn
 ```mermaid
 graph TD
     CLI["swe-seed doctor [--host <host>] [--json]"] --> DoctorEngine["Doctor Engine (crates/swe-seed-core/src/doctor/)"]
-    
+
     subgraph AuditScope["Diagnostic Audit Scope"]
         DoctorEngine --> EnvCheck["Toolchain Check (cargo, just, git)"]
         DoctorEngine --> HarnessCheck["Harness Validation (Specs, BAML, Routes)"]

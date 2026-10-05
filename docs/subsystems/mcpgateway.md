@@ -32,7 +32,7 @@ AI coding agents increasingly invoke tools via the Model Context Protocol (MCP).
 ```mermaid
 graph LR
     Agent["Host Coding Agent"] -->|JSON-RPC 2.0 (stdio/SSE)| MCPGate["MCPGate Subsystem\n(crates/swe-seed-core/src/gateway/)"]
-    
+
     subgraph GovernancePlane["Governance & Security"]
         MCPGate --> Catalog["Tool Catalog & Namespace Resolver"]
         MCPGate --> GovEngine["Governance Engine (Policy Check)"]

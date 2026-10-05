@@ -21,6 +21,7 @@ use serde_json::{json, Map, Value};
 
 use super::envelope::{make_event_verified, Envelope};
 use super::identity::VerifiedDomainIdentity;
+use super::world::WorldRef;
 use super::{validate_envelope, ConsumeError};
 
 /// Why acquiring context failed or produced no acquisition.
@@ -53,6 +54,13 @@ pub enum ContextClientError {
     },
     /// The response violated the outcome protocol itself.
     InvalidResponse(String),
+    /// The packet names no world, or a different world than the request.
+    WorldMismatch(super::world::WorldRefError),
+    /// `require_complete` was set and the packet is not `complete`.
+    IncompleteContext {
+        completeness: RetrievalCompleteness,
+        omissions: Vec<String>,
+    },
 }
 
 impl std::fmt::Display for ContextClientError {
@@ -79,6 +87,16 @@ impl std::fmt::Display for ContextClientError {
                 reason.as_deref().unwrap_or("<unspecified>")
             ),
             Self::InvalidResponse(m) => write!(f, "invalid context response: {m}"),
+            Self::WorldMismatch(e) => write!(f, "context packet world rejected: {e}"),
+            Self::IncompleteContext {
+                completeness,
+                omissions,
+            } => write!(
+                f,
+                "context packet is {} (omissions: {:?}); complete context was required",
+                completeness.as_str(),
+                omissions
+            ),
         }
     }
 }
@@ -126,6 +144,28 @@ impl ContextPacket {
         self.envelope.domain_model_hash()
     }
 
+    /// The world the packet claims to be retrieved for (unvalidated string).
+    pub fn world_ref(&self) -> Option<&str> {
+        self.envelope.world_ref()
+    }
+
+    /// How much of the matching corpus the packet carries, as CK stated it.
+    /// An absent or unrecognised value is [`RetrievalCompleteness::Unknown`],
+    /// never `Complete`.
+    pub fn retrieval_completeness(&self) -> RetrievalCompleteness {
+        RetrievalCompleteness::from_payload(&self.envelope.payload)
+    }
+
+    /// CK's machine-readable omission reasons, empty when none were stated.
+    pub fn omissions(&self) -> Vec<&str> {
+        self.envelope
+            .payload
+            .get("omissions")
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(Value::as_str).collect())
+            .unwrap_or_default()
+    }
+
     /// Pass-through authority REFERENCES (opaque strings). CK cannot create
     /// authority; these only point at SEA-Forge decisions (I4).
     pub fn authority_reference(&self) -> Option<&str> {
@@ -145,6 +185,38 @@ impl ContextPacket {
     }
 }
 
+/// What Context Kernel says about how much of the matching corpus a packet
+/// carries. Relative to the query and corpus, never to reality. Only
+/// `Complete` means "everything that matched is here, in full"; a missing or
+/// unrecognised statement is `Unknown`, which is not complete.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RetrievalCompleteness {
+    Complete,
+    Partial,
+    None,
+    Unknown,
+}
+
+impl RetrievalCompleteness {
+    fn from_payload(payload: &Value) -> Self {
+        match payload.get("retrieval_completeness").and_then(Value::as_str) {
+            Some("complete") => Self::Complete,
+            Some("partial") => Self::Partial,
+            Some("none") => Self::None,
+            _ => Self::Unknown,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Complete => "complete",
+            Self::Partial => "partial",
+            Self::None => "none",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 /// What the caller expects back — used to adjudicate the response against the
 /// exact request (correlation + drift + causality). Public so contract tests
 /// exercise the same adjudicator the live client uses.
@@ -154,6 +226,13 @@ pub struct ExpectedContext<'a> {
     pub domain_model_hash: &'a str,
     pub request_event_id: &'a str,
     pub required: bool,
+    /// The world the request was pinned to. The packet must name exactly this
+    /// world (CEP-0008).
+    pub world_ref: &'a str,
+    /// When true, a packet whose `retrieval_completeness` is not `complete`
+    /// is refused rather than surfaced. Off by default: a partial packet is
+    /// reported honestly through [`ContextPacket::retrieval_completeness`].
+    pub require_complete: bool,
 }
 
 /// Adjudicate CK's raw tool response into a verified [`ContextPacket`].
@@ -210,6 +289,16 @@ pub fn adjudicate_context_response(
         });
     }
 
+    // 3b. World: the packet must be pinned to the request's world. Absent,
+    //     malformed, or different is refused (CEP-0008 `world_ref`).
+    envelope
+        .verified_world_ref()
+        .map_err(ContextClientError::WorldMismatch)?;
+    WorldRef::parse(expected.world_ref)
+        .map_err(ContextClientError::WorldMismatch)?
+        .require_same(envelope.world_ref())
+        .map_err(ContextClientError::WorldMismatch)?;
+
     // 4. Outcome protocol: only `cited` is successful acquisition; zero
     //    citations under `required` is the explicit governed outcome.
     let outcome = resp.get("outcome").and_then(Value::as_str).unwrap_or("");
@@ -226,7 +315,15 @@ pub fn adjudicate_context_response(
                     "outcome 'cited' but zero citations".into(),
                 ));
             }
-            Ok(ContextPacket { envelope })
+            let packet = ContextPacket { envelope };
+            let completeness = packet.retrieval_completeness();
+            if expected.require_complete && completeness != RetrievalCompleteness::Complete {
+                return Err(ContextClientError::IncompleteContext {
+                    completeness,
+                    omissions: packet.omissions().into_iter().map(String::from).collect(),
+                });
+            }
+            Ok(packet)
         }
         "no_context_governed" | "empty_optional" => {
             if expected.required && outcome != "no_context_governed" {
@@ -261,6 +358,10 @@ pub struct ContextRequest<'a> {
     /// Canonical DomainForge identity — construction type-gated, so a
     /// fallback/placeholder pseudo-hash cannot reach this boundary.
     pub domain_identity: &'a VerifiedDomainIdentity,
+    /// The semantic world the request is pinned to; sent in the E2 payload.
+    pub world_ref: &'a WorldRef,
+    /// Refuse (rather than surface) a packet that is not `complete`.
+    pub require_complete: bool,
     /// Optional SEA-Forge authority references (pass-through only).
     pub authority_decision_id: Option<&'a str>,
     pub authority_reference: Option<&'a str>,
@@ -348,6 +449,10 @@ impl ContextKernelClient {
             Value::String(req.context_requirement_id.to_string()),
         );
         payload.insert("corpus_id".into(), Value::String(req.corpus_id.to_string()));
+        payload.insert(
+            "world_ref".into(),
+            Value::String(req.world_ref.to_string()),
+        );
         if let Some(q) = req.query {
             payload.insert("query".into(), Value::String(q.to_string()));
         }
@@ -372,6 +477,8 @@ impl ContextKernelClient {
                 domain_model_hash: req.domain_identity.as_str(),
                 request_event_id: &e2.event_id,
                 required: req.required,
+                world_ref: req.world_ref.as_str(),
+                require_complete: req.require_complete,
             },
         )
     }

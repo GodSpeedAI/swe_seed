@@ -40,12 +40,18 @@ fn write_model_artifact(dir: &Path) -> (PathBuf, String) {
     (path, format!("{:x}", h.finalize()))
 }
 
+const WORLD: &str =
+    "world:t04@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const OTHER_WORLD: &str =
+    "world:t04@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
 /// A boundary-clean E1 envelope: properly stamped by its exclusive producer.
 fn work_requested_envelope(work_request_id: &str, hash: &str) -> Envelope {
     let mut env = make_event(
         "WorkRequested",
         json!({
             "work_request_id": work_request_id,
+            "world_ref": WORLD,
             "affordance_id": "aff-blue-green-001",
             "desired_outcome": "deploy service via blue-green rotation",
             "settlement_criteria": ["health check green", "zero-downtime observed"],
@@ -65,6 +71,8 @@ fn context_packet_envelope(work_request_id: &str, hash: &str) -> Envelope {
         "ContextPacketCreated",
         json!({
             "work_request_id": work_request_id,
+            "world_ref": WORLD,
+            "retrieval_completeness": "complete",
             "context_requirement_id": "cr-t04",
             "context_packet_id": "ctx_01J9T04PACKET0000000000",
             "citations": [
@@ -434,12 +442,11 @@ fn t04_optional_governance_fields_pass_through_when_present() {
 
 #[test]
 fn t04_writes_golden_fixture_for_sea_forge_ingress() {
-    let root = std::env::var("SEA_RS_ROOT").unwrap_or_else(|_| {
-        format!(
-            "{}/projects/sea-rs",
-            std::env::var("HOME").unwrap_or_default()
-        )
-    });
+    // Writes into ANOTHER checkout, so it only runs when asked to.
+    let Ok(root) = std::env::var("SEA_RS_ROOT") else {
+        eprintln!("SKIP: set SEA_RS_ROOT to regenerate the SEA-Forge golden fixture");
+        return;
+    };
     let fixture = Path::new(&root)
         .join("crates/sea-forge-server/tests/fixtures/t04_governed_work_request.json");
     if !Path::new(&root).join("crates/sea-forge-server").exists() {
@@ -487,4 +494,76 @@ fn t04_writes_golden_fixture_for_sea_forge_ingress() {
     let decoded: Value = serde_json::from_str(&std::fs::read_to_string(&fixture).unwrap()).unwrap();
     let req: Envelope = serde_json::from_value(decoded["request"].clone()).unwrap();
     assert_eq!(req.event_type, "GovernedWorkRequest");
+}
+
+// --- CEP-0008 world_ref (Stage 9) ---------------------------------------------
+
+#[test]
+fn e4_request_pins_the_contracts_world() {
+    let chain = upstream("world-pin", "wr-t04");
+    let contract = accept_work_requested(&chain.work_requested, chain.identity.as_str()).unwrap();
+    let proof = proof();
+    let request = build_governed_work_request(
+        &chain.work_requested,
+        &chain.packet,
+        submission(&contract, &proof),
+        &chain.identity,
+    )
+    .unwrap();
+    assert_eq!(request.world_ref(), Some(WORLD));
+    assert_eq!(contract.world_ref.as_str(), WORLD);
+}
+
+#[test]
+fn t04_context_packet_from_another_world_never_reaches_sea_forge() {
+    let chain = upstream("world-packet", "wr-t04");
+    let contract = accept_work_requested(&chain.work_requested, chain.identity.as_str()).unwrap();
+    let mut foreign = context_packet_envelope("wr-t04", chain.identity.as_str());
+    foreign.payload["world_ref"] = json!(OTHER_WORLD);
+    let err = build_governed_work_request(
+        &chain.work_requested,
+        &foreign,
+        submission(&contract, &proof()),
+        &chain.identity,
+    )
+    .unwrap_err();
+    assert!(
+        matches!(err, SubmissionError::World { artifact: "context_packet", .. }),
+        "{err}"
+    );
+}
+
+#[test]
+fn t04_context_packet_without_a_world_is_refused_not_assumed() {
+    let chain = upstream("world-packet-missing", "wr-t04");
+    let contract = accept_work_requested(&chain.work_requested, chain.identity.as_str()).unwrap();
+    let mut bare = context_packet_envelope("wr-t04", chain.identity.as_str());
+    bare.payload.as_object_mut().unwrap().remove("world_ref");
+    let err = build_governed_work_request(
+        &chain.work_requested,
+        &bare,
+        submission(&contract, &proof()),
+        &chain.identity,
+    )
+    .unwrap_err();
+    assert!(matches!(err, SubmissionError::World { .. }), "{err}");
+}
+
+#[test]
+fn t04_work_requested_from_another_world_than_the_contract_is_refused() {
+    let chain = upstream("world-e1", "wr-t04");
+    let contract = accept_work_requested(&chain.work_requested, chain.identity.as_str()).unwrap();
+    let mut moved = work_requested_envelope("wr-t04", chain.identity.as_str());
+    moved.payload["world_ref"] = json!(OTHER_WORLD);
+    let err = build_governed_work_request(
+        &moved,
+        &chain.packet,
+        submission(&contract, &proof()),
+        &chain.identity,
+    )
+    .unwrap_err();
+    assert!(
+        matches!(err, SubmissionError::World { artifact: "work_requested", .. }),
+        "{err}"
+    );
 }

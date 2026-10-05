@@ -33,9 +33,11 @@ tags: ["safety", "json", "rust"]
 # JSON Safety
 
 ## Intent
+
 Prevent denial-of-service or crash bugs when parsing untrusted JSON inputs.
 
 ## Rules
+
 1. Never parse untrusted JSON directly into unbounded memory structures.
 2. Always enforce byte size limits prior to deserialization.
 3. Handle deserialization errors explicitly; avoid `.unwrap()`.
@@ -52,11 +54,13 @@ just harness-validate
 ```
 
 ### Expected Output:
+
 ```text
 Harness validation passed
 ```
 
 The validator confirms that:
+
 - The skill directory name matches the `name` field in the frontmatter.
 - No duplicate skill IDs exist.
 - Required frontmatter fields are present.
@@ -72,11 +76,13 @@ just harness-render-skills
 ```
 
 Behind the scenes, this executes:
+
 ```bash
 cargo run -q -p swe-seed -- render-skills
 ```
 
 ### Expected Output:
+
 ```text
 Rendering SkillIR to host targets...
   Rendered 1 skills into .agent-harness/render-targets/

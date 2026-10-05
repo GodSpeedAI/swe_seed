@@ -20,6 +20,7 @@ Enable SWE_SEED to project its canonical doctrine, rules, and skills into a new 
 ## 3. Procedure
 
 ### Step 1: Create the Adapter File
+
 Create `crates/swe-seed-core/src/adapters/<new_host>.rs`. Implement the `HostAdapter` trait:
 
 ```rust
@@ -63,7 +64,9 @@ impl HostAdapter for NewHostAdapter {
 ```
 
 ### Step 2: Register the Adapter
+
 In `crates/swe-seed-core/src/adapters/mod.rs`:
+
 1. Add `pub mod <new_host>;`.
 2. Register `NewHostAdapter` in the adapter registry function:
    ```rust
@@ -81,6 +84,7 @@ In `crates/swe-seed/src/host_cli.rs`:
 Add the new host variant to `HostSelection` clap enum.
 
 ### Step 3: Run Tests
+
 Verify compilation and test suite:
 
 ```bash
@@ -88,6 +92,7 @@ cargo test -p swe-seed-core --lib adapters
 ```
 
 ### Step 4: Validate with Dry Run
+
 Test the projection without writing to disk:
 
 ```bash

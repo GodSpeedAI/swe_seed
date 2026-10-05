@@ -11,6 +11,7 @@ use super::consume::{check_drift, ConsumeError};
 use super::envelope::Envelope;
 use super::identity;
 use super::producers::validate_producer;
+use super::world::WorldRef;
 
 /// The parsed spendable work contract carried by a canonical E1 envelope.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,6 +20,9 @@ pub struct WorkRequestContract {
     pub affordance_id: String,
     pub desired_outcome: String,
     pub settlement_criteria: Vec<String>,
+    /// The semantic world the request is pinned to. Every downstream artifact
+    /// of this cycle must name this same world.
+    pub world_ref: WorldRef,
 }
 
 /// Accept one canonical `WorkRequested` envelope at the SWE_SEED boundary:
@@ -26,7 +30,8 @@ pub struct WorkRequestContract {
 /// 1. producer authority — only `godspeed_agent` may emit WorkRequested (I3);
 /// 2. canonical identity — declared hash must be a real digest, not a
 ///    placeholder (ENV-I2), and must match the local resolution (drift);
-/// 3. contract completeness — work_request_id correlation, affordance_id,
+/// 3. semantic world — `world_ref` is required and well-formed;
+/// 4. contract completeness — work_request_id correlation, affordance_id,
 ///    desired_outcome, and non-empty settlement_criteria are all required
 ///    (frozen falsifier: destination-only inputs are rejected).
 pub fn accept_work_requested(
@@ -42,6 +47,12 @@ pub fn accept_work_requested(
     })?;
     identity::verify_declared_hash(declared).map_err(ConsumeError::Identity)?;
     check_drift(envelope, expected_hash)?;
+
+    // Semantic world: required and well-formed (syntax only; SEA-Forge
+    // verifies the digest). An alias or label is not a world identity.
+    let world_ref = envelope
+        .verified_world_ref()
+        .map_err(ConsumeError::World)?;
 
     let require_str = |field: &str| -> Result<&str, ConsumeError> {
         envelope
@@ -83,5 +94,6 @@ pub fn accept_work_requested(
         affordance_id,
         desired_outcome,
         settlement_criteria,
+        world_ref,
     })
 }

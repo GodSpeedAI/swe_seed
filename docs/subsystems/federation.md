@@ -60,6 +60,7 @@ graph LR
 ## 6. Internal Operation
 
 ### 1. Key Generation & Encryption
+
 - An engineer runs `swe-seed federation keygen <key-id>`.
 - Generates an Ed25519 keypair.
 - Writes the public key to committed `.agent-harness/federation/keys/<key-id>.pub`.
@@ -67,6 +68,7 @@ graph LR
 - Encrypts the private key at rest via `just federation-encrypt-key <key-id>` using SOPS and age.
 
 ### 2. Envelope Signing
+
 - On task completion, `swe-seed federation sign <trace-id> --key <key-id>` decrypts the private key in memory.
 - Computes the SHA-256 digest of the canonical trace record.
 - Signs the digest using the Ed25519 private key.

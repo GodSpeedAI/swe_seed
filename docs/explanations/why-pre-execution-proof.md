@@ -13,13 +13,17 @@ In standard software workflows, tests are often executed after coding is finishe
 ## 2. Confirmed Design Rationale
 
 ### The "Grading Own Homework" Failure Pattern
+
 When an AI coding agent is allowed to choose how to verify its own work after writing code:
+
 - **Convenience drives verification**: The agent runs the quickest or easiest unit test, avoiding comprehensive end-to-end or regression suites.
 - **Scope shrinking**: If a difficult check fails, the agent may modify the test assertions, delete the failing test, or declare the failure "out of scope."
 - **Automated Optimism**: The agent generates a conversational summary declaring "implemented, tested, complete" regardless of whether the decisive verification checks ran.
 
 ### Making Claims Falsifiable
+
 By binding proof commands **prior to execution**:
+
 1. **The terms are fixed**: The agent cannot alter what constitutes success.
 2. **Claims become falsifiable**: A claim that a bug is resolved has no standing unless the pre-bound command exits with code 0 and records stdout/stderr evidence in the trace.
 3. **Forensic overhead is eliminated**: Human reviewers do not need to investigate which tests the agent forgot to run; the trace ledger verifies that the pre-declared proof contract was executed and passed.
@@ -28,10 +32,10 @@ By binding proof commands **prior to execution**:
 
 ## 3. Trade-offs and Consequences
 
-| Trade-off | Description |
-|---|---|
-| **Upfront Rigidity vs Flexibility** | Because proof is pre-bound, an agent cannot easily swap tests mid-flight. If a new test target is required, the task route or spec must be explicitly updated. |
-| **CI Execution Cost** | Running `just ci` (which builds release binaries and runs golden tests) is heavier than running a single unit test, but guarantees parity between local verification and remote CI gates. |
+| Trade-off                           | Description                                                                                                                                                                               |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Upfront Rigidity vs Flexibility** | Because proof is pre-bound, an agent cannot easily swap tests mid-flight. If a new test target is required, the task route or spec must be explicitly updated.                            |
+| **CI Execution Cost**               | Running `just ci` (which builds release binaries and runs golden tests) is heavier than running a single unit test, but guarantees parity between local verification and remote CI gates. |
 
 ---
 

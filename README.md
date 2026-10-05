@@ -126,9 +126,7 @@ For a bug fix, that might include:
     "AGENTS.md",
     ".agent-harness/playbooks/30-debug-from-symptom.md"
   ],
-  "required_skills": [
-    "debug-discipline"
-  ],
+  "required_skills": ["debug-discipline"],
   "work_loop": [
     "establish a reliable reproduction",
     "trace the failure path",
@@ -141,9 +139,7 @@ For a bug fix, that might include:
     "root cause note",
     "implementation change"
   ],
-  "proof": [
-    "just ci"
-  ],
+  "proof": ["just ci"],
   "done_when": [
     "original failure no longer reproduces",
     "root cause is connected to the fix",
@@ -973,9 +969,9 @@ The harness itself remains deterministic where its job is deterministic.
 
 Prerequisites:
 
-* Rust 1.75+
-* `cargo`
-* [`just`](https://github.com/casey/just)
+- Rust 1.75+
+- `cargo`
+- [`just`](https://github.com/casey/just)
 
 Clone the repository, then:
 
@@ -1325,23 +1321,23 @@ The core routing → trace → proof → gate loop is implemented and exercised 
 
 ### Implemented
 
-* routing and route cards
-* context planning
-* trace lifecycle
-* JSON trace records
-* harness structure validation
-* host projection
-* drift detection
-* host rollback
-* hook runtime
-* OpenTelemetry and JUnit exports
-* eval specs
-* learning reflection
-* reviewed learning promotion
-* seed assembly
-* boundary validation
-* provenance verification
-* trace-chain merge gating
+- routing and route cards
+- context planning
+- trace lifecycle
+- JSON trace records
+- harness structure validation
+- host projection
+- drift detection
+- host rollback
+- hook runtime
+- OpenTelemetry and JUnit exports
+- eval specs
+- learning reflection
+- reviewed learning promotion
+- seed assembly
+- boundary validation
+- provenance verification
+- trace-chain merge gating
 
 Host projection currently covers:
 
@@ -1370,15 +1366,15 @@ The optional learning store and vector retrieval path are not required for norma
 
 ### Experimental
 
-* MCP gateway
-* federation envelope exchange
-* SEA-Forge verification integration
+- MCP gateway
+- federation envelope exchange
+- SEA-Forge verification integration
 
 ### Architectural target
 
-* deeper Context Kernel integration
-* GodSpeed-Agent settlement handoff
-* stronger cross-host behavioral parity
+- deeper Context Kernel integration
+- GodSpeed-Agent settlement handoff
+- stronger cross-host behavioral parity
 
 Treat those targets as direction until the corresponding proof exists.
 
@@ -1481,12 +1477,12 @@ Do not confuse that with an independent authorization boundary.
 
 ## Documentation
 
-* [Agent operating contract](AGENTS.md)
-* [Harness specification](HARNESS_SPEC.md)
-* [SWE_SEED specification](SWE_SEED_SPEC_v0.2.0.md)
-* [Fabricator specification](FABRICATOR_SPEC_v0.1.0.md)
-* [Development harness guide](docs/dev-harness/README.md)
-* [Agent harness specification index](docs/specs/agentic-swe-harness.md)
+- [Agent operating contract](AGENTS.md)
+- [Harness specification](HARNESS_SPEC.md)
+- [SWE_SEED specification](SWE_SEED_SPEC_v0.2.0.md)
+- [Fabricator specification](FABRICATOR_SPEC_v0.1.0.md)
+- [Development harness guide](docs/dev-harness/README.md)
+- [Agent harness specification index](docs/specs/agentic-swe-harness.md)
 
 ---
 

@@ -7,6 +7,7 @@ This document outlines the core mental model behind SWE_SEED. It explains the sy
 ## 1. The Core Problem: The Proof Deficit
 
 AI coding agents have inverted the economics of software development:
+
 - **Code generation is cheap.** An agent can draft hundreds of lines of code in seconds.
 - **Verification remains expensive.** Verifying that generated code meets requirements, honors system invariants, preserves backward compatibility, and passes all edge cases requires deep scrutiny.
 
@@ -40,6 +41,7 @@ SWE_SEED organizes its capabilities into three distinct layers, governed strictl
 ```
 
 ### Layer Ownership Rules
+
 1. **Ownership flows downward only**: An inner layer never owns or governs an outer layer's concern.
 2. **Cross-layer references point downward**: Outer layers reference inner layer abstractions; inner layers remain unaware of outer layers.
 3. **Layer Definitions**:
@@ -92,6 +94,7 @@ flowchart TD
 ## 5. Contracts-as-Data
 
 A cornerstone architectural principle of SWE_SEED is **Contracts-as-Data**:
+
 - The schema contracts for all three layers are written in BAML (`.baml`) under `.agent-harness/baml/baml_src/`:
   - `swe_seed.baml`
   - `harness.baml`
@@ -105,19 +108,20 @@ A cornerstone architectural principle of SWE_SEED is **Contracts-as-Data**:
 
 SWE_SEED enforces a **file-first, local-first** state architecture:
 
-| State Category | Canonical Storage Location | Format | Mutability | Ownership |
-|---|---|---|---|---|
-| **Layer Specs** | `docs/specs/`, root spec files | Markdown (`.md`) | Version-controlled | Human maintainers / RFCs |
-| **Layer Schemas** | `.agent-harness/baml/baml_src/` | BAML (`.baml`) | Version-controlled | Schema definitions |
-| **Route Cards** | `.agent-harness/routes/` | JSON (`.json`) | Version-controlled | Harness Layer |
-| **Active Memory** | `.agent-harness/memory/` | Markdown (`.md`) | Version-controlled | Durable harness memory |
-| **Agent Scratch** | `.agents/` | YML / MD | Ephemeral (gitignored) | Active agent handoffs |
-| **Traces** | `.agent-harness/traces/records/` | JSON (`.json`) | Append-only | Trace engine / Gate |
-| **Trace Ledger** | `.agent-harness/traces/ledger.db` | SQLite 3 | Append-only | Trace engine / Gate |
-| **Hook Events** | `.agent-hooks/events.jsonl` | JSONL | Append-only | Hook runtime |
-| **Host Projections** | `.claude/`, `.github/`, `.agent-rules/` | Mixed (JSON, MD) | Deterministic generated | Host Adapters |
+| State Category       | Canonical Storage Location              | Format           | Mutability              | Ownership                |
+| -------------------- | --------------------------------------- | ---------------- | ----------------------- | ------------------------ |
+| **Layer Specs**      | `docs/specs/`, root spec files          | Markdown (`.md`) | Version-controlled      | Human maintainers / RFCs |
+| **Layer Schemas**    | `.agent-harness/baml/baml_src/`         | BAML (`.baml`)   | Version-controlled      | Schema definitions       |
+| **Route Cards**      | `.agent-harness/routes/`                | JSON (`.json`)   | Version-controlled      | Harness Layer            |
+| **Active Memory**    | `.agent-harness/memory/`                | Markdown (`.md`) | Version-controlled      | Durable harness memory   |
+| **Agent Scratch**    | `.agents/`                              | YML / MD         | Ephemeral (gitignored)  | Active agent handoffs    |
+| **Traces**           | `.agent-harness/traces/records/`        | JSON (`.json`)   | Append-only             | Trace engine / Gate      |
+| **Trace Ledger**     | `.agent-harness/traces/ledger.db`       | SQLite 3         | Append-only             | Trace engine / Gate      |
+| **Hook Events**      | `.agent-hooks/events.jsonl`             | JSONL            | Append-only             | Hook runtime             |
+| **Host Projections** | `.claude/`, `.github/`, `.agent-rules/` | Mixed (JSON, MD) | Deterministic generated | Host Adapters            |
 
 ### Invariants:
+
 1. Canonical harness state lives under `.agent-harness/` and is version-controlled.
 2. Host files are secondary projected surfaces; manual edits to managed blocks are detected by `doctor` as drift.
 3. `.agents/` is uncommitted scratch memory; it must never be treated as an authoritative source of truth.
