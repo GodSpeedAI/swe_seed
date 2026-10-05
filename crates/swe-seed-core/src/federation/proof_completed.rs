@@ -267,6 +267,17 @@ pub fn emit_proof_completed_verified(
         });
     }
 
+    // 3b. World binding: the settlement must carry the world the adjudicated
+    //     facts were bound to. A proof can never be emitted into a world the
+    //     settlement did not name.
+    if settlement.world_ref() != Some(facts.world_ref.as_str()) {
+        return Err(EmissionError::SettlementNotAdjudicated(format!(
+            "facts are bound to {}, settlement names {:?}",
+            facts.world_ref,
+            settlement.world_ref()
+        )));
+    }
+
     // 4. Required-field battery.
     let proof_result_id = completion.proof_result_id.trim();
     check_identity_string("proof_result_id", proof_result_id)?;
@@ -342,6 +353,7 @@ pub fn emit_proof_completed_verified(
             "proof_type": completion.proof_contract.proof_type,
         }),
     );
+    payload.insert("world_ref".into(), Value::String(facts.world_ref.clone()));
     payload.insert(
         "proof_status".into(),
         Value::String(completion.proof_status.trim().to_string()),

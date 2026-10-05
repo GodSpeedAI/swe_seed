@@ -42,6 +42,9 @@ pub enum ConsumeError {
     DestinationOnly {
         field: String,
     },
+    /// Semantic-world identity failure (CEP-0008 `world_ref`): missing,
+    /// malformed, or different from the originating request's world.
+    World(super::world::WorldRefError),
 }
 
 impl std::fmt::Display for ConsumeError {
@@ -60,6 +63,7 @@ impl std::fmt::Display for ConsumeError {
             ConsumeError::ProducerAuthority(e) => write!(f, "{e}"),
             ConsumeError::Identity(e) => write!(f, "{e}"),
             ConsumeError::Causality { reason } => write!(f, "causality violation: {reason}"),
+            ConsumeError::World(e) => write!(f, "{e}"),
             ConsumeError::DestinationOnly { field } => {
                 write!(
                     f,

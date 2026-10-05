@@ -13,12 +13,16 @@ use sha2::{Digest, Sha256};
 use swe_seed_core::federation::{
     adjudicate_context_response, agent_id, authoritative_producer, fallback_hash,
     make_event_verified, validate_producer, verify_declared_hash, ContextClientError,
-    ExpectedContext, VerifiedDomainIdentity,
+    ExpectedContext, RetrievalCompleteness, VerifiedDomainIdentity,
 };
 
 const WR: &str = "wr-t02";
 const CR: &str = "cr-t02";
 const REQUEST_EVENT: &str = "11111111-2222-3333-4444-555555555555";
+const WORLD: &str =
+    "world:t02@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const OTHER_WORLD: &str =
+    "world:t02@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
 fn digest(seed: &[u8]) -> String {
     format!("{:x}", Sha256::digest(seed))
@@ -46,6 +50,9 @@ fn citation(n: u8) -> Value {
 fn good_response() -> Value {
     let payload = json!({
         "domain_model_hash": model_hash(),
+        "world_ref": WORLD,
+        "retrieval_completeness": "complete",
+        "omissions": [],
         "namespace": "agentic_capability_loop",
         "work_request_id": WR,
         "context_requirement_id": CR,
@@ -81,6 +88,8 @@ fn expected(required: bool) -> ExpectedContext<'static> {
         domain_model_hash: model_hash(),
         request_event_id: REQUEST_EVENT,
         required,
+        world_ref: WORLD,
+        require_complete: false,
     }
 }
 
@@ -246,5 +255,115 @@ fn i4_ck_cannot_emit_authority_checked_even_with_correct_stamp() {
     assert_eq!(
         packet.authority_reference(),
         Some("AuthorityChecked#evt_sea_1")
+    );
+}
+
+// --- CEP-0008 world_ref (Stage 9) ---------------------------------------------
+
+#[test]
+fn packet_must_name_the_requests_world() {
+    let packet = adjudicate_context_response(&good_response(), &expected(true)).unwrap();
+    assert_eq!(packet.world_ref(), Some(WORLD));
+}
+
+#[test]
+fn packet_from_another_world_is_rejected() {
+    let mut resp = good_response();
+    resp["context_envelope"]["payload"]["world_ref"] = json!(OTHER_WORLD);
+    let err = adjudicate_context_response(&resp, &expected(true)).unwrap_err();
+    assert!(matches!(err, ContextClientError::WorldMismatch(_)), "{err}");
+}
+
+#[test]
+fn packet_without_a_world_is_rejected_not_assumed() {
+    let mut resp = good_response();
+    resp["context_envelope"]["payload"]
+        .as_object_mut()
+        .unwrap()
+        .remove("world_ref");
+    let err = adjudicate_context_response(&resp, &expected(true)).unwrap_err();
+    assert!(matches!(err, ContextClientError::WorldMismatch(_)), "{err}");
+}
+
+#[test]
+fn packet_with_an_alias_world_is_rejected() {
+    let mut resp = good_response();
+    resp["context_envelope"]["payload"]["world_ref"] = json!("world:t02");
+    let err = adjudicate_context_response(&resp, &expected(true)).unwrap_err();
+    assert!(matches!(err, ContextClientError::WorldMismatch(_)), "{err}");
+}
+
+#[test]
+fn a_request_with_a_malformed_world_cannot_adjudicate_anything() {
+    let mut exp = expected(true);
+    exp.world_ref = "world:t02";
+    let err = adjudicate_context_response(&good_response(), &exp).unwrap_err();
+    assert!(matches!(err, ContextClientError::WorldMismatch(_)), "{err}");
+}
+
+// --- partial context must not read as complete --------------------------------
+
+#[test]
+fn completeness_is_surfaced_not_coerced() {
+    for (stated, want) in [
+        (Some("complete"), RetrievalCompleteness::Complete),
+        (Some("partial"), RetrievalCompleteness::Partial),
+        (Some("none"), RetrievalCompleteness::None),
+        (Some("exhaustive"), RetrievalCompleteness::Unknown),
+        (None, RetrievalCompleteness::Unknown),
+    ] {
+        let mut resp = good_response();
+        match stated {
+            Some(v) => resp["context_envelope"]["payload"]["retrieval_completeness"] = json!(v),
+            None => {
+                resp["context_envelope"]["payload"]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("retrieval_completeness");
+            }
+        }
+        let packet = adjudicate_context_response(&resp, &expected(true)).unwrap();
+        assert_eq!(packet.retrieval_completeness(), want, "stated {stated:?}");
+    }
+}
+
+#[test]
+fn a_partial_packet_is_refused_when_complete_context_is_required() {
+    let mut resp = good_response();
+    resp["context_envelope"]["payload"]["retrieval_completeness"] = json!("partial");
+    resp["context_envelope"]["payload"]["omissions"] = json!(["max_results_reached"]);
+    let mut exp = expected(true);
+    exp.require_complete = true;
+    match adjudicate_context_response(&resp, &exp) {
+        Err(ContextClientError::IncompleteContext {
+            completeness,
+            omissions,
+        }) => {
+            assert_eq!(completeness, RetrievalCompleteness::Partial);
+            assert_eq!(omissions, vec!["max_results_reached".to_string()]);
+        }
+        other => panic!("partial context must be refused: {other:?}"),
+    }
+}
+
+#[test]
+fn unstated_completeness_is_not_complete_when_complete_is_required() {
+    let mut resp = good_response();
+    resp["context_envelope"]["payload"]
+        .as_object_mut()
+        .unwrap()
+        .remove("retrieval_completeness");
+    let mut exp = expected(true);
+    exp.require_complete = true;
+    let err = adjudicate_context_response(&resp, &exp).unwrap_err();
+    assert!(
+        matches!(
+            err,
+            ContextClientError::IncompleteContext {
+                completeness: RetrievalCompleteness::Unknown,
+                ..
+            }
+        ),
+        "{err}"
     );
 }

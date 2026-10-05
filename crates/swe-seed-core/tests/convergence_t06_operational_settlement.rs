@@ -20,6 +20,7 @@ use swe_seed_core::federation::{
     consume_settlement_recorded, derive_event, make_event, validate_producer, Adjudication,
     AdjudicationError, ConsumeError, Envelope, OperationalOutcome,
     OperationalSettlementAdjudicator, OperationalSettlementFacts, ProducerAuthorityError,
+    WorldRef, WorldRefError,
 };
 
 fn tmp_dir(tag: &str) -> PathBuf {
@@ -44,6 +45,15 @@ fn fallback_pseudo_hash() -> String {
 }
 
 const WORK_REQUEST_ID: &str = "wr-gsf-001";
+const WORLD: &str =
+    "world:t06@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const OTHER_WORLD: &str =
+    "world:t06@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+/// The world of the originating work request in these tests.
+fn world() -> WorldRef {
+    WorldRef::parse(WORLD).unwrap()
+}
 const AUTH_DECISION_ID: &str = "dec_01T06AUTHORITY000000";
 const E5A_EVENT_ID: &str = "aaaa1111-2222-4333-8444-555555555555";
 const E5B_EVENT_ID: &str = "bbbb1111-2222-4333-8444-555555555555";
@@ -70,6 +80,7 @@ fn settlement_envelope(
 ) -> Value {
     let payload = json!({
         "domain_model_hash": model_hash,
+        "world_ref": WORLD,
         "namespace": "agentic_capability_loop",
         "work_request_id": work_request_id,
         "authority_decision_id": authority_decision_id,
@@ -161,6 +172,8 @@ fn e6_golden_fixture_from_sea_forge_is_adjudicated() {
             fixture["originating_work_request_id"].as_str().unwrap(),
             &chain_refs,
             fixture["domain_model_sha256"].as_str().unwrap(),
+            &WorldRef::parse(fixture["originating_world_ref"].as_str().unwrap())
+                .expect("fixture names the originating world"),
         )
         .expect("REAL sea_forge settlement must adjudicate");
     let Adjudication::First(facts) = outcome else {
@@ -183,6 +196,7 @@ fn e6_valid_operational_settlement_adjudicates_to_operational_facts_only() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .expect("valid settlement must adjudicate");
     assert!(outcome.first());
@@ -199,6 +213,7 @@ fn e6_valid_operational_settlement_adjudicates_to_operational_facts_only() {
         operational_outcome,
         observed_effects,
         evidence_refs,
+        world_ref,
     }) = outcome
     else {
         unreachable!()
@@ -209,6 +224,7 @@ fn e6_valid_operational_settlement_adjudicates_to_operational_facts_only() {
     assert_eq!(execution_status, "completed");
     assert_eq!(observed_effects, attesting_effects());
     assert_eq!(evidence_refs.len(), 3);
+    assert_eq!(world_ref, WORLD);
     assert!(!settlement_event_id.is_empty());
     // The two-variant outcome type admits no third, proof-shaped reading.
     match operational_outcome {
@@ -233,6 +249,7 @@ fn e6_valid_operational_settlement_adjudicates_to_operational_facts_only() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap()
     else {
@@ -332,6 +349,7 @@ fn t06_proof_verdicts_cannot_smuggle_through_the_settlement_status_field() {
                 WORK_REQUEST_ID,
                 &[E5A_EVENT_ID, E5B_EVENT_ID],
                 &local_model_sha256(),
+                &world(),
             ),
             Err(AdjudicationError::InvalidSettlementStatus {
                 got: smuggled.to_string(),
@@ -354,6 +372,7 @@ fn t06_duplicate_delivery_is_consequence_free() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap();
     assert!(first.first());
@@ -366,6 +385,7 @@ fn t06_duplicate_delivery_is_consequence_free() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap();
     assert_eq!(outcome, Adjudication::DuplicateDelivery);
@@ -388,6 +408,7 @@ fn t06_duplicate_delivery_is_consequence_free() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap();
     assert_eq!(outcome, Adjudication::DuplicateDelivery);
@@ -404,6 +425,7 @@ fn t06_duplicate_delivery_is_consequence_free() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap();
     assert_eq!(outcome, Adjudication::DuplicateDelivery);
@@ -429,6 +451,7 @@ fn t06_mutated_reattestation_of_the_same_chain_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap()
         .first());
@@ -451,6 +474,7 @@ fn t06_mutated_reattestation_of_the_same_chain_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::ConflictingResettlement {
             work_request_id: WORK_REQUEST_ID.to_string(),
@@ -465,6 +489,7 @@ fn t06_mutated_reattestation_of_the_same_chain_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap();
     assert_eq!(replay, Adjudication::DuplicateDelivery);
@@ -487,6 +512,7 @@ fn t06_mutated_reattestation_of_the_same_chain_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap()
         .first());
@@ -504,6 +530,7 @@ fn t06_duplicate_and_conflict_detection_survives_restart() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap()
         .first());
@@ -519,6 +546,7 @@ fn t06_duplicate_and_conflict_detection_survives_restart() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap();
     assert_eq!(replay, Adjudication::DuplicateDelivery);
@@ -538,6 +566,7 @@ fn t06_duplicate_and_conflict_detection_survives_restart() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::ConflictingResettlement { .. })
     ));
@@ -555,6 +584,7 @@ fn t06_wrong_work_request_binding_is_refused_and_records_nothing() {
             "wr-some-other-request",
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::CrossWiredWorkRequest {
             expected: "wr-some-other-request".to_string(),
@@ -570,7 +600,7 @@ fn t06_causality_binding_to_the_known_invocation_chain_is_mandatory() {
 
     let mut judge = adjudicator("chain-empty");
     assert_eq!(
-        judge.adjudicate(&envelope, WORK_REQUEST_ID, &[], &local_model_sha256()),
+        judge.adjudicate(&envelope, WORK_REQUEST_ID, &[], &local_model_sha256(), &world()),
         Err(AdjudicationError::EmptyChainBinding)
     );
 
@@ -584,6 +614,7 @@ fn t06_causality_binding_to_the_known_invocation_chain_is_mandatory() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, stranger],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap_err();
     assert!(
@@ -601,6 +632,7 @@ fn t06_causality_binding_to_the_known_invocation_chain_is_mandatory() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         )
         .unwrap()
         .first());
@@ -619,6 +651,7 @@ fn t06_producer_forgeries_are_refused_both_directions() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::Boundary(
             ConsumeError::ProducerAuthority(ProducerAuthorityError::NotAuthoritative { .. })
@@ -635,6 +668,7 @@ fn t06_producer_forgeries_are_refused_both_directions() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::Boundary(
             ConsumeError::ProducerAuthority(ProducerAuthorityError::NotAuthoritative { .. })
@@ -651,6 +685,7 @@ fn t06_producer_forgeries_are_refused_both_directions() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::Boundary(
             ConsumeError::ProducerAuthority(ProducerAuthorityError::UnknownAgent { .. })
@@ -684,6 +719,7 @@ fn t06_missing_required_fields_are_refused_with_the_complete_list() {
                 WORK_REQUEST_ID,
                 &[E5A_EVENT_ID, E5B_EVENT_ID],
                 &local_model_sha256(),
+                &world(),
             ),
             Err(AdjudicationError::OpaquePayload {
                 missing: vec![omitted],
@@ -706,6 +742,7 @@ fn t06_missing_required_fields_are_refused_with_the_complete_list() {
                 WORK_REQUEST_ID,
                 &[E5A_EVENT_ID, E5B_EVENT_ID],
                 &local_model_sha256(),
+                &world(),
             ),
             Err(AdjudicationError::InvalidExecutionStatus { .. })
         ));
@@ -732,6 +769,7 @@ fn t06_missing_required_fields_are_refused_with_the_complete_list() {
                     WORK_REQUEST_ID,
                     &[E5A_EVENT_ID, E5B_EVENT_ID],
                     &local_model_sha256(),
+                    &world(),
                 )
                 .is_err(),
             "{field} shape violation must be refused"
@@ -751,6 +789,7 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::WrongNamespace { .. })
     ));
@@ -765,6 +804,7 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::WrongNamespace { .. })
     ));
@@ -779,6 +819,7 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::MalformedEnvelope(_))
     ));
@@ -793,6 +834,7 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::RefIdentityMismatch { .. })
     ));
@@ -815,6 +857,7 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
                 WORK_REQUEST_ID,
                 &[E5A_EVENT_ID, E5B_EVENT_ID],
                 &local_model_sha256(),
+                &world(),
             ),
             Err(AdjudicationError::Boundary(ConsumeError::Identity(
                 swe_seed_core::federation::IdentityError::PlaceholderIdentity { .. }
@@ -839,6 +882,7 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
             WORK_REQUEST_ID,
             &[E5A_EVENT_ID, E5B_EVENT_ID],
             &local_model_sha256(),
+            &world(),
         ),
         Err(AdjudicationError::Boundary(ConsumeError::HashDrift { .. }))
     ));
@@ -860,6 +904,7 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
                     WORK_REQUEST_ID,
                     &[E5A_EVENT_ID, E5B_EVENT_ID],
                     &local_model_sha256(),
+                    &world(),
                 ),
                 Err(AdjudicationError::PlaceholderField { .. })
                     | Err(AdjudicationError::OpaquePayload { .. })
@@ -867,4 +912,117 @@ fn t06_namespace_schema_and_identity_tampering_is_refused() {
             "{field}={value:?} must be refused"
         );
     }
+}
+
+// --- CEP-0008 world_ref (Stage 9) ---------------------------------------------
+
+fn envelope_with_world(world: Option<&str>) -> Envelope {
+    let mut v = settlement_envelope(
+        WORK_REQUEST_ID,
+        AUTH_DECISION_ID,
+        E5A_EVENT_ID,
+        E5B_EVENT_ID,
+        "accepted",
+        attesting_effects(),
+        &local_model_sha256(),
+    );
+    match world {
+        Some(w) => v["payload"]["world_ref"] = json!(w),
+        None => {
+            v["payload"].as_object_mut().unwrap().remove("world_ref");
+        }
+    }
+    // Re-key so the mutation is not mistaken for a redelivery.
+    v["idempotency_key"] = json!(swe_seed_core::federation::idempotency_key(
+        "OperationalSettlement",
+        &v["payload"],
+        None
+    ));
+    decode(&v)
+}
+
+#[test]
+fn e6_settlement_from_another_world_is_refused_and_records_nothing() {
+    let mut judge = adjudicator("other-world");
+    let err = judge
+        .adjudicate(
+            &envelope_with_world(Some(OTHER_WORLD)),
+            WORK_REQUEST_ID,
+            &[E5A_EVENT_ID, E5B_EVENT_ID],
+            &local_model_sha256(),
+            &world(),
+        )
+        .unwrap_err();
+    assert!(
+        matches!(
+            err,
+            AdjudicationError::World(WorldRefError::Mismatch { .. })
+        ),
+        "{err}"
+    );
+    assert!(judge.is_empty(), "a refused settlement must record nothing");
+}
+
+#[test]
+fn e6_settlement_without_a_world_is_refused_not_assumed() {
+    let mut judge = adjudicator("no-world");
+    let err = judge
+        .adjudicate(
+            &envelope_with_world(None),
+            WORK_REQUEST_ID,
+            &[E5A_EVENT_ID, E5B_EVENT_ID],
+            &local_model_sha256(),
+            &world(),
+        )
+        .unwrap_err();
+    assert!(
+        matches!(err, AdjudicationError::World(WorldRefError::Missing)),
+        "{err}"
+    );
+    assert!(judge.is_empty());
+}
+
+#[test]
+fn e6_settlement_with_an_alias_world_is_refused() {
+    let mut judge = adjudicator("alias-world");
+    let err = judge
+        .adjudicate(
+            &envelope_with_world(Some("world:t06")),
+            WORK_REQUEST_ID,
+            &[E5A_EVENT_ID, E5B_EVENT_ID],
+            &local_model_sha256(),
+            &world(),
+        )
+        .unwrap_err();
+    assert!(
+        matches!(
+            err,
+            AdjudicationError::World(WorldRefError::Malformed { .. })
+        ),
+        "{err}"
+    );
+}
+
+#[test]
+fn e6_a_world_refusal_does_not_block_the_correct_settlement_later() {
+    let mut judge = adjudicator("refuse-then-accept");
+    assert!(judge
+        .adjudicate(
+            &envelope_with_world(Some(OTHER_WORLD)),
+            WORK_REQUEST_ID,
+            &[E5A_EVENT_ID, E5B_EVENT_ID],
+            &local_model_sha256(),
+            &world(),
+        )
+        .is_err());
+    let ok = judge
+        .adjudicate(
+            &envelope_with_world(Some(WORLD)),
+            WORK_REQUEST_ID,
+            &[E5A_EVENT_ID, E5B_EVENT_ID],
+            &local_model_sha256(),
+            &world(),
+        )
+        .expect("the settlement in the right world still adjudicates");
+    assert!(ok.first());
 }

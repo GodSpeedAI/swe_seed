@@ -33,6 +33,7 @@ use sha2::{Digest, Sha256};
 use super::consume::{validate_envelope, ConsumeError};
 use super::envelope::{Envelope, NAMESPACE};
 use super::idempotency::{AdmitError, IdempotencyLedger};
+use super::world::{WorldRef, WorldRefError};
 
 /// The event type owned exclusively by `sea_forge` at edge E6.
 pub const EVENT_TYPE: &str = "OperationalSettlement";
@@ -107,6 +108,10 @@ pub enum AdjudicationError {
     /// The settlement correlates to a different work request than the one
     /// this surface is adjudicating for.
     CrossWiredWorkRequest { expected: String, got: String },
+    /// The settlement names no world, a malformed one, or a different world
+    /// than the originating work request (CEP-0008 `world_ref`). A settlement
+    /// from another world is never adjudicated here.
+    World(WorldRefError),
     /// A NEW envelope claims the ALREADY-adjudicated invocation chain
     /// (same work_request_id + authority_decision_id) with different content.
     /// The first settlement stands; mutated re-attestations are refused.
@@ -169,6 +174,7 @@ impl std::fmt::Display for AdjudicationError {
                 f,
                 "adjudication requires at least one known invocation-chain id to bind to"
             ),
+            Self::World(e) => write!(f, "settlement world rejected: {e}"),
             Self::CrossWiredWorkRequest { expected, got } => write!(
                 f,
                 "cross-wired settlement: adjudicating for work_request_id {expected:?}, envelope carries {got:?}"
@@ -222,9 +228,17 @@ pub struct OperationalSettlementFacts {
     pub operational_outcome: OperationalOutcome,
     pub observed_effects: Value,
     pub evidence_refs: Vec<String>,
+    /// The world the settlement was bound to — equal to the originating work
+    /// request's. Syntax and equality are checked here; the digest is
+    /// SEA-Forge's.
+    pub world_ref: String,
 }
 
 /// What happened when an OperationalSettlement reached this surface.
+// `First` carries the facts by value on purpose: callers destructure
+// `OperationalSettlementFacts` exhaustively (invariants I6/I7), and boxing it
+// would change that public pattern for no behavioural gain.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Adjudication {
     /// Bound to the originating work request and admitted exactly once.
@@ -345,7 +359,8 @@ impl OperationalSettlementAdjudicator {
     /// 5. causality binding: EVERY supplied known-chain id must appear among
     ///    the recorded `caused_by:` parents;
     /// 6. correlation binding: payload `work_request_id` equals the
-    ///    originating work request (ENV-I3);
+    ///    originating work request (ENV-I3), and payload `world_ref` equals
+    ///    that request's world (CEP-0008);
     /// 7. durable admission of all three identities before [`Adjudication::First`]
     ///    is returned (crash-conservative: worst case a crash after write is
     ///    a duplicate later, never a double settlement).
@@ -355,6 +370,7 @@ impl OperationalSettlementAdjudicator {
         originating_work_request_id: &str,
         expected_chain: &[&str],
         local_model_sha256: &str,
+        originating_world_ref: &WorldRef,
     ) -> Result<Adjudication, AdjudicationError> {
         // 1. Shape, namespace, event type.
         if envelope.schema_version != super::envelope::SCHEMA_VERSION {
@@ -579,6 +595,16 @@ impl OperationalSettlementAdjudicator {
             });
         }
 
+        // 6b. World binding to the ORIGINATING work request (CEP-0008). The
+        //     settlement must name that exact world; absent or different is
+        //     refused before anything is recorded.
+        envelope
+            .verified_world_ref()
+            .map_err(AdjudicationError::World)?;
+        originating_world_ref
+            .require_same(envelope.world_ref())
+            .map_err(AdjudicationError::World)?;
+
         // 7. Durable admission — all three identities, then report facts.
         for identity in [event_key(&event_id), idem.clone(), key] {
             if identity.is_empty() {
@@ -596,6 +622,7 @@ impl OperationalSettlementAdjudicator {
             operational_outcome,
             observed_effects,
             evidence_refs,
+            world_ref: originating_world_ref.to_string(),
         }))
     }
 }

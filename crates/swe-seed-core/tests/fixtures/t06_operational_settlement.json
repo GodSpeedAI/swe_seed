@@ -1,15 +1,16 @@
 {
   "domain_model_sha256": "5571dc4c03952c1f935123bfc7cd56dada4dc77aad5d65f8cda8b469e3b04bce",
   "expected_chain": [
-    "702b3d2b-47bc-481f-82e1-58b7fbfe17c1",
-    "60d1d366e65a693b4e5b19df854b2c2b"
+    "c057029c-c92f-405c-9b82-d14db5de05d7",
+    "06f4e0fbf86078c3ef65b6a9e39c47a5"
   ],
   "originating_work_request_id": "wr-gsf-001",
+  "originating_world_ref": "world:sf@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "settlement": {
-    "event_id": "5cf6a40b-1e88-4b98-bed1-f67565abcb02",
+    "event_id": "a183de9c-86fc-48fc-b706-ee7db035786d",
     "event_type": "OperationalSettlement",
-    "idempotency_key": "93553671e737cc2009ccb97295d70170338335a0895762a5647c5adbb0b15929",
-    "occurred_at": "2026-09-29T21:17:19+00:00",
+    "idempotency_key": "39422e9c53dc1957fb18fc8a60969ed09c4321389c92860a2cff47df50f90da1",
+    "occurred_at": "2026-10-05T03:43:52+00:00",
     "payload": {
       "authority_decision_id": "auth_01",
       "domain_model_hash": "5571dc4c03952c1f935123bfc7cd56dada4dc77aad5d65f8cda8b469e3b04bce",
@@ -19,11 +20,11 @@
       },
       "evidence_refs": [
         "sha256:1287b82a14d9d1ffa85443d1904971c36c040b28e2a2f143047364ad8d64519f",
-        "authorized_invocation:702b3d2b-47bc-481f-82e1-58b7fbfe17c1",
-        "execution_observation:60d1d366e65a693b4e5b19df854b2c2b"
+        "authorized_invocation:c057029c-c92f-405c-9b82-d14db5de05d7",
+        "execution_observation:06f4e0fbf86078c3ef65b6a9e39c47a5"
       ],
       "execution_status": "completed",
-      "invocation_id": "inv_b8cd25f99aac3be6",
+      "invocation_id": "inv_5ce4addbabf25287",
       "namespace": "agentic_capability_loop",
       "observed_effects": [
         {
@@ -36,13 +37,14 @@
         }
       ],
       "operational_settlement_status": "accepted",
-      "work_request_id": "wr-gsf-001"
+      "work_request_id": "wr-gsf-001",
+      "world_ref": "world:sf@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     },
     "provenance": {
       "chain": [
         "domain_model_hash:5571dc4c03952c1f935123bfc7cd56dada4dc77aad5d65f8cda8b469e3b04bce",
-        "caused_by:702b3d2b-47bc-481f-82e1-58b7fbfe17c1",
-        "caused_by:60d1d366e65a693b4e5b19df854b2c2b"
+        "caused_by:c057029c-c92f-405c-9b82-d14db5de05d7",
+        "caused_by:06f4e0fbf86078c3ef65b6a9e39c47a5"
       ],
       "origin": "sea-forge"
     },
