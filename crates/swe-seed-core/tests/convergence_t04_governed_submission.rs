@@ -442,12 +442,11 @@ fn t04_optional_governance_fields_pass_through_when_present() {
 
 #[test]
 fn t04_writes_golden_fixture_for_sea_forge_ingress() {
-    let root = std::env::var("SEA_RS_ROOT").unwrap_or_else(|_| {
-        format!(
-            "{}/projects/sea-rs",
-            std::env::var("HOME").unwrap_or_default()
-        )
-    });
+    // Writes into ANOTHER checkout, so it only runs when asked to.
+    let Ok(root) = std::env::var("SEA_RS_ROOT") else {
+        eprintln!("SKIP: set SEA_RS_ROOT to regenerate the SEA-Forge golden fixture");
+        return;
+    };
     let fixture = Path::new(&root)
         .join("crates/sea-forge-server/tests/fixtures/t04_governed_work_request.json");
     if !Path::new(&root).join("crates/sea-forge-server").exists() {

@@ -313,8 +313,11 @@ fn e7_golden_fixture_from_real_emitter_round_trips_and_carries_the_frozen_payloa
 
     // Cross-repo golden fixture: regenerate into the sxr checkout when
     // present so the REAL ingestion gate consumes REAL emitter output.
-    let sxr_root = std::env::var("SXR_ROOT")
-        .unwrap_or_else(|_| format!("{}/projects/sxr", std::env::var("HOME").unwrap_or_default()));
+    // Writes into ANOTHER checkout, so it only runs when SXR_ROOT is set.
+    let Ok(sxr_root) = std::env::var("SXR_ROOT") else {
+        eprintln!("SKIP: set SXR_ROOT to regenerate the sxr golden fixture");
+        return;
+    };
     let fixture_path =
         PathBuf::from(&sxr_root).join("sxr-core/tests/fixtures/t07_proof_completed.json");
     if !PathBuf::from(&sxr_root).join("sxr-core").exists() {
