@@ -131,6 +131,7 @@ fn submission<'a>(
         artifact_expectations: None,
         authority_context: None,
         payment_budget: None,
+        context_bundle: None,
     }
 }
 

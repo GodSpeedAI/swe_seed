@@ -227,6 +227,7 @@ fn complete<'a>(
                 "sha256:{}",
                 sha256_hex(b"t07-proof-output")
             )])),
+            context_bundle_ref: None,
         },
         &verified_identity(),
     )
@@ -507,6 +508,7 @@ fn e7_cross_wired_correlation_between_facts_and_request_is_refused() {
             trace_root: None,
             output_ref: None,
             proof_evidence_refs: None,
+            context_bundle_ref: None,
         },
         &verified_identity(),
     );
@@ -605,6 +607,7 @@ fn e7_optional_fields_are_typed_or_refused() {
                 trace_root,
                 output_ref,
                 proof_evidence_refs: evidence,
+                context_bundle_ref: None,
             },
             &verified_identity(),
         )

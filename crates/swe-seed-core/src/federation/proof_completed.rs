@@ -117,7 +117,7 @@ impl std::error::Error for EmissionError {}
 /// Compact JSON with recursively sorted keys — the same canonicalization the
 /// sxr ingestion side applies, so content references computed here resolve
 /// there byte-identically.
-fn canonical_json(value: &Value) -> String {
+pub(super) fn canonical_json(value: &Value) -> String {
     fn sort(value: &Value) -> Value {
         match value {
             Value::Object(map) => {
@@ -206,6 +206,10 @@ pub struct ProofCompletion<'a> {
     pub trace_root: Option<&'a str>,
     pub output_ref: Option<&'a str>,
     pub proof_evidence_refs: Option<&'a Value>,
+    /// The exact context bundle identity used when the work was selected
+    /// (`context_bundle_ref` from the governed request), carried forward so
+    /// the evidence/settlement lineage can recover the observer context.
+    pub context_bundle_ref: Option<&'a Value>,
 }
 
 /// Emit the canonical `ProofCompleted` envelope from a REAL adjudicated
@@ -381,6 +385,9 @@ pub fn emit_proof_completed_verified(
     }
     if let Some(v) = completion.proof_evidence_refs {
         payload.insert("proof_evidence_refs".into(), v.clone());
+    }
+    if let Some(v) = completion.context_bundle_ref {
+        payload.insert("context_bundle_ref".into(), v.clone());
     }
 
     // Additional upstream parents are boundary-validated before derivation.

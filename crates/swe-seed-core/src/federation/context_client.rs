@@ -1,4 +1,4 @@
-//! Minimal MCP stdio client for the Context Kernel (WP-5, F-04).
+//! Minimal MCP client for the Context Kernel (WP-5, F-04).
 //!
 //! SWE_SEED's context stage calls CK's `context_required` tool to obtain a
 //! cited `ContextPacketCreated`, satisfying POL-ACL-001/003 from a real context
@@ -12,13 +12,15 @@
 //! absence is an explicit governed outcome — never a silent success.
 //!
 //! Config-gated and offline-first: the client is a no-op unless
-//! `SWE_SEED_CONTEXT_KERNEL_BIN` is set.
+//! `SWE_SEED_CONTEXT_KERNEL_BIN` (embedded spawn) or
+//! `SWE_SEED_CONTEXT_KERNEL_URL` (persistent service) is set.
 
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 use serde_json::{json, Map, Value};
 
+use super::context_bundle::{bundle_from_response, verify_context_bundle, BundleFacts};
 use super::envelope::{make_event_verified, Envelope};
 use super::identity::VerifiedDomainIdentity;
 use super::world::WorldRef;
@@ -61,6 +63,10 @@ pub enum ContextClientError {
         completeness: RetrievalCompleteness,
         omissions: Vec<String>,
     },
+    /// The canonical CEP godspeed.context_bundle present in the response
+    /// was forged, modified, cross-wired, or untruthful -- refused before
+    /// anything is handed to the caller.
+    BundleRejected(String),
 }
 
 impl std::fmt::Display for ContextClientError {
@@ -97,6 +103,9 @@ impl std::fmt::Display for ContextClientError {
                 completeness.as_str(),
                 omissions
             ),
+            Self::BundleRejected(m) => {
+                write!(f, "context bundle rejected at boundary: {m}")
+            }
         }
     }
 }
@@ -114,8 +123,13 @@ impl From<std::io::Error> for ContextClientError {
 /// correlation all verified at the boundary.
 #[derive(Debug, Clone)]
 pub struct ContextPacket {
-    /// The canonical E3 envelope (producer: `context-kernel`).
+    /// The canonical E3 envelope (producer: `context-kernel`), read during the
+    /// bounded dual-read migration window.
     pub envelope: Envelope,
+    /// The canonical CEP `godspeed.context_bundle` adjudicated alongside it.
+    /// This is the cross-system artifact; the packet references ITS identity
+    /// in the governed lineage.
+    pub bundle: Option<Value>,
 }
 
 impl ContextPacket {
@@ -164,6 +178,29 @@ impl ContextPacket {
             .and_then(Value::as_array)
             .map(|a| a.iter().filter_map(Value::as_str).collect())
             .unwrap_or_default()
+    }
+
+    /// The canonical CEP context bundle adjudicated alongside this packet
+    /// (`None` only during the bounded legacy window when none was sent).
+    pub fn bundle(&self) -> Option<&Value> {
+        self.bundle.as_ref()
+    }
+
+    /// CEP `envelope_id` of the bundle -- occurrence identity for lineage.
+    pub fn bundle_envelope_id(&self) -> Option<&str> {
+        self.bundle
+            .as_ref()?
+            .get("envelope_id")
+            .and_then(Value::as_str)
+    }
+
+    /// CEP `integrity.content_hash` of the bundle -- exact content identity.
+    pub fn bundle_content_hash(&self) -> Option<&str> {
+        self.bundle
+            .as_ref()?
+            .get("integrity")
+            .and_then(|i| i.get("content_hash"))
+            .and_then(Value::as_str)
     }
 
     /// Pass-through authority REFERENCES (opaque strings). CK cannot create
@@ -299,6 +336,47 @@ pub fn adjudicate_context_response(
         .require_same(envelope.world_ref())
         .map_err(ContextClientError::WorldMismatch)?;
 
+    // 3c. The canonical CEP bundle (dual-read: preferred when present). A
+    //     forged, modified, cross-wired, or untruthful bundle is refused
+    //     BEFORE any outcome is interpreted.
+    if let Some(bundle) = bundle_from_response(resp) {
+        let facts = verify_context_bundle(
+            bundle,
+            expected.work_request_id,
+            expected.world_ref,
+            Some(expected.context_requirement_id),
+        )
+        .map_err(ContextClientError::BundleRejected)?;
+        // Cross-representation consistency: the bundle and the legacy packet
+        // must describe the SAME bounded retrieval.
+        let packet_id = envelope
+            .payload
+            .get("context_packet_id")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let bundle_packet_id = bundle
+            .get("extensions")
+            .and_then(|e| e.get("godspeed.context_bundle"))
+            .and_then(|b| b.get("context_packet_id"))
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if !packet_id.is_empty() && !bundle_packet_id.is_empty() && packet_id != bundle_packet_id {
+            return Err(ContextClientError::BundleRejected(format!(
+                "bundle names packet {bundle_packet_id:?}, response carries {packet_id:?}"
+            )));
+        }
+        let packet_level = RetrievalCompleteness::from_payload(&envelope.payload);
+        if packet_level != RetrievalCompleteness::Unknown
+            && packet_level.as_str() != facts.retrieval_completeness
+        {
+            return Err(ContextClientError::BundleRejected(format!(
+                "bundle states {:?}, packet states {:?}",
+                facts.retrieval_completeness,
+                packet_level.as_str()
+            )));
+        }
+    }
+
     // 4. Outcome protocol: only `cited` is successful acquisition; zero
     //    citations under `required` is the explicit governed outcome.
     let outcome = resp.get("outcome").and_then(Value::as_str).unwrap_or("");
@@ -315,7 +393,10 @@ pub fn adjudicate_context_response(
                     "outcome 'cited' but zero citations".into(),
                 ));
             }
-            let packet = ContextPacket { envelope };
+            let packet = ContextPacket {
+                envelope,
+                bundle: bundle_from_response(resp).cloned(),
+            };
             let completeness = packet.retrieval_completeness();
             if expected.require_complete && completeness != RetrievalCompleteness::Complete {
                 return Err(ContextClientError::IncompleteContext {
@@ -341,12 +422,35 @@ pub fn adjudicate_context_response(
     }
 }
 
-/// A minimal MCP stdio client. Spawns the CK binary once and reuses the
-/// connection for one or more `tools/call` requests. Drop closes the child.
+/// A minimal MCP client for the Context Kernel. Two transports:
+///
+/// - `spawn` (stdio): embedded/dev/test mode. CK is launched per client with
+///   an ephemeral database; the child is killed on drop.
+/// - `connect` (HTTP): production/service mode. CK is a persistent service
+///   (its `serve --sse` endpoint keeps the corpus indexed across requests);
+///   the client owns no process.
+///
+/// Either way CK is reached over MCP `tools/call` only, never NATS.
 pub struct ContextKernelClient {
-    child: Child,
-    stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
+    transport: ClientTransport,
+}
+
+enum ClientTransport {
+    Spawned {
+        child: Child,
+        stdin: ChildStdin,
+        stdout: BufReader<ChildStdout>,
+    },
+    /// Persistent CK service: `http://host:port[/prefix]`, MCP over POST /mcp.
+    Service { base: String },
+}
+
+/// The negotiated service facts: the client refuses to treat anything else
+/// as a Context Kernel.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelService {
+    pub name: String,
+    pub version: String,
 }
 
 /// Arguments for one canonical E2 acquisition.
@@ -371,10 +475,16 @@ pub struct ContextRequest<'a> {
 }
 
 impl ContextKernelClient {
-    /// Spawn the CK binary pointed at by `SWE_SEED_CONTEXT_KERNEL_BIN`, with an
-    /// optional corpus root (`CK_CONTEXT_CORPUS_ROOT`). Returns `None` if the
-    /// binary isn't configured — callers treat that as "CK unavailable".
+    /// Configure from the environment. Production path first:
+    /// `SWE_SEED_CONTEXT_KERNEL_URL` reaches a persistent CK service (whose
+    /// corpus index survives across requests). Embedded/dev/test second:
+    /// `SWE_SEED_CONTEXT_KERNEL_BIN` spawns CK with an ephemeral store.
+    /// Returns `None` when neither is configured — callers treat that as
+    /// explicit "CK unavailable" (never silently fabricated context).
     pub fn from_env() -> Option<std::io::Result<Self>> {
+        if let Ok(base) = std::env::var("SWE_SEED_CONTEXT_KERNEL_URL") {
+            return Some(Ok(Self::connect(&base)));
+        }
         let bin = std::env::var("SWE_SEED_CONTEXT_KERNEL_BIN").ok()?;
         Some(Self::spawn(
             &bin,
@@ -382,6 +492,45 @@ impl ContextKernelClient {
                 .ok()
                 .as_deref(),
         ))
+    }
+
+    /// Production/service mode: reach an already-running persistent CK over
+    /// HTTP MCP (`base` like `http://127.0.0.1:8765`).
+    pub fn connect(base: &str) -> Self {
+        Self {
+            transport: ClientTransport::Service {
+                base: base.trim_end_matches('/').to_string(),
+            },
+        }
+    }
+
+    /// Explicit capability negotiation over the surrounding MCP boundary: the
+    /// other end must report `get_status` as the `context-kernel` service
+    /// before any `context_required` call is made.
+    pub fn negotiate(&mut self) -> Result<KernelService, ContextClientError> {
+        let status = self.call_tool("get_status", json!({}))?;
+        let service = status.get("service");
+        let name = service
+            .and_then(|s| s.get("name"))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        let version = service
+            .and_then(|s| s.get("version"))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        if name != "context-kernel" {
+            return Err(ContextClientError::Transport(format!(
+                "expected a context-kernel service, got {name:?}"
+            )));
+        }
+        if version.trim().is_empty() {
+            return Err(ContextClientError::Transport(
+                "context-kernel service reported no version".to_string(),
+            ));
+        }
+        Ok(KernelService { name, version })
     }
 
     /// Spawn a CK binary at `bin`, passing `corpus_root` via the env var CK
@@ -419,9 +568,11 @@ impl ContextKernelClient {
         let stdin = child.stdin.take().expect("stdin piped");
         let stdout = BufReader::new(child.stdout.take().expect("stdout piped"));
         Ok(Self {
-            child,
-            stdin,
-            stdout,
+            transport: ClientTransport::Spawned {
+                child,
+                stdin,
+                stdout,
+            },
         })
     }
 
@@ -483,7 +634,9 @@ impl ContextKernelClient {
         )
     }
 
-    /// Generic JSON-RPC `tools/call`.
+    /// Generic JSON-RPC `tools/call` over whichever transport the client owns.
+    /// HTTP transport is plain HTTP/1.1 POST to the service's MCP endpoint
+    /// (no extra dependencies: the std-only client speaks just enough HTTP).
     pub fn call_tool(&mut self, name: &str, arguments: Value) -> Result<Value, ContextClientError> {
         let request = json!({
             "jsonrpc": "2.0",
@@ -493,15 +646,24 @@ impl ContextKernelClient {
         });
         let line = serde_json::to_string(&request)
             .map_err(|e| ContextClientError::Transport(format!("encode request: {e}")))?;
-        self.stdin
-            .write_all(line.as_bytes())
-            .and_then(|_| self.stdin.write_all(b"\n"))?;
-        self.stdin.flush()?;
+        let v: Value = match &mut self.transport {
+            ClientTransport::Spawned { stdin, stdout, .. } => {
+                stdin
+                    .write_all(line.as_bytes())
+                    .and_then(|_| stdin.write_all(b"\n"))?;
+                stdin.flush()?;
 
-        let mut out = String::new();
-        self.stdout.read_line(&mut out)?;
-        let v: Value = serde_json::from_str(out.trim())
-            .map_err(|e| ContextClientError::Transport(format!("malformed response: {e}")))?;
+                let mut out = String::new();
+                stdout.read_line(&mut out)?;
+                serde_json::from_str(out.trim()).map_err(|e| {
+                    ContextClientError::Transport(format!("malformed response: {e}"))
+                })?
+            }
+            ClientTransport::Service { base } => http_post_json_rpc(base, &line)
+                .map_err(|e| {
+                    ContextClientError::Transport(format!("http transport: {e}"))
+                })?,
+        };
         if let Some(err) = v.get("error") {
             // Surface structured rejection reasons from the boundary gates.
             let msg = err.get("message").and_then(Value::as_str).unwrap_or("?");
@@ -520,8 +682,64 @@ impl ContextKernelClient {
 
 impl Drop for ContextKernelClient {
     fn drop(&mut self) {
-        let _ = self.stdin.flush();
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        if let ClientTransport::Spawned { stdin, child, .. } = &mut self.transport {
+            let _ = stdin.flush();
+            let _ = child.kill();
+            let _ = child.wait();
+        }
     }
+}
+
+/// Minimal HTTP/1.1 JSON-RPC POST to `{base}/mcp`. Plain HTTP (localhost
+/// service); TLS/underlay features are out of scope for the client.
+fn http_post_json_rpc(base: &str, body: &str) -> std::io::Result<Value> {
+    fn fail(msg: String) -> std::io::Error {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, msg)
+    }
+    let (host, port, path) = split_http_base(base)?;
+    let mut stream = std::net::TcpStream::connect_timeout(
+        &format!("{host}:{port}").parse().map_err(|_| {
+            fail(format!("unparsable http address in {base:?}"))
+        })?,
+        std::time::Duration::from_secs(5),
+    )?;
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(30)))?;
+    let endpoint = if path.is_empty() { "/mcp".to_string() } else { format!("{path}/mcp") };
+    let request = format!(
+        "POST {endpoint} HTTP/1.1\r\nHost: {host}:{port}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    stream.write_all(request.as_bytes())?;
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp)?;
+    let body_start = resp
+        .find("\r\n\r\n")
+        .ok_or_else(|| fail(format!("malformed http response from {base:?}")))?;
+    serde_json::from_str(resp[body_start + 4..].trim())
+        .map_err(|e| fail(format!("malformed json-rpc response: {e}")))
+}
+
+/// Split `http://host:port[/prefix]` (HTTP only).
+fn split_http_base(base: &str) -> std::io::Result<(String, u16, String)> {
+    let fail = |msg: String| std::io::Error::new(std::io::ErrorKind::InvalidInput, msg);
+    let rest = base
+        .strip_prefix("http://")
+        .ok_or_else(|| fail(format!("only plain http CK services are supported: {base:?}")))?;
+    let (authority, path) = match rest.find('/') {
+        Some(i) => (&rest[..i], rest[i..].to_string()),
+        None => (rest, String::new()),
+    };
+    let (host, port) = match authority.rfind(':') {
+        Some(i) => (
+            authority[..i].to_string(),
+            authority[i + 1..]
+                .parse::<u16>()
+                .map_err(|_| fail(format!("bad port in {base:?}")))?,
+        ),
+        None => (authority.to_string(), 80),
+    };
+    if host.trim().is_empty() {
+        return Err(fail(format!("empty host in {base:?}")));
+    }
+    Ok((host, port, path))
 }

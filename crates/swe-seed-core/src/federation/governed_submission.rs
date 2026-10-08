@@ -42,6 +42,10 @@ pub enum SubmissionError {
         artifact: &'static str,
         error: super::world::WorldRefError,
     },
+    /// The supplied canonical CEP context bundle failed its boundary gates
+    /// (forged, modified, cross-wired, or untruthful). Its identity is never
+    /// bound into a request.
+    BundleRejected(String),
 }
 
 impl std::fmt::Display for SubmissionError {
@@ -63,6 +67,9 @@ impl std::fmt::Display for SubmissionError {
             Self::Derive(e) => write!(f, "{e}"),
             Self::World { artifact, error } => {
                 write!(f, "{artifact} is not in the contract's world: {error}")
+            }
+            Self::BundleRejected(m) => {
+                write!(f, "context bundle rejected at boundary: {m}")
             }
         }
     }
@@ -97,6 +104,10 @@ pub struct GovernedSubmission<'a> {
     pub artifact_expectations: Option<&'a Value>,
     pub authority_context: Option<&'a Value>,
     pub payment_budget: Option<&'a Value>,
+    /// The canonical CEP `godspeed.context_bundle` adjudicated from CK's
+    /// response. When supplied, its identity is bound into the request
+    /// (`context_bundle_ref`) after the bundle itself verifies.
+    pub context_bundle: Option<&'a Value>,
 }
 
 fn require_str(value: Option<&str>, field: &'static str) -> Result<String, SubmissionError> {
@@ -188,6 +199,29 @@ pub fn build_governed_work_request(
         "context_packet_ref",
     )?;
 
+    // 3c. Canonical CEP context bundle: when supplied it must verify - kind,
+    //     profile declaration, pinned world, correlation, truthful
+    //     complete/partial/none accounting, and CEP integrity - before its
+    //     identity is bound into the request lineage.
+    let context_bundle_ref = match sub.context_bundle {
+        Some(bundle) => {
+            let required_cr = context_packet
+                .payload
+                .get("context_requirement_id")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            let facts = super::context_bundle::verify_context_bundle(
+                bundle,
+                work_request_id,
+                sub.contract.world_ref.as_str(),
+                required_cr.as_deref(),
+            )
+            .map_err(SubmissionError::BundleRejected)?;
+            Some(facts.to_ref())
+        }
+        None => None,
+    };
+
     // 4. Frozen E4 payload: all eight required fields, optional governance
     //    fields passed through untouched when supplied.
     let mut payload = Map::new();
@@ -248,6 +282,10 @@ pub fn build_governed_work_request(
     }
     if let Some(v) = sub.payment_budget {
         payload.insert("payment_budget".into(), v.clone());
+    }
+    // Exact observer-context identity: which bundle was available NOW.
+    if let Some(bundle_ref) = context_bundle_ref {
+        payload.insert("context_bundle_ref".into(), bundle_ref);
     }
 
     // 5. Derivation records both parents (`caused_by:`) and pins the frozen

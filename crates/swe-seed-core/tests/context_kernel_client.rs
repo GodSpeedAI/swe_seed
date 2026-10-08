@@ -97,6 +97,27 @@ fn context_kernel_returns_cited_packet_satisfying_policy() {
         packet.authority_reference(),
         Some("AuthorityChecked#evt_test")
     );
+    // Dual-read consumption: CK now writes the canonical CEP bundle; SWE_SEED
+    // verifies it at the boundary and binds ITS identity (never the legacy
+    // packet hash) into the downstream lineage.
+    assert!(packet.bundle().is_some(), "canonical bundle must be consumed");
+    let bundle = packet.bundle().unwrap();
+    assert_eq!(bundle["envelope_kind"], "context_bundle");
+    assert_eq!(
+        bundle["extensions"]["cep.profile"]["profile_id"],
+        "godspeed.context_bundle"
+    );
+    assert_eq!(bundle["scope"]["world_ref"], world().as_str());
+    assert_eq!(packet.bundle_envelope_id(), bundle["envelope_id"].as_str());
+    let hash = packet.bundle_content_hash().expect("bundle integrity hash");
+    assert!(hash.starts_with("sha256:"));
+    assert_eq!(Some(hash), bundle["integrity"]["content_hash"].as_str());
+    // The integrity recompute matches SWE_SEED's independent hash.
+    assert_eq!(
+        hash,
+        swe_seed_core::federation::bundle_content_hash(bundle).as_str()
+    );
+    let _ = identity;
 
     // Governed no-context: absent corpus + required must be an EXPLICIT
     // non-success — never a silent zero-citation settlement.

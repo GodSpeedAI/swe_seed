@@ -13,7 +13,7 @@ use serde_json::{json, Value};
 
 use swe_seed_core::federation::{
     accept_work_requested, build_governed_work_request, emit_proof_completed_verified,
-    verify_against_artifact, Adjudication, Envelope, GovernedSubmission,
+    verify_against_artifact, verify_context_bundle, Adjudication, Envelope, GovernedSubmission,
     OperationalSettlementAdjudicator, ProofCompletion, ProofContract, VerifiedDomainIdentity,
     WorldRef, PROOF_TYPE_LIVE,
 };
@@ -61,6 +61,15 @@ fn hop_2_governed_work_request_from_the_real_e1_and_e3() {
         command: Some("just proof --route route-blue-green".into()),
         proof_type: Some(PROOF_TYPE_LIVE.into()),
     };
+    // Dual-read: the canonical CEP context bundle is CONSUMED here (verified:
+    // kind, profile, pinned world, correlation, truthful completeness, CEP
+    // integrity). The legacy E3 packet remains readable during the bounded
+    // migration window.
+    let bundle = read(&dir, "e3_context_bundle.cep.json");
+    let facts = verify_context_bundle(&bundle, &contract.work_request_id, &world, None)
+        .expect("the real CK context bundle verifies at the SWE_SEED boundary");
+    assert_eq!(bundle["scope"]["world_ref"], world.as_str());
+
     let request = build_governed_work_request(
         &e1,
         &e3,
@@ -74,11 +83,18 @@ fn hop_2_governed_work_request_from_the_real_e1_and_e3() {
             artifact_expectations: None,
             authority_context: None,
             payment_budget: None,
+            context_bundle: Some(&bundle),
         },
         &identity,
     )
-    .expect("E1 + E3 under one world build an E4");
+    .expect("E1 + E3 + the verified bundle under one world build an E4");
     assert_eq!(request.world_ref(), Some(world.as_str()));
+
+    // The EXACT observer context is bound into the request lineage.
+    let bound = &request.payload["context_bundle_ref"];
+    assert_eq!(bound["envelope_id"], facts.envelope_id.as_str());
+    assert_eq!(bound["content_hash"], facts.content_hash.as_str());
+    assert_eq!(bound["world_ref"], world.as_str());
 
     std::fs::write(
         dir.join("e4_governed_work_request.json"),
@@ -125,6 +141,11 @@ fn hop_4_proof_completed_from_the_real_e6() {
         proof_type: contract["proof_type"].as_str().map(Into::into),
     };
     let expected = json!({"affordance": "aff-blue-green-001", "declared_result": "health check green; zero-downtime observed"});
+    let bundle_ref = e4.payload["context_bundle_ref"].clone();
+    assert!(
+        !bundle_ref.is_null(),
+        "E4 must carry the exact context bundle identity"
+    );
     let proof_completed = emit_proof_completed_verified(
         &e6,
         &facts,
@@ -139,11 +160,17 @@ fn hop_4_proof_completed_from_the_real_e6() {
             trace_root: None,
             output_ref: None,
             proof_evidence_refs: None,
+            context_bundle_ref: Some(&bundle_ref),
         },
         &identity,
     )
     .expect("the real chain emits ProofCompleted");
     assert_eq!(proof_completed.world_ref(), Some(world.as_str()));
+    // The exact bundle identity survives into the proof/evidence lineage.
+    assert_eq!(
+        proof_completed.payload["context_bundle_ref"]["envelope_id"],
+        bundle_ref["envelope_id"]
+    );
 
     std::fs::write(
         dir.join("e7_proof_completed.json"),

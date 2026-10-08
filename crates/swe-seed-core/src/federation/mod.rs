@@ -5,6 +5,7 @@
 //! payload keys, hash resolution order).
 
 pub mod consume;
+pub mod context_bundle;
 pub mod context_client;
 pub mod emit;
 pub mod envelope;
@@ -27,9 +28,12 @@ pub use consume::{
     consume_context_packet_created, consume_settlement_recorded, validate_envelope,
     ConformanceReport, ConsumeError,
 };
+pub use context_bundle::{
+    bundle_content_hash, bundle_from_response, ref_matches, verify_context_bundle, BundleFacts,
+};
 pub use context_client::{
     adjudicate_context_response, ContextClientError, ContextKernelClient, ContextPacket,
-    ContextRequest, ExpectedContext, RetrievalCompleteness,
+    ContextRequest, ExpectedContext, KernelService, RetrievalCompleteness,
 };
 pub use emit::{
     dispatch, emit_context_required, emit_proof_completed, emit_proof_started, emit_route_selected,
