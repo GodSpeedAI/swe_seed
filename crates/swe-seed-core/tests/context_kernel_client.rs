@@ -142,3 +142,26 @@ fn context_kernel_returns_cited_packet_satisfying_policy() {
 
     fs::remove_dir_all(&corpus_dir).ok();
 }
+
+#[test]
+fn ck_unavailable_is_explicit_and_never_fabricated() {
+    // No env configured: from_env reports explicit unavailability (None),
+    // which callers surface as the governed CK-unavailable outcome rather
+    // than fabricating context.
+    if std::env::var("SWE_SEED_CONTEXT_KERNEL_BIN").is_err()
+        && std::env::var("SWE_SEED_CONTEXT_KERNEL_URL").is_err()
+    {
+        assert!(ContextKernelClient::from_env().is_none());
+    }
+
+    // A persistent-service client pointed at a dead endpoint fails EXPLICITLY
+    // (transport error) instead of inventing a response.
+    let mut client = ContextKernelClient::connect("http://127.0.0.1:1");
+    let err = client
+        .call_tool("get_status", serde_json::json!({}))
+        .unwrap_err();
+    assert!(
+        matches!(err, ContextClientError::Transport(_)),
+        "a dead CK service must be an explicit transport failure: {err:?}"
+    );
+}
