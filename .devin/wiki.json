@@ -1,0 +1,145 @@
+{
+  "repo_notes": [
+    {
+      "content": "SWE_SEED has exactly three conceptual layers: SweSeed (outer capability assembly, governance, host projection, provenance) → Harness (routing, context, hooks, traces, proof, learning) → Fabricator (bounded product-to-prototype semantic chain). Inner layers never become authority for outer ones. Root SWE_SEED_SPEC_v0.2.0.md, HARNESS_SPEC.md and FABRICATOR_SPEC_v0.1.0.md defer to numbered docs/specs/ files; docs/specs/0012-existing-harness-reconciliation.md is the vocabulary bridge.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "The current implementation is a two-crate Rust workspace: crates/swe-seed-core (governed capability, route, hook, context, evaluation, trace, federation, fabrication, adapter and provenance modules) and crates/swe-seed (CLI and per-command handlers). Historical documentation describes an older Python harness; do not misrepresent those retired scripts as the active runtime. Use executable code and tests for implementation claims.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "Use AGENTS.md as the authoritative agent operating contract. Route work through swe-seed route and the matching committed .agent-harness/routes/*.json route card, then read route-required context, generate evidence, and use route-specific proof commands. just is the canonical command interface and just ci the default completion gate. Do not invent a generic Devin planning/learning system that competes with SWE_SEED's native routes.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "The .agent-harness/memory/ directory is committed and canonical for durable harness constraints, decisions, repo map, patterns, glossary and open questions. .agents/ is local, gitignored, non-authoritative scratch by AGENTS.md. Existing committed historical .agents/reports/ do not reverse that precedence. Other large .logs, .strategy, .agent-harness/reports and trace files are evidence or strategy inputs, not proof that their proposals became production behavior.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "The .agent-harness/baml/baml_src/{swe_seed,harness,fabricator}.baml files are contracts-as-data, not evidence that a BAML language-model runtime is invoked during normal SWE_SEED execution. Explain schema parity and deterministic Rust validators and golden tests rather than suggesting an LLM dependency. Keep sample schemas and generated projections distinct from runtime authority.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "SWE_SEED supports host-adapter projections across concrete coding hosts, normalized hook events and redaction, routing gates, context budget packs, proof records, regression/learning proposals and recoverable trace ledgers. For each capability, distinguish declared contract, wired runtime path, deterministic test proof, and unimplemented or draft features. Tests do not automatically prove deployment in every host.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "Context Kernel integration is optional and config-gated via SWE_SEED_CONTEXT_KERNEL_BIN, using MCP stdio to request citation-bearing context_required packets; without a configured binary it does not become a mandatory dependency. SEA-Forge federation uses signed envelopes and key governance. SWE_SEED emits work/context/route/proof events; GodSpeed-Agent owns settlement and capability outcomes. Do not confuse access, tool success or proof attempts with external settlement.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "Dev workflow is mixed-tool but light: Rust workspace MSRV 1.75 (Cargo.toml; default CI Rust), Node 22 and pnpm 10.33.2 (package.json), Python 3.12 with uv (pyproject.toml), and just recipes for doctor, format, lint, test, parity and ci. Devbox/mise/direnv/age/sops are optional helper layers. Favor simple locked package installs over mandatory Nix/Devbox snapshot overhead; do not fetch secrets, generate federation keys, alter .sops.yaml, or run real external integrations in environment bootstrap.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "The Rust Fabricator creates/validates a bounded ProductSeed → JobStory → ProductHypothesis → PRD → ProductADR → SDS → TDDPlan → AgentTask → EvalSpec → ProofRecord chain with typed links. Handoff is conditional on traceability and proof requirements; describing the chain does not mean automatically producing a proven deployed product. The .strategy layer is adjacent analysis and not a fourth runtime SWE_SEED layer.",
+      "author": "SWE_SEED maintainers"
+    },
+    {
+      "content": "For documentation include source locations and test names, notably crates/swe-seed-core/tests/ and crates/swe-seed/tests/, as well as Python integration tests in tests/. State whether a behavior is implemented, tested, proposed, or contingent; preserve PASS, FAIL, SKIPPED and unverified distinctions. Wiki explanations must never revise canonical BAML/spec contracts or act as validation evidence.",
+      "author": "SWE_SEED maintainers"
+    }
+  ],
+  "pages": [
+    {
+      "title": "System Overview, Layers and Evidence Precedence",
+      "purpose": "Describe SWE_SEED's mission, the three nested governance layers, root and numbered spec precedence, runtime implementation sources and evidence standards. Anchor to README.md, AGENTS.md, docs/specs/0012-existing-harness-reconciliation.md and tests."
+    },
+    {
+      "title": "Rust Crates, CLI and Responsibility Boundaries",
+      "purpose": "Map Cargo.toml, swe-seed-core modules and swe-seed CLI modules, their dependency direction and command dispatch; distinguish compiled features from historical Python plans.",
+      "parent": "System Overview, Layers and Evidence Precedence"
+    },
+    {
+      "title": "SweSeed Capability Registry and Package Governance",
+      "purpose": "Explain ProjectSeed, LayerCapability, package manifest, ownership and boundary checks, idempotent regeneration, and how proof affects promotion. Follow SWE_SEED_SPEC and crates/swe-seed-core/src/seed.",
+      "parent": "Rust Crates, CLI and Responsibility Boundaries"
+    },
+    {
+      "title": "Host Adapters and Safe Projection",
+      "purpose": "Trace host capability matrices, Claude/Codex/OpenCode/Copilot/Antigravity projections, sync, snapshots, drift detection and rollback; distinguish host configuration writes from actual runtime support. Follow adapters, host_cli and host tests.",
+      "parent": "SweSeed Capability Registry and Package Governance"
+    },
+    {
+      "title": "Provenance, Security and Permission Gate",
+      "purpose": "Document artifact provenance hashes/licensing, skill scanning, permission policy, redaction and pretooluse gates; cite implementation and tests. Explain how bad or missing evidence blocks claims.",
+      "parent": "SweSeed Capability Registry and Package Governance"
+    },
+    {
+      "title": "BAML Contracts as Data and Schema Parity",
+      "purpose": "Trace .agent-harness/baml/baml_src/{swe_seed,harness,fabricator}.baml through Rust contract/parity/parse implementations, golden validation and boundaries; state that no model invocation is required for runtime BAML contracts.",
+      "parent": "Rust Crates, CLI and Responsibility Boundaries"
+    },
+    {
+      "title": "Harness Routing and Route Cards",
+      "purpose": "Trace swe-seed route, job type selection, required route cards under .agent-harness/routes, work loops, artifacts, done conditions, CLI/tests and recovery when a route is missing or wrong.",
+      "parent": "System Overview, Layers and Evidence Precedence"
+    },
+    {
+      "title": "Context Budgets and Continuity",
+      "purpose": "Trace swe-seed context-plan, ContextBudget, ContextPack, exclusions, raw-output limits, truncation, stale file warnings and harness memory precedence. Separate .agent-harness/memory committed truth from .agents local scratch.",
+      "parent": "Harness Routing and Route Cards"
+    },
+    {
+      "title": "Skills Ingestion and Portable Rendering",
+      "purpose": "Document SkillIR ingestion, scan gate, capability checks and projections to Claude, Copilot, hooks and checklists. Distinguish canonical skill JSON, generated render targets, and deployment support.",
+      "parent": "Harness Routing and Route Cards"
+    },
+    {
+      "title": "Normalized Agent Hooks and Enforcement",
+      "purpose": "Document lifecycle events, routing enforcement, policies, tool gates, redacted JSONL logs, indices and hook export. Trace Rust hooks modules, .agent-harness/hooks and relevant tests.",
+      "parent": "Harness Routing and Route Cards"
+    },
+    {
+      "title": "Trace Lifecycle and Recoverable Decision Ledgers",
+      "purpose": "Explain trace start/append/checkpoint/resume/distill/finish, route decisions, event schemas, durable evidence, integrity and resumption after interruption, grounded in trace code and tests.",
+      "parent": "Harness Routing and Route Cards"
+    },
+    {
+      "title": "Evaluation, Frozen Proof and Conformance",
+      "purpose": "Trace EvalSpec/EvalCheck/EvalResult and ProofRecord, frozen criteria, per-claim evidence, skipped checks, unresolved risk, test and golden conformance. Explain why simulated or waived results do not promote capabilities.",
+      "parent": "Harness Routing and Route Cards"
+    },
+    {
+      "title": "Learning, Adaptation and Regression",
+      "purpose": "Explain reflection records, candidate learning and skill proposals, regression linkage, human review/rollback and adaptation rules; distinguish proposals from automatically applied changes.",
+      "parent": "Harness Routing and Route Cards"
+    },
+    {
+      "title": "Federation, Signed Events and External Boundaries",
+      "purpose": "Explain SWE_SEED-to-SEA-Forge federation, signing, envelope schema, flags, event emission/consumption and key lifecycle without requiring external services or generating keys as a setup step. Separate GodSpeed-Agent settlement authority.",
+      "parent": "Rust Crates, CLI and Responsibility Boundaries"
+    },
+    {
+      "title": "Optional Context Kernel MCP Bridge",
+      "purpose": "Trace crates/swe-seed-core/src/federation/context_client.rs and context_required MCP stdio path, configuration flags and citation/authorization checks. Document no-op behavior when CK is absent and test-only evidence.",
+      "parent": "Federation, Signed Events and External Boundaries"
+    },
+    {
+      "title": "MCP Gateway Roadmap vs Production Code",
+      "purpose": "Compare docs/specs/0006 and draft 0020-mcpgate.md against implemented gateway, permission, host and route paths. Clearly mark future session sandboxing/hot reload/import capabilities as proposals unless source code/tests establish them.",
+      "parent": "SweSeed Capability Registry and Package Governance"
+    },
+    {
+      "title": "Fabricator Product-to-Prototype Semantic Chain",
+      "purpose": "Describe bounded ProductSeed, JobStory, ProductHypothesis, PRD, ADR, SDS, TDDPlan, AgentTask, EvalSpec and ProofRecord artifacts, references, deterministic validation and blocked handoff on broken links. Trace fabricator code and tests.",
+      "parent": "System Overview, Layers and Evidence Precedence"
+    },
+    {
+      "title": "Fabricator Commands and Artifact Validation",
+      "purpose": "Map fabricate CLI, .fabricator templates, generated artifacts, chain/proof checks, golden fixtures and reflection. Distinguish produced documentation from independently proven prototypes.",
+      "parent": "Fabricator Product-to-Prototype Semantic Chain"
+    },
+    {
+      "title": "Developer Toolchain, Tests and CI Proof",
+      "purpose": "Document Devbox/mise/uv/pnpm as helper layers, direct install requirements, justfile, scripts/ci.sh and actual GitHub Actions just ci execution. Include Cargo golden parity and Python integration tests, formatting/lint/test failure modes and reproducible recovery.",
+      "parent": "System Overview, Layers and Evidence Precedence"
+    },
+    {
+      "title": "Strategy Workspace and Historical Research",
+      "purpose": "Explain .strategy configuration, briefs, research, decisions and experiments as adjacent strategic inputs, not a fourth runtime layer or automatically settled product direction. Distinguish historical logs, imported donor references and current runtime evidence.",
+      "parent": "System Overview, Layers and Evidence Precedence"
+    }
+  ]
+}

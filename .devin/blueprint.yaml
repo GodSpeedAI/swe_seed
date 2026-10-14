@@ -1,0 +1,81 @@
+# SWE_SEED Git-backed Devin environment (free-tier conscious).
+# Keep canonical work routing and proof in AGENTS.md / .agent-harness/, not here.
+initialize:
+  - name: Install native build prerequisites
+    run: |
+      if command -v apt-get >/dev/null 2>&1; then
+        if command -v sudo >/dev/null 2>&1; then
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config ca-certificates curl
+        elif [ "$(id -u)" -eq 0 ]; then
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config ca-certificates curl
+        fi
+      fi
+  - name: Configure stable Rust toolchain
+    run: |
+      if ! command -v rustup >/dev/null 2>&1; then
+        curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal
+      fi
+      export PATH="$HOME/.cargo/bin:$PATH"
+      rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      rustup default stable
+  - name: Configure Node.js 22
+    uses: github.com/actions/setup-node@v4
+    with:
+      node-version: "22"
+  - name: Configure Python 3.12
+    uses: github.com/actions/setup-python@v5
+    with:
+      python-version: "3.12"
+  - name: Install just
+    uses: github.com/extractions/setup-just@v2
+  - name: Install uv
+    uses: github.com/astral-sh/setup-uv@v5
+  - name: Install pinned pnpm
+    run: npm install -g pnpm@10.33.2
+maintenance:
+  - name: Fetch locked Rust dependencies
+    run: cargo fetch --locked
+  - name: Install Python dependencies from uv.lock
+    run: uv sync --frozen
+  - name: Install Node formatting tools from pnpm lockfile
+    run: pnpm install --frozen-lockfile
+knowledge:
+  - name: orientation
+    contents: |
+      Read root AGENTS.md. Route the task using swe-seed route "<task>".
+      Follow the resulting .agent-harness/routes/ route card, context budget,
+      required artifacts, proof command, and done conditions.
+      docs/specs/ and root layer specs are normative; current Rust source/tests
+      establish implementation status. .agent-harness/memory is committed
+      durable harness memory; .agents is ignored local scratch.
+      Do not run host sync, federation keygen, or secret decrypt during setup.
+  - name: test
+    contents: |
+      Narrow Rust check: cargo test -p swe-seed-core
+      CLI tests: cargo test -p swe-seed
+      Full canonical proof: just ci
+      Python integration checks: uv run pytest -q tests
+      External Context Kernel, SEA-Forge, and godspeed_agent are not
+      required for normal offline bootstrap. Report unrun gates explicitly.
+  - name: lint
+    contents: |
+      just format (pnpm exec prettier --check .)
+      just lint (uv run ruff check .)
+      cargo fmt --all -- --check
+      Use just ci for a completion claim, not a list of attempted commands.
+  - name: build
+    contents: |
+      cargo build --locked -p swe-seed
+      just harness-validate
+      just doctor
+      just parity
+      Run these after dependency installation; rust-version MSRV is 1.75,
+      while the GitHub CI workflow uses the current stable Rust toolchain.
+  - name: safety
+    contents: |
+      Use no production credentials in Devin setup. Never decrypt SOPS keys,
+      sign production envelopes, enable live host sync or promote learning
+      from generated wiki text. Capability and settlement authority remain
+      governed by existing SWE_SEED specs and its external integration gates.
