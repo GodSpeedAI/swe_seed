@@ -93,7 +93,44 @@ pub fn evaluate_check(
     let mut err: Option<String> = None;
 
     match check.check_type.as_str() {
-        "file_exists" | "artifact_consistency" => {
+        // The artifact must be byte-identical to the one the proof recorded:
+        // `rule` names its digest as `sha256:<64 hex>`. Without a recorded
+        // digest there is nothing to be consistent with, so the check fails
+        // closed rather than degrading to an existence check.
+        "artifact_consistency" => {
+            use sha2::{Digest, Sha256};
+            evidence = check.target.clone();
+            let expected = check
+                .rule
+                .trim()
+                .strip_prefix("sha256:")
+                .filter(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
+                .map(str::to_ascii_lowercase);
+            match (expected, std::fs::read(root.join(&check.target))) {
+                (None, _) => {
+                    failure_reason = Some(format!(
+                        "artifact_consistency needs rule = \"sha256:<64 hex>\" recording the proven artifact; got {:?}",
+                        check.rule
+                    ));
+                }
+                (Some(_), Err(e)) => {
+                    failure_reason = Some(format!("cannot read {}: {e}", check.target));
+                }
+                (Some(want), Ok(bytes)) => {
+                    let got = format!("{:x}", Sha256::digest(&bytes));
+                    evidence = format!("{} sha256:{got}", check.target);
+                    if got == want {
+                        status = EvalStatus::Pass;
+                    } else {
+                        failure_reason = Some(format!(
+                            "{} changed since it was proven: sha256:{got}, recorded sha256:{want}",
+                            check.target
+                        ));
+                    }
+                }
+            }
+        }
+        "file_exists" => {
             let exists = root.join(&check.target).exists();
             status = if exists {
                 EvalStatus::Pass
