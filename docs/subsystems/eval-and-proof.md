@@ -36,7 +36,7 @@ graph TD
     EvalResult --> ProofRec["ProofRecord (Attached to Trace Record)"]
 ```
 
-- **Who calls it**: `swe-seed eval run --spec <spec>`, `swe-seed validate`, `just ci`, and the Fabricator product verification pipeline.
+- **Who calls it**: `swe-seed eval run --spec <spec>`, `swe-seed validate`, `just ci`, and the Fabricator product verification pipeline. An independent verifier (Cognate-Workbench, which has RealityTrace run the proof) calls `swe-seed eval proof`.
 - **What it calls**: Child process execution APIs and file inspection routines.
 
 ---
@@ -59,7 +59,8 @@ graph TD
 4. **Disposition Resolution**:
    - If all checks succeed: `EvalResult.status = Pass`.
    - If any check fails: `EvalResult.status = Fail`.
-5. **Promotion Guard**: Per `HARNESS_SPEC.md`, a capability or lesson is promoted only on a live `Pass`. Waived checks require explicit documented justifications.
+5. **Proof export** (`swe-seed eval proof --spec <path> --check <id> --sha256 <hex>`): read-only. The caller pins the spec's sha256 itself, so the digest is not trusted on first use. SWE_SEED hashes the spec's bytes, refuses a mismatch (`spec_digest_mismatch`), parses those same bytes, and prints the `command_check` as JSON (`swe_seed.eval_proof.v1`): `argv` is `["/bin/sh", "-c", <trimmed rule>]` and `cwd` is `.`, which is what `eval run --trusted` executes. Errors are JSON with exit 2. It runs nothing and writes no sidecar.
+6. **Promotion Guard**: Per `HARNESS_SPEC.md`, a capability or lesson is promoted only on a live `Pass`. Waived checks require explicit documented justifications.
 
 ---
 
@@ -113,5 +114,6 @@ sequenceDiagram
 - `crates/swe-seed-core/src/eval/check.rs`: Check execution logic.
 - `crates/swe-seed-core/src/eval/result.rs`: Result formatting and serialization.
 - `crates/swe-seed-core/src/eval/proof.rs`: `ProofRecord`, `ProofDisposition`.
+- `crates/swe-seed-core/src/eval/declared_proof.rs`: `declared_proof` (pinned proof export for independent verifiers).
 - `crates/swe-seed/src/eval_cli.rs`: CLI commands for `eval` and `validate`.
 - `docs/specs/0013-eval-and-proof.md`: Subsystem specification.
