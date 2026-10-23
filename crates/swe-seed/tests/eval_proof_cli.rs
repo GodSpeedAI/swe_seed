@@ -56,7 +56,7 @@ fn eval_proof_prints_the_proof_or_a_typed_error() {
         String::from_utf8_lossy(&ok.stderr)
     );
     let proof: serde_json::Value = serde_json::from_slice(&ok.stdout).unwrap();
-    assert_eq!(proof["argv"], serde_json::json!(["/bin/sh", "-c", "true"]));
+    assert_eq!(proof["argv"], serde_json::json!(["sh", "-c", "true"]));
     assert_eq!(proof["spec_sha256"], format!("sha256:{digest}"));
 
     let bad = run(&"0".repeat(64));

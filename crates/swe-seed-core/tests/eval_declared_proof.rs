@@ -80,7 +80,7 @@ fn exports_the_command_check_as_swe_seed_runs_it() {
     // command_check trims the rule and runs it with sh -c in the root.
     assert_eq!(
         proof.argv,
-        vec!["/bin/sh", "-c", "test \"$(cat answer.txt)\" = 42"]
+        vec!["sh", "-c", "test \"$(cat answer.txt)\" = 42"]
     );
     assert_eq!(proof.cwd, ".");
     // Read-only: no frozen sidecar, nothing else written.

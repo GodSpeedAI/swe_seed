@@ -14,9 +14,9 @@ use crate::provenance::content_hash;
 
 pub const DECLARED_PROOF_SCHEMA: &str = "swe_seed.eval_proof.v1";
 
-/// `command_check` runs `sh -c <rule>` in the repository root. `/bin/sh` is POSIX's `sh`, made absolute
-/// because an independent verifier may run the proof with a cleared environment (no `PATH`).
-pub const PROOF_SHELL: &str = "/bin/sh";
+/// `command_check` runs `sh -c <rule>` in the repository root, resolving `sh` on `PATH`; the export says
+/// exactly that, so the verifier's own environment (for example a sandbox's `PATH`) finds the shell.
+pub const PROOF_SHELL: &str = "sh";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DeclaredProof {
