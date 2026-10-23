@@ -69,13 +69,19 @@ impl BamlParity for EvalSpec {
 /// Load an EvalSpec from a TOML or JSON file (by extension).
 pub fn load_eval_spec(path: &Path) -> Result<EvalSpec> {
     let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
+    parse_eval_spec(&bytes, path)
+}
+
+/// Parse and structurally validate spec `bytes` already read from `path` (the extension picks JSON or
+/// TOML). Callers that pin a digest hash these same bytes, so what is parsed is what was checked.
+pub fn parse_eval_spec(bytes: &[u8], path: &Path) -> Result<EvalSpec> {
     let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
     let spec: EvalSpec = match ext {
         "json" => {
-            serde_json::from_slice(&bytes).with_context(|| format!("parse {}", path.display()))?
+            serde_json::from_slice(bytes).with_context(|| format!("parse {}", path.display()))?
         }
         _ => {
-            let text = std::str::from_utf8(&bytes)
+            let text = std::str::from_utf8(bytes)
                 .with_context(|| format!("non-utf8 spec {}", path.display()))?;
             toml::from_str::<EvalSpec>(text).with_context(|| format!("parse {}", path.display()))?
         }
