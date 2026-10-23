@@ -171,7 +171,7 @@ fn trace_schema_rejects_missing_identifiers() {
 #[test]
 fn missing_trace_record_errors() {
     let root = temp_root();
-    let err = lifecycle::resume(&root, "definitely-missing-trace").unwrap_err();
+    let err = lifecycle::resume(&root, "20260728T000000Z-definitely-missing").unwrap_err();
     assert!(err.to_string().contains("trace record not found"));
     let _ = fs::remove_dir_all(&root);
 }
@@ -209,6 +209,119 @@ fn trace_id_does_not_leak_secret_from_task() {
     let rec = TraceRecord::load(&root.join(trace_rec)).expect("load record");
     assert!(!rec.task.contains(secret));
     assert!(rec.task.contains("[REDACTED]"));
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn trace_updates_stay_inside_the_repository() {
+    let root = temp_root();
+    let outside = std::env::temp_dir().join(format!(
+        "swe-seed-external-trace-{}-{}.json",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fixture_record("external", "outside")
+        .save(&outside)
+        .unwrap();
+
+    let err = lifecycle::append(&root, outside.to_str().unwrap(), "must not write").unwrap_err();
+    assert!(err.to_string().contains("trace id"));
+    assert!(TraceRecord::load(&outside).unwrap().events.is_empty());
+
+    let _ = fs::remove_file(&outside);
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn trace_updates_require_a_routed_trace_record() {
+    let root = temp_root();
+    let trace_id = "20260728T000000Z-manual";
+    let path = lifecycle::resolve_trace_path(&root, trace_id).unwrap();
+    fixture_record(trace_id, "manual").save(&path).unwrap();
+
+    let err = lifecycle::append(&root, trace_id, "must not write").unwrap_err();
+    assert!(err.to_string().contains("routing genesis"));
+    assert!(TraceRecord::load(&path).unwrap().events.is_empty());
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[cfg(unix)]
+#[test]
+fn trace_updates_reject_record_symlinks() {
+    use std::os::unix::fs::symlink;
+
+    let root = temp_root();
+    let started = lifecycle::start(&root, "safe trace").unwrap();
+    let trace_id = started["trace_id"].as_str().unwrap();
+    let path = root.join(started["trace_record"].as_str().unwrap());
+    let outside = std::env::temp_dir().join(format!("swe-seed-symlink-target-{}.json", trace_id));
+    fixture_record(trace_id, "outside").save(&outside).unwrap();
+    fs::remove_file(&path).unwrap();
+    symlink(&outside, &path).unwrap();
+
+    assert!(lifecycle::append(&root, trace_id, "must not write").is_err());
+    assert!(TraceRecord::load(&outside).unwrap().events.is_empty());
+
+    let _ = fs::remove_file(&outside);
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[cfg(unix)]
+#[test]
+fn trace_updates_reject_symlinked_record_directories() {
+    use std::os::unix::fs::symlink;
+
+    let root = temp_root();
+    let started = lifecycle::start(&root, "safe trace").unwrap();
+    let trace_id = started["trace_id"].as_str().unwrap();
+    let records = root.join(".agent-harness/traces/records");
+    let outside = std::env::temp_dir().join(format!("swe-seed-record-dir-{}", trace_id));
+    fs::create_dir_all(&outside).unwrap();
+    fixture_record(trace_id, "outside")
+        .save(&outside.join(format!("{trace_id}.json")))
+        .unwrap();
+    fs::remove_dir_all(&records).unwrap();
+    symlink(&outside, &records).unwrap();
+
+    assert!(lifecycle::append(&root, trace_id, "must not write").is_err());
+    assert!(TraceRecord::load(&outside.join(format!("{trace_id}.json")))
+        .unwrap()
+        .events
+        .is_empty());
+
+    let _ = fs::remove_file(&records);
+    let _ = fs::remove_dir_all(&outside);
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn trace_updates_redact_user_supplied_text() {
+    let root = temp_root();
+    let secret = "sk-abcdef01234567890123456789";
+    let started = lifecycle::start(&root, "clean task").unwrap();
+    let trace_id = started["trace_id"].as_str().unwrap();
+
+    lifecycle::append(&root, trace_id, secret).unwrap();
+    lifecycle::checkpoint(
+        &root,
+        trace_id,
+        secret,
+        secret,
+        Some(secret),
+        &[secret.to_string()],
+        &[secret.to_string()],
+    )
+    .unwrap();
+    lifecycle::finish(&root, trace_id, secret, Some(secret), Some(secret)).unwrap();
+
+    let record = fs::read_to_string(root.join(started["trace_record"].as_str().unwrap())).unwrap();
+    assert!(!record.contains(secret));
+    assert!(record.contains("[REDACTED]"));
 
     let _ = fs::remove_dir_all(&root);
 }

@@ -245,6 +245,7 @@ pub fn build_chain(need: &str, run_id: &str) -> SemanticChain {
         created_at: String::new(), // stamped at render time
         satisfied_check_ids: Vec::new(),
         linked_eval_result_id: None,
+        evidence_refs: Vec::new(),
     };
 
     let links = vec![

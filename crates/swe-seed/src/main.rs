@@ -6,6 +6,7 @@ mod doctor_cli;
 mod eval_cli;
 mod fabricate_cli;
 mod federation_cli;
+mod gateway_cli;
 mod gate_cli;
 mod harness_cli;
 mod hooks_cli;

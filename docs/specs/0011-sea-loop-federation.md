@@ -211,3 +211,19 @@ event types/payload keys so existing contract tests carry over.
 - [ ] Concept↔event mapping and terminology (capability/route/proof) unified across
       specs 0002–0010.
 - [ ] Python `agentic_capability_loop/` superseded by Rust `swe_seed::federation`.
+
+## World identity (CEP-0008 `world_ref`)
+
+Added by the CEP world_ref migration (Stage 9). The canonical envelope family keeps `domain_model_hash` as legacy identity and now also carries `world_ref` (`world:<name>@sha256:<64 lowercase hex>`) in the payload. The two are independent: SWE_SEED never derives a `world_ref` from the hash.
+
+SWE_SEED checks syntax and equality only. DomainForge defines the digest and SEA-Forge recomputes it; no SWE_SEED type claims a world was verified.
+
+| Edge | Rule |
+|---|---|
+| E1 `WorkRequested` ingress | `world_ref` is required and well formed; it becomes `WorkRequestContract.world_ref`. An alias (`world:<name>`), label, or missing value is refused (`ConsumeError::World`). |
+| E2/E3 context | `ContextRequest.world_ref` is sent in the `ContextRequired` payload. The returned packet must name exactly that world (`ContextClientError::WorldMismatch`). `ContextPacket::retrieval_completeness()` reports what Context Kernel stated (`complete`/`partial`/`none`, else `Unknown`); `ContextRequest.require_complete` refuses anything but `complete` (`IncompleteContext`). Partial context is surfaced, never coerced. |
+| E4 `GovernedWorkRequest` | Carries the contract's `world_ref`. Both parents (E1 and the E3 packet) must sit in that world (`SubmissionError::World`). |
+| E6 `OperationalSettlement` | `adjudicate(.., originating_world_ref)` requires the settlement to name that exact world before anything is recorded (`AdjudicationError::World`). The world is not one of the frozen `REQUIRED_FIELDS`. `OperationalSettlementFacts.world_ref` reports it. |
+| E7 `ProofCompleted` | Carries the adjudicated facts' world; refused when the settlement names a different one. |
+
+Out of scope: the standalone `emit_*` helpers in `emit.rs` (flag-gated, standalone mode) do not yet pin a world.

@@ -1,5 +1,6 @@
 [tools]
 node = "22"
+"npm:cline" = "latest"
 python = "3.12"
 uv = "latest"
 

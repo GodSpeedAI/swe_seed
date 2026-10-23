@@ -38,10 +38,28 @@ impl TraceRecord {
 
     pub fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
         if let Some(p) = path.parent() {
-            std::fs::create_dir_all(p).ok();
+            std::fs::create_dir_all(p).with_context(|| format!("create {}", p.display()))?;
         }
-        std::fs::write(path, format!("{}\n", serde_json::to_string_pretty(self)?))
-            .with_context(|| format!("write {}", path.display()))?;
+        if std::fs::symlink_metadata(path)
+            .map(|metadata| metadata.file_type().is_symlink())
+            .unwrap_or(false)
+        {
+            anyhow::bail!(
+                "refusing to write trace record through symlink: {}",
+                path.display()
+            );
+        }
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("trace");
+        let temporary = path.with_file_name(format!(".{name}.{}.tmp", uuid::Uuid::new_v4()));
+        std::fs::write(
+            &temporary,
+            format!("{}\n", serde_json::to_string_pretty(self)?),
+        )
+        .with_context(|| format!("write {}", temporary.display()))?;
+        std::fs::rename(&temporary, path).with_context(|| format!("replace {}", path.display()))?;
         Ok(())
     }
 

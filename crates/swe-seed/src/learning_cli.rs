@@ -31,7 +31,7 @@ pub fn run_reflect(root: &std::path::Path, trace: &str) -> Result<ExitCode> {
     use swe_seed_core::trace::lifecycle::resolve_trace_path;
     use swe_seed_core::trace::TraceRecord;
 
-    let trace_path = resolve_trace_path(root, trace);
+    let trace_path = resolve_trace_path(root, trace)?;
     let record = TraceRecord::load(&trace_path)?;
     let learned = reflect(
         &default_template(),

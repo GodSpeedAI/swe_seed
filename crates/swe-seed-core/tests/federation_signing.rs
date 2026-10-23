@@ -108,6 +108,24 @@ fn key_paths_reject_unsafe_key_ids() {
 }
 
 #[test]
+fn write_keypair_rejects_unsafe_key_ids() {
+    let dir = std::env::temp_dir().join(format!(
+        "swe-seed-unsafe-key-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    let secret = signing_key_from_bytes(&test_secret());
+    for key_id in ["../escape", "/tmp/escape", "a/b", "..", "", "bad key"] {
+        assert!(write_keypair(&dir, key_id, &secret).is_err());
+    }
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn write_keypair_uses_private_key_owner_only_permissions() {
     let dir = std::env::temp_dir().join(format!(
         "swe-seed-keypair-{}-{}",
@@ -126,6 +144,103 @@ fn write_keypair_uses_private_key_owner_only_permissions() {
         let mode = std::fs::metadata(&priv_path).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode, 0o600);
     }
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[cfg(unix)]
+#[test]
+fn write_keypair_corrects_existing_private_key_permissions() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = std::env::temp_dir().join(format!(
+        "swe-seed-existing-key-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let path = private_key_path(&dir, "test-key").unwrap();
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, "old-key").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+
+    write_keypair(&dir, "test-key", &signing_key_from_bytes(&test_secret())).unwrap();
+
+    let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode, 0o600);
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[cfg(unix)]
+#[test]
+fn write_keypair_rejects_private_key_symlinks() {
+    use std::os::unix::fs::symlink;
+
+    let dir = std::env::temp_dir().join(format!(
+        "swe-seed-symlink-key-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let path = private_key_path(&dir, "test-key").unwrap();
+    let target = dir.join("target.key");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&target, "outside").unwrap();
+    symlink(&target, &path).unwrap();
+
+    assert!(write_keypair(&dir, "test-key", &signing_key_from_bytes(&test_secret())).is_err());
+    assert_eq!(std::fs::read_to_string(&target).unwrap(), "outside");
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[cfg(unix)]
+#[test]
+fn write_keypair_rejects_symlinked_private_key_directories() {
+    use std::os::unix::fs::symlink;
+
+    let dir = std::env::temp_dir().join(format!(
+        "swe-seed-symlink-key-dir-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let keys = dir.join(".swe-seed/federation/keys");
+    let target = dir.join("outside");
+    std::fs::create_dir_all(keys.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(&target).unwrap();
+    symlink(&target, &keys).unwrap();
+
+    assert!(write_keypair(&dir, "test-key", &signing_key_from_bytes(&test_secret())).is_err());
+    assert!(!target.join("test-key.key").exists());
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[cfg(unix)]
+#[test]
+fn write_keypair_rejects_symlinked_public_key_directories() {
+    use std::os::unix::fs::symlink;
+
+    let dir = std::env::temp_dir().join(format!(
+        "swe-seed-symlink-public-key-dir-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let keys = dir.join(".agent-harness/federation/keys");
+    let target = dir.join("outside");
+    std::fs::create_dir_all(keys.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(&target).unwrap();
+    symlink(&target, &keys).unwrap();
+
+    assert!(write_keypair(&dir, "test-key", &signing_key_from_bytes(&test_secret())).is_err());
+    assert!(!target.join("test-key.pub").exists());
     std::fs::remove_dir_all(&dir).ok();
 }
 

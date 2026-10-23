@@ -894,6 +894,7 @@ dependencies = [
  "chrono",
  "ed25519-dalek",
  "flate2",
+ "libc",
  "rand_core 0.6.4",
  "regex",
  "rusqlite",

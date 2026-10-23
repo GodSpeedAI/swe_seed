@@ -875,6 +875,12 @@ pub struct FabricatorProofRecord {
     pub satisfied_check_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub linked_eval_result_id: Option<String>,
+    /// External evidence refs (e.g. gateway audit/proof record ids, spec 0020
+    /// §14). `skip_serializing_if = "Vec::is_empty"` so empty-by-default records
+    /// serialize identically to before (golden stays green). Chain validation
+    /// (`validate_semantic_chain`) does not inspect this field.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub evidence_refs: Vec<String>,
 }
 
 impl BamlParity for FabricatorProofRecord {
@@ -892,9 +898,11 @@ impl BamlParity for FabricatorProofRecord {
                 "created_at",
                 "satisfied_check_ids",
                 "linked_eval_result_id",
+                "evidence_refs",
             ],
             field_types: vec![
                 "string", "string", "string", "string", "string[]", "string", "string[]", "string?",
+                "string[]",
             ],
         }
     }

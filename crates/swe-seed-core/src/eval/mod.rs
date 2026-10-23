@@ -3,15 +3,17 @@
 //! require evidence, and live-pass-only promotion.
 
 pub mod check;
+pub mod declared_proof;
 pub mod proof;
 pub mod result;
 pub mod spec;
 
 pub use crate::contracts::harness::SourceRef;
 pub use check::{evaluate_check, EvalCheck};
+pub use declared_proof::{declared_proof, DeclaredProof, DeclaredProofError};
 pub use proof::{validate_proof, ProofRecord};
 pub use result::{run_eval, waived_requires_reason, EvalCheckResult, EvalResult};
-pub use spec::{check_frozen, load_eval_spec, EvalSpec};
+pub use spec::{check_frozen, load_eval_spec, parse_eval_spec, EvalSpec};
 
 use serde::{Deserialize, Serialize};
 

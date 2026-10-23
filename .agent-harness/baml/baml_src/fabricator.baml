@@ -234,6 +234,7 @@ class FabricatorProofRecord {
   created_at string
   satisfied_check_ids string[]
   linked_eval_result_id string?
+  evidence_refs string[]
 }
 
 class FabricatorReflectionTemplate {

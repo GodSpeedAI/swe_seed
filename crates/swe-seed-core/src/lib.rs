@@ -13,6 +13,7 @@ pub mod doctor;
 pub mod eval;
 pub mod fabricator;
 pub mod federation;
+pub mod gateway;
 pub mod harness_validate;
 pub mod hooks;
 pub mod learning;
