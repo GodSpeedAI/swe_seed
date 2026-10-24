@@ -8,18 +8,31 @@
 //! Properties:
 //! - **Tamper-evidence (partial edit):** altering any entry's payload breaks
 //!   the hash of every later entry; `verify_chain` detects it.
+//! - **Truncation (head anchor):** every append also writes a per-trace head
+//!   anchor (`{length, head}`) to a sidecar file next to the SQLite ledger
+//!   (`ledger.anchors.json`). Verification compares the chain's entry count and
+//!   head hash to that anchor, so deleting trailing rows is detected. A trace
+//!   with no anchor is reported as `unanchored` and fails closed unless the
+//!   caller explicitly opts in with [`AnchorPolicy::AllowUnanchored`].
 //! - **Chain root** (`chain_root`): the head hash — a single value that covers
 //!   the whole chain. This is the value that will be Ed25519-signed in Phase B
 //!   and carried in the SEA envelope's `trace_chain_root`.
 //!
-//! NOT a guarantee against a full rewrite by the writer (whoever holds the DB
-//! can recompute the whole chain). Full tamper-resistance arrives in Phase B
-//! when the chain root is signed with a key the writer cannot forge.
+//! Threat-model limits of the anchor: the anchor is NOT stored in the SQLite
+//! file and is not signed. Anyone with write access to the `.agent-harness/
+//! traces/` directory can rewrite the chain rows and the anchor together, or
+//! delete the anchor file (which downgrades the trace to `unanchored`). The
+//! anchor therefore only defeats truncation by a writer who edits the rows but
+//! not the sidecar. Full tamper-resistance arrives in Phase B when the chain
+//! root is signed with a key the writer cannot forge, and the signed head is
+//! kept outside the writer's reach.
 
-use std::path::Path;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, Connection};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use ulid::Ulid;
 
@@ -83,6 +96,114 @@ pub struct Appended {
     pub hash: String,
 }
 
+/// How verification treats a trace that has no head anchor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnchorPolicy {
+    /// Fail closed: an unanchored trace cannot prove it was not truncated.
+    Required,
+    /// Explicit legacy opt-in: accept an unanchored trace (structure only).
+    /// A trace that *has* an anchor is still checked against it.
+    AllowUnanchored,
+}
+
+/// The expected state of one trace's chain, written on every append.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HeadAnchor {
+    /// Number of chain entries the writer last committed.
+    pub length: i64,
+    /// Hash of the last committed entry.
+    pub head: String,
+}
+
+/// Sidecar anchor file for a ledger DB: `ledger.sqlite3` -> `ledger.anchors.json`.
+/// `None` for connections without a file path (in-memory).
+fn anchor_path(conn: &Connection) -> Option<PathBuf> {
+    conn.path()
+        .filter(|p| !p.is_empty())
+        .map(|p| Path::new(p).with_extension("anchors.json"))
+}
+
+fn read_anchors(path: &Path) -> Result<BTreeMap<String, HeadAnchor>> {
+    if !path.exists() {
+        return Ok(BTreeMap::new());
+    }
+    let text = std::fs::read_to_string(path)
+        .with_context(|| format!("read head anchors {}", path.display()))?;
+    serde_json::from_str(&text)
+        .with_context(|| format!("parse head anchors {} (fail closed)", path.display()))
+}
+
+fn write_anchors(path: &Path, anchors: &BTreeMap<String, HeadAnchor>) -> Result<()> {
+    let tmp = path.with_extension("anchors.json.tmp");
+    let text = serde_json::to_string_pretty(anchors)?;
+    {
+        use std::io::Write;
+        let mut f = std::fs::File::create(&tmp)
+            .with_context(|| format!("write head anchors {}", tmp.display()))?;
+        f.write_all(text.as_bytes())?;
+        f.sync_all()?;
+    }
+    std::fs::rename(&tmp, path)
+        .with_context(|| format!("replace head anchors {}", path.display()))?;
+    Ok(())
+}
+
+/// Record the new head for `trace_id`. Runs inside the append transaction, so
+/// the anchor and the row commit or roll back together.
+///
+/// Known window: the anchor file is written before COMMIT, so a crash between
+/// the anchor write and COMMIT leaves an anchor that describes an entry that
+/// was never committed. Verification then reports `head anchor mismatch`
+/// (fail closed). There is no repair command; the trace must be investigated.
+///
+/// If the trace already has an anchor, the append must extend exactly the
+/// chain that anchor describes (`length == seq` and `head == prev`). Otherwise
+/// rows were removed (e.g. a trailing row deleted) and the append is refused
+/// before the anchor is overwritten, so the truncation stays visible.
+///
+/// A trace that already has rows but no anchor (a legacy ledger) is left
+/// unanchored: appending must not silently vouch for rows written before the
+/// anchor existed. Migrating such a trace requires an explicit operation.
+fn update_anchor(
+    conn: &Connection,
+    trace_id: &str,
+    seq: i64,
+    prev: &str,
+    hash: &str,
+) -> Result<()> {
+    let Some(path) = anchor_path(conn) else {
+        return Ok(());
+    };
+    let mut anchors = read_anchors(&path)?;
+    if seq == 0 {
+        if anchors.contains_key(trace_id) {
+            return Err(anyhow!(
+                "head anchor mismatch before append: trace '{trace_id}' has a head anchor but no chain entries (truncated to empty)"
+            ));
+        }
+    } else if let Some(anchor) = anchors.get(trace_id) {
+        if anchor.length != seq || anchor.head != prev {
+            return Err(anyhow!(
+                "head anchor mismatch before append: trace '{trace_id}' anchor records {} entries ending in {}, chain has {} entries ending in {} (entries removed outside the writer); refusing to extend",
+                anchor.length,
+                anchor.head,
+                seq,
+                prev
+            ));
+        }
+    } else {
+        return Ok(());
+    }
+    anchors.insert(
+        trace_id.to_string(),
+        HeadAnchor {
+            length: seq + 1,
+            head: hash.to_string(),
+        },
+    );
+    write_anchors(&path, &anchors)
+}
+
 /// Append an entry to a trace's chain. The first append for a `trace_id`
 /// becomes the genesis (seq 0, prev_hash = GENESIS_PREV). A fresh ULID is
 /// minted for `event_id`.
@@ -128,6 +249,10 @@ pub fn append(conn: &Connection, entry: LedgerEntry<'_>) -> Result<Appended> {
         conn.execute_batch("ROLLBACK").ok();
         return Err(e.into());
     }
+    if let Err(e) = update_anchor(conn, entry.trace_id, seq, &prev, &hash) {
+        conn.execute_batch("ROLLBACK").ok();
+        return Err(e);
+    }
     conn.execute_batch("COMMIT")?;
     Ok(Appended {
         seq,
@@ -159,9 +284,21 @@ pub fn chain_root(conn: &Connection, trace_id: &str) -> Option<String> {
     .ok()
 }
 
-/// Recompute the chain from stored payloads and confirm every stored hash
-/// matches. Returns the verified root, or `Err(reason)` if any entry is broken.
+/// Verify a trace with [`AnchorPolicy::Required`]. See [`verify_chain_with`].
 pub fn verify_chain(conn: &Connection, trace_id: &str) -> std::result::Result<String, String> {
+    verify_chain_with(conn, trace_id, AnchorPolicy::Required)
+}
+
+/// Recompute the chain from stored payloads, confirm every stored hash matches,
+/// and compare the entry count and head against the trace's head anchor.
+/// Returns the verified root, or `Err(reason)` if any entry is broken, the
+/// chain disagrees with its anchor (`head anchor mismatch`, e.g. truncation),
+/// or the trace is unanchored under `AnchorPolicy::Required` (`unanchored`).
+pub fn verify_chain_with(
+    conn: &Connection,
+    trace_id: &str,
+    policy: AnchorPolicy,
+) -> std::result::Result<String, String> {
     let mut stmt = conn
         .prepare("SELECT seq, event_type, payload_json, prev_hash, hash FROM chain_entries WHERE trace_id = ?1 ORDER BY seq")
         .map_err(|e| e.to_string())?;
@@ -175,6 +312,7 @@ pub fn verify_chain(conn: &Connection, trace_id: &str) -> std::result::Result<St
     if rows.is_empty() {
         return Err("no chain entries".into());
     }
+    let count = rows.len() as i64;
     let mut prev = GENESIS_PREV.to_string();
     let mut last_hash = String::new();
     for (seq, event_type, payload, stored_prev, stored_hash) in rows {
@@ -195,5 +333,32 @@ pub fn verify_chain(conn: &Connection, trace_id: &str) -> std::result::Result<St
         prev = stored_hash.clone();
         last_hash = stored_hash;
     }
-    Ok(last_hash)
+
+    let Some(path) = anchor_path(conn) else {
+        return match policy {
+            AnchorPolicy::Required => Err(format!(
+                "trace '{trace_id}' is unanchored: in-memory ledger has no head anchor"
+            )),
+            AnchorPolicy::AllowUnanchored => Ok(last_hash),
+        };
+    };
+    let anchors = read_anchors(&path).map_err(|e| format!("{e:#}"))?;
+    match anchors.get(trace_id) {
+        None => match policy {
+            AnchorPolicy::Required => Err(format!(
+                "trace '{trace_id}' is unanchored: no head anchor in {} (legacy ledger; truncation cannot be ruled out)",
+                path.display()
+            )),
+            AnchorPolicy::AllowUnanchored => Ok(last_hash),
+        },
+        Some(anchor) => {
+            if anchor.length != count || anchor.head != last_hash {
+                return Err(format!(
+                    "head anchor mismatch: anchor records {} entries ending in {}, ledger has {} entries ending in {} (entries removed or appended outside the writer)",
+                    anchor.length, anchor.head, count, last_hash
+                ));
+            }
+            Ok(last_hash)
+        }
+    }
 }

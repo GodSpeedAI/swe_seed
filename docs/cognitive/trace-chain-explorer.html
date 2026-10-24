@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trace Chain Explorer · SWE_SEED</title>
+    <style>
+      :root {
+        --bg: #0e1114;
+        --surface: #161b20;
+        --surface2: #1d242b;
+        --line: #2a333c;
+        --text: #e6edf3;
+        --text-dim: #8b98a5;
+        --accent: #e8752f;
+        --accent-dim: #4a2c18;
+        --ok: #3fb950;
+        --warn: #d29922;
+        --risk: #f85149;
+        --info: #58a6ff;
+        --t-h1: clamp(1.5rem, 3vw, 2.1rem);
+        --t-small: 0.74rem;
+        --t-label: 0.68rem;
+        --s1: 4px;
+        --s2: 8px;
+        --s3: 12px;
+        --s4: 16px;
+        --s5: 24px;
+        --s6: 32px;
+        --s8: 56px;
+        --r1: 3px;
+        --r2: 6px;
+        --mono:
+          ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo,
+          Consolas, monospace;
+        --serif:
+          "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+      body {
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: var(--s5) var(--s5) var(--s8);
+      }
+      h1 {
+        font-family: var(--serif);
+        font-size: var(--t-h1);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0 0 var(--s2);
+        line-height: 1.15;
+      }
+      .lede {
+        color: var(--text-dim);
+        max-width: 70ch;
+        margin: 0 0 var(--s4);
+        font-size: 0.8rem;
+        line-height: 1.5;
+      }
+      .tag {
+        display: inline-block;
+        font-size: var(--t-label);
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        border: 1px solid var(--line);
+        border-radius: var(--r1);
+        padding: 2px 6px;
+        margin-bottom: var(--s3);
+      }
+      figure {
+        margin: 0 0 var(--s4);
+      }
+      figcaption {
+        font-size: var(--t-small);
+        color: var(--text-dim);
+        margin-top: var(--s2);
+        max-width: 80ch;
+        line-height: 1.45;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r2);
+        padding: var(--s4);
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s2);
+        align-items: center;
+        margin-bottom: var(--s4);
+      }
+      button {
+        font-family: var(--mono);
+        font-size: var(--t-small);
+        background: var(--surface2);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: var(--r1);
+        padding: 6px 11px;
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
+      }
+      button:hover:not(:disabled) {
+        background: #243039;
+        border-color: #3a4652;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      button.primary {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .spacer {
+        flex: 1;
+      }
+      .status {
+        font-size: var(--t-small);
+        font-variant-numeric: tabular-nums;
+      }
+      .status .ok {
+        color: var(--ok);
+      }
+      .status .risk {
+        color: var(--risk);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--t-small);
+        table-layout: fixed;
+      }
+      th:nth-child(1),
+      td:nth-child(1) {
+        width: 34px;
+      }
+      th:nth-child(2),
+      td:nth-child(2) {
+        width: 26%;
+      }
+      th:nth-child(3),
+      td:nth-child(3) {
+        width: 24%;
+      }
+      th:nth-child(4),
+      td:nth-child(4) {
+        width: 24%;
+      }
+      th:nth-child(5),
+      td:nth-child(5) {
+        width: auto;
+      }
+      @media (max-width: 640px) {
+        table {
+          table-layout: auto;
+        }
+        .h {
+          display: none;
+        }
+        th:nth-child(3),
+        td:nth-child(3),
+        th:nth-child(4),
+        td:nth-child(4) {
+          display: none;
+        }
+      }
+      th {
+        text-align: left;
+        font-weight: 500;
+        color: var(--text-dim);
+        font-size: var(--t-label);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      td {
+        padding: 7px 8px;
+        border-bottom: 1px solid #1f262e;
+        vertical-align: middle;
+      }
+      tr.row {
+        cursor: pointer;
+      }
+      tr.row:hover {
+        background: var(--surface2);
+      }
+      tr.row[aria-selected="true"] {
+        background: var(--surface2);
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+      tr.row:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+      td.num {
+        font-variant-numeric: tabular-nums;
+        color: var(--text-dim);
+        width: 34px;
+      }
+      .h {
+        font-size: var(--t-small);
+        font-variant-numeric: tabular-nums;
+        color: var(--text-dim);
+        letter-spacing: 0.01em;
+      }
+      .ev {
+        color: var(--text);
+      }
+      .linked {
+        color: var(--ok);
+      }
+      .broken {
+        color: var(--risk);
+        font-weight: 600;
+      }
+      .pill {
+        display: inline-block;
+        font-size: var(--t-label);
+        padding: 1px 6px;
+        border-radius: 2px;
+        border: 1px solid var(--line);
+        color: var(--text-dim);
+      }
+      .pill.ok {
+        color: var(--ok);
+        border-color: #1d4427;
+      }
+      .pill.risk {
+        color: var(--risk);
+        border-color: #4a1f1c;
+      }
+      .pill.warn {
+        color: var(--warn);
+        border-color: #43350f;
+      }
+      .detail {
+        margin-top: var(--s4);
+        border-top: 1px solid var(--line);
+        padding-top: var(--s3);
+      }
+      .detail h2 {
+        font-size: var(--t-label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin: 0 0 var(--s2);
+        font-weight: 500;
+      }
+      pre {
+        margin: 0;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: var(--r2);
+        padding: var(--s3);
+        overflow-x: auto;
+        font-size: var(--t-small);
+        line-height: 1.5;
+      }
+      code {
+        font-family: var(--mono);
+      }
+      .formula {
+        margin-top: var(--s3);
+        font-size: var(--t-small);
+        color: var(--text-dim);
+        line-height: 1.8;
+      }
+      .formula code {
+        color: var(--text);
+        background: var(--surface2);
+        padding: 1px 5px;
+        border-radius: 2px;
+      }
+      .gate {
+        margin-top: var(--s4);
+        padding: var(--s3) var(--s4);
+        border-radius: var(--r2);
+        border: 1px solid var(--line);
+        background: var(--surface2);
+        font-size: var(--t-small);
+      }
+      .gate.blocked {
+        border-color: #4a1f1c;
+        background: #1e1416;
+      }
+      .gate.allowed {
+        border-color: #1d4427;
+        background: #121a14;
+      }
+      .gate b {
+        display: block;
+        margin-bottom: 2px;
+      }
+      .gate.blocked b {
+        color: var(--risk);
+      }
+      .gate.allowed b {
+        color: var(--ok);
+      }
+      .src {
+        font-size: var(--t-small);
+        color: var(--text-dim);
+        border-top: 1px solid var(--line);
+        padding-top: var(--s4);
+        margin-top: var(--s6);
+      }
+      .src ul {
+        margin: var(--s2) 0 0;
+        padding-left: 18px;
+      }
+      .src li {
+        margin-bottom: 3px;
+      }
+      .src a {
+        color: var(--info);
+        text-decoration: none;
+      }
+      .src a:hover {
+        text-decoration: underline;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+      @media (max-width: 700px) {
+        .flow {
+          min-width: 660px;
+        }
+      }
+      .flow {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .flow text {
+        font-family: var(--mono);
+        fill: var(--text);
+      }
+      .flow .dim {
+        fill: var(--text-dim);
+      }
+      .flow .box {
+        fill: var(--surface2);
+        stroke: var(--line);
+        stroke-width: 1.5;
+      }
+      .flow .bad {
+        fill: #1e1416;
+        stroke: var(--risk);
+        stroke-width: 2;
+      }
+      .flow .lbl {
+        font-size: 10px;
+      }
+      .figscroll {
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: var(--r2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="tag"
+        >Failure simulator · real chain data from a sandbox run</span
+      >
+      <h1>What does the gate actually detect?</h1>
+      <p class="lede">
+        The trace ledger is a SHA-256 chain: each entry commits to the previous
+        entry's stored hash. Two edits produce two different failures, and one
+        kind of tampering goes undetected. Step through a real four-entry chain
+        and apply each edit.
+      </p>
+
+      <figure>
+        <div class="figscroll">
+          <svg
+            class="flow"
+            viewBox="0 0 1120 108"
+            role="img"
+            aria-label="Each chain entry hashes its own event type, payload, and the previous entry's hash, forming a linked chain from genesis to the final entry."
+          >
+            <defs>
+              <marker
+                id="bh"
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L7,3 L0,6 Z" fill="#8b98a5" />
+              </marker>
+            </defs>
+            <rect class="box" x="2" y="26" width="150" height="46" rx="4" />
+            <text class="lbl" x="77" y="45" text-anchor="middle">seq 0</text>
+            <text class="dim" x="77" y="60" text-anchor="middle" font-size="9">
+              RouteSelected
+            </text>
+
+            <rect class="box" x="192" y="26" width="150" height="46" rx="4" />
+            <text class="lbl" x="267" y="45" text-anchor="middle">seq 1</text>
+            <text class="dim" x="267" y="60" text-anchor="middle" font-size="9">
+              TraceNote
+            </text>
+
+            <rect class="box" x="382" y="26" width="150" height="46" rx="4" />
+            <text class="lbl" x="457" y="45" text-anchor="middle">seq 2</text>
+            <text class="dim" x="457" y="60" text-anchor="middle" font-size="9">
+              TraceCheckpoint
+            </text>
+
+            <rect class="box" x="572" y="26" width="150" height="46" rx="4" />
+            <text class="lbl" x="647" y="45" text-anchor="middle">seq 3</text>
+            <text class="dim" x="647" y="60" text-anchor="middle" font-size="9">
+              TraceFinished
+            </text>
+
+            <rect class="box" x="762" y="26" width="150" height="46" rx="4" />
+            <text class="lbl" x="837" y="45" text-anchor="middle">gate</text>
+            <text class="dim" x="837" y="60" text-anchor="middle" font-size="9">
+              recompute all
+            </text>
+
+            <path class="arw" d="M152,49 L189,49" marker-end="url(#bh)" />
+            <path class="arw" d="M342,49 L379,49" marker-end="url(#bh)" />
+            <path class="arw" d="M532,49 L569,49" marker-end="url(#bh)" />
+            <path class="arw" d="M722,49 L759,49" marker-end="url(#bh)" />
+            <text
+              class="dim"
+              x="170"
+              y="42"
+              text-anchor="middle"
+              font-size="8.5"
+            >
+              prev_hash
+            </text>
+            <text
+              class="dim"
+              x="360"
+              y="42"
+              text-anchor="middle"
+              font-size="8.5"
+            >
+              prev_hash
+            </text>
+            <text
+              class="dim"
+              x="550"
+              y="42"
+              text-anchor="middle"
+              font-size="8.5"
+            >
+              prev_hash
+            </text>
+
+            <text class="dim" x="2" y="96" font-size="9.5">
+              hash_n = SHA-256( event_type + "\n" + payload_json + "\n" +
+              prev_hash )
+            </text>
+          </svg>
+        </div>
+        <figcaption>
+          <strong
+            >Each entry commits to the previous entry's stored hash.</strong
+          >
+          Verification checks two things per entry: the link (does
+          <code>prev_hash</code> equal the previous entry's stored hash) and the
+          entry's own hash (does it match a recomputation from its own fields).
+          The first check to fail stops the walk.
+        </figcaption>
+      </figure>
+
+      <div class="controls">
+        <button id="prev" type="button">← Previous</button>
+        <button id="next" type="button" class="primary">Next →</button>
+        <button id="tamper" type="button">Edit payload only</button>
+        <button id="forge" type="button">
+          Edit payload + rewrite its hash
+        </button>
+        <button id="reset" type="button">Reset to verified</button>
+        <span class="spacer"></span>
+        <span class="status" id="status" aria-live="polite"></span>
+      </div>
+
+      <div class="panel">
+        <table>
+          <caption class="sr">
+            Chain entries in sequence order, showing the stored hash and whether
+            verification currently passes
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">event</th>
+              <th scope="col">stored hash</th>
+              <th scope="col">prev_hash</th>
+              <th scope="col">status</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+
+        <div class="detail">
+          <h2 id="dtitle">entry detail</h2>
+          <pre><code id="dpayload"></code></pre>
+          <div class="formula" id="dformula"></div>
+        </div>
+
+        <div class="gate allowed" id="gate">
+          <b id="gate-title">gate: allow</b>
+          <span id="gate-msg"></span>
+        </div>
+
+        <p
+          style="
+            font-size: var(--t-small);
+            color: var(--text-dim);
+            margin: var(--s3) 0 0;
+            max-width: 80ch;
+          "
+        >
+          Not modelled here: <b style="color: var(--text)">truncation</b>. Each
+          append records a head anchor in <code>ledger.anchors.json</code>.
+          Removing the last row of an anchored chain makes
+          <code>gate --verify</code> fail with
+          <code>head anchor mismatch</code>, and appending after that is refused
+          before the anchor is overwritten. A trace with no anchor fails as
+          <code>unanchored</code> unless <code>--allow-unanchored</code> is
+          passed.
+        </p>
+      </div>
+
+      <div class="src">
+        <strong>Provenance.</strong> The four entries were produced in a
+        throwaway root by <code>trace start</code>, <code>trace append</code>,
+        <code>trace checkpoint</code>, and <code>trace finish</code>. The gate
+        wording and both block messages were captured from the binary. The
+        truncation rule comes from <code>verify_chain_with()</code> and the
+        append guard; it was not re-captured from the binary.
+        <ul>
+          <li>
+            <code>crates/swe-seed-core/src/trace_ledger.rs</code> &mdash;
+            <code>hash_of()</code>, <code>append()</code>,
+            <code>verify_chain()</code>
+          </li>
+          <li>
+            <code>crates/swe-seed-core/src/routing_gate.rs</code> &mdash; the
+            allow/block decision used by <code>gate</code>
+          </li>
+          <li>
+            <a href="../subsystems/trace-ledger.md">Trace Ledger</a> &mdash; the
+            prose version of this model
+          </li>
+        </ul>
+      </div>
+    </div>
+    <script>
+      (function () {
+        "use strict";
+
+        // SHA-256, self-contained so the page works offline with no CDN and no crypto
+        // subtleties. This is the standard algorithm; it is here only to recompute the
+        // same hash the Rust `sha2` crate produces.
+        var K = [
+          0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b,
+          0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
+          0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7,
+          0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+          0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152,
+          0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+          0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+          0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+          0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819,
+          0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
+          0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f,
+          0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+          0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+        ];
+
+        function sha256(msg) {
+          var H = [
+            0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f,
+            0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+          ];
+          var bytes = [];
+          for (var i = 0; i < msg.length; i++) {
+            bytes.push(msg.charCodeAt(i) & 0xff);
+          }
+          var bitLen = bytes.length * 8;
+          bytes.push(0x80);
+          while (bytes.length % 64 !== 56) {
+            bytes.push(0);
+          }
+          var hi = Math.floor(bitLen / 4294967296);
+          for (var s = 24; s >= 0; s -= 8) {
+            bytes.push((hi >>> s) & 0xff);
+          }
+          for (var t = 24; t >= 0; t -= 8) {
+            bytes.push((bitLen >>> t) & 0xff);
+          }
+          var w = new Array(64);
+          for (var off = 0; off < bytes.length; off += 64) {
+            for (var x = 0; x < 16; x++) {
+              w[x] =
+                (bytes[off + x * 4] << 24) |
+                (bytes[off + x * 4 + 1] << 16) |
+                (bytes[off + x * 4 + 2] << 8) |
+                bytes[off + x * 4 + 3];
+            }
+            for (var y = 16; y < 64; y++) {
+              var s0 =
+                rotr(w[y - 15], 7) ^ rotr(w[y - 15], 18) ^ (w[y - 15] >>> 3);
+              var s1 =
+                rotr(w[y - 2], 17) ^ rotr(w[y - 2], 19) ^ (w[y - 2] >>> 10);
+              w[y] = (w[y - 16] + s0 + w[y - 7] + s1) | 0;
+            }
+            var a = H[0],
+              b = H[1],
+              c = H[2],
+              d = H[3],
+              e = H[4],
+              f = H[5],
+              g = H[6],
+              h = H[7];
+            for (var z = 0; z < 64; z++) {
+              var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+              var ch = (e & f) ^ (~e & g);
+              var t1 = (h + S1 + ch + K[z] + w[z]) | 0;
+              var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+              var maj = (a & b) ^ (a & c) ^ (b & c);
+              var t2 = (S0 + maj) | 0;
+              h = g;
+              g = f;
+              f = e;
+              e = (d + t1) | 0;
+              d = c;
+              c = b;
+              b = a;
+              a = (t1 + t2) | 0;
+            }
+            H[0] = (H[0] + a) | 0;
+            H[1] = (H[1] + b) | 0;
+            H[2] = (H[2] + c) | 0;
+            H[3] = (H[3] + d) | 0;
+            H[4] = (H[4] + e) | 0;
+            H[5] = (H[5] + f) | 0;
+            H[6] = (H[6] + g) | 0;
+            H[7] = (H[7] + h) | 0;
+          }
+          return H.map(function (v) {
+            return ("00000000" + (v >>> 0).toString(16)).slice(-8);
+          }).join("");
+        }
+        function rotr(v, n) {
+          return (v >>> n) | (v << (32 - n));
+        }
+
+        // Real chain, captured from a sandbox run in a throwaway root. seq 0..3.
+        var ENTRIES = [
+          {
+            seq: 0,
+            event_type: "RouteSelected",
+            payload_json:
+              '{"job_type":"bugfix","route_card":".agent-harness/routes/bugfix.json","task":"fix the checkout race condition"}',
+            prev_hash:
+              "0000000000000000000000000000000000000000000000000000000000000000",
+            hash: "38df802e02651162905c8a7c696cee3e606c7a735e4b67466384853fbd9b5e66",
+          },
+          {
+            seq: 1,
+            event_type: "TraceNote",
+            payload_json: '{"note":"narrowed to lock ordering"}',
+            prev_hash:
+              "38df802e02651162905c8a7c696cee3e606c7a735e4b67466384853fbd9b5e66",
+            hash: "d65993955aceb13bd2b84cbb0f2ecc9314f95d687159c644744b97452aa70cae",
+          },
+          {
+            seq: 2,
+            event_type: "TraceCheckpoint",
+            payload_json:
+              '{"artifacts":[],"at":"2026-10-24T02:26:44+00:00","next_action":null,"stage":"repro","summary":"race reproduces in 3/10 runs","type":"trace.checkpoint","unresolved_risks":[]}',
+            prev_hash:
+              "d65993955aceb13bd2b84cbb0f2ecc9314f95d687159c644744b97452aa70cae",
+            hash: "bf83eca0b650917183d5fa958561a6f0d8584f886280bb4bff458e771172f64e",
+          },
+          {
+            seq: 3,
+            event_type: "TraceFinished",
+            payload_json: '{"claim":"lock order fixed"}',
+            prev_hash:
+              "bf83eca0b650917183d5fa958561a6f0d8584f886280bb4bff458e771172f64e",
+            hash: "f79a89348ad39cab338f9d22fdb7ba03b6fc9b4d32e11e5e898891f7f62ecdd3",
+          },
+        ];
+
+        var TAMPERED_PAYLOAD = '{"note":"TAMPERED"}';
+        var state = { entries: null, mode: "clean", cursor: 0 };
+
+        function clone(list) {
+          return list.map(function (e) {
+            return {
+              seq: e.seq,
+              event_type: e.event_type,
+              payload_json: e.payload_json,
+              prev_hash: e.prev_hash,
+              hash: e.hash,
+            };
+          });
+        }
+
+        // Recompute the chain the way the gate does. Two independent checks per entry:
+        //   1. link  - this entry's stored prev_hash equals the previous entry's STORED hash
+        //   2. own   - this entry's stored hash equals the recomputation from its own
+        //              event_type, payload, and prev_hash
+        // The Rust code feeds the STORED hash forward, not the recomputed one, and stops
+        // at the first failure. Both details matter for what the gate reports.
+        function verify(entries) {
+          var prev =
+            "0000000000000000000000000000000000000000000000000000000000000000";
+          var results = [];
+          var brokenAt = -1;
+          var brokenKind = null;
+          entries.forEach(function (e) {
+            var linkOk = e.prev_hash === prev;
+            var computed = sha256(
+              e.event_type + "\n" + e.payload_json + "\n" + e.prev_hash,
+            );
+            var ownOk = computed === e.hash;
+            if (brokenAt === -1) {
+              if (!linkOk) {
+                brokenAt = e.seq;
+                brokenKind = "prev_hash broken (chain links severed)";
+              } else if (!ownOk) {
+                brokenAt = e.seq;
+                brokenKind = "event or payload tampered (hash mismatch)";
+              }
+            }
+            results.push({
+              seq: e.seq,
+              computed: computed,
+              linkOk: linkOk,
+              ownOk: ownOk,
+            });
+            prev = e.hash;
+          });
+          return { brokenAt: brokenAt, brokenKind: brokenKind, per: results };
+        }
+
+        function esc(s) {
+          return String(s).replace(/[&<>"]/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+          });
+        }
+
+        function render() {
+          var entries = state.entries;
+          var v = verify(entries);
+          var tbody = document.getElementById("rows");
+          var hadFocus =
+            document.activeElement &&
+            document.activeElement.classList &&
+            document.activeElement.classList.contains("row");
+          tbody.innerHTML = "";
+          var pendingFocus = null;
+
+          entries.forEach(function (e, idx) {
+            var per = v.per[idx];
+            var tr = document.createElement("tr");
+            tr.className = "row";
+            tr.setAttribute("tabindex", "0");
+            tr.setAttribute(
+              "aria-selected",
+              idx === state.cursor ? "true" : "false",
+            );
+
+            var statusHtml;
+            if (per.linkOk && per.ownOk) {
+              statusHtml = '<span class="pill ok">verified</span>';
+            } else if (v.brokenAt === e.seq) {
+              statusHtml = '<span class="pill risk">first failure</span>';
+            } else if (!per.linkOk || !per.ownOk) {
+              statusHtml = '<span class="pill warn">inconsistent</span>';
+            } else {
+              statusHtml = '<span class="pill">not reached</span>';
+            }
+
+            tr.innerHTML =
+              '<td class="num">' +
+              e.seq +
+              "</td>" +
+              '<td class="ev">' +
+              esc(e.event_type) +
+              "</td>" +
+              '<td class="h ' +
+              (per.ownOk ? "linked" : "broken") +
+              '">' +
+              esc(e.hash.slice(0, 10)) +
+              "…</td>" +
+              '<td class="h">' +
+              esc(e.prev_hash.slice(0, 10)) +
+              "…</td>" +
+              "<td>" +
+              statusHtml +
+              "</td>";
+
+            function sel() {
+              state.cursor = idx;
+              render();
+            }
+            tr.addEventListener("click", sel);
+            tr.addEventListener("focus", function () {
+              if (state.cursor !== idx) {
+                state.cursor = idx;
+                render();
+              }
+            });
+            tr.addEventListener("keydown", function (ev) {
+              if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                state.cursor = idx;
+                render();
+                return;
+              }
+              if (ev.key === "ArrowDown" && idx < entries.length - 1) {
+                ev.preventDefault();
+                state.cursor = idx + 1;
+                render();
+              }
+              if (ev.key === "ArrowUp" && idx > 0) {
+                ev.preventDefault();
+                state.cursor = idx - 1;
+                render();
+              }
+            });
+            tbody.appendChild(tr);
+            if (hadFocus && idx === state.cursor) {
+              pendingFocus = tr;
+            }
+          });
+
+          // Detail pane for the selected entry.
+          var cur = entries[state.cursor],
+            curPer = v.per[state.cursor];
+          document.getElementById("dtitle").textContent =
+            "entry " +
+            cur.seq +
+            " · " +
+            cur.event_type +
+            (curPer.ownOk
+              ? " · own hash matches"
+              : " · own hash does NOT match");
+          document.getElementById("dpayload").textContent = cur.payload_json;
+          document.getElementById("dformula").innerHTML =
+            "recomputed <code>" +
+            esc(curPer.computed.slice(0, 32)) +
+            "…</code><br>" +
+            "stored&nbsp;&nbsp;&nbsp;&nbsp; <code>" +
+            esc(cur.hash.slice(0, 32)) +
+            "…</code><br>" +
+            "link&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <code>" +
+            esc(cur.prev_hash.slice(0, 32)) +
+            "…</code> " +
+            (curPer.linkOk
+              ? '<span style="color:var(--ok)">matches previous stored hash</span>'
+              : '<span style="color:var(--risk)">does not match previous stored hash</span>') +
+            "<br>" +
+            '<span style="color:' +
+            (curPer.ownOk ? "var(--ok)" : "var(--risk)") +
+            '">' +
+            (curPer.ownOk
+              ? "recomputation matches the stored hash"
+              : "recomputation does not match the stored hash") +
+            "</span>";
+
+          // Gate verdict, worded as the binary words it.
+          var gate = document.getElementById("gate");
+          var gt = document.getElementById("gate-title");
+          var gm = document.getElementById("gate-msg");
+          if (v.brokenAt === -1) {
+            gate.className = "gate allowed";
+            gt.textContent = "allow: trace routed + chain verifies  (exit 0)";
+            gm.textContent =
+              "Every surviving entry is internally consistent and every link matches.";
+          } else {
+            gate.className = "gate blocked";
+            gt.textContent = "block: chain verification failed  (exit 1)";
+            gm.textContent = "entry " + v.brokenAt + ": " + v.brokenKind;
+          }
+
+          var bad = v.per.filter(function (p) {
+            return !(p.linkOk && p.ownOk);
+          }).length;
+          document.getElementById("status").innerHTML =
+            state.mode === "clean"
+              ? '<span class="ok">verified</span> · ' +
+                entries.length +
+                " entries linked"
+              : '<span class="risk">' +
+                (state.mode === "payload-only"
+                  ? "payload edited"
+                  : "payload edited, hash rewritten") +
+                "</span> · " +
+                bad +
+                " of " +
+                entries.length +
+                " entries inconsistent";
+
+          document.getElementById("prev").disabled = state.cursor === 0;
+          document.getElementById("next").disabled =
+            state.cursor === entries.length - 1;
+          document.getElementById("tamper").disabled = state.mode !== "clean";
+          document.getElementById("forge").disabled = state.mode !== "clean";
+          document.getElementById("reset").disabled = state.mode === "clean";
+          if (pendingFocus) {
+            pendingFocus.focus();
+          }
+        }
+
+        function reset() {
+          state.entries = clone(ENTRIES);
+          state.mode = "clean";
+          state.cursor = 0;
+          render();
+        }
+
+        document.getElementById("prev").addEventListener("click", function () {
+          if (state.cursor > 0) {
+            state.cursor--;
+            render();
+          }
+        });
+        document.getElementById("next").addEventListener("click", function () {
+          if (state.cursor < state.entries.length - 1) {
+            state.cursor++;
+            render();
+          }
+        });
+        document
+          .getElementById("tamper")
+          .addEventListener("click", function () {
+            // Edit only the payload. The entry's own stored hash is now wrong.
+            state.entries[1].payload_json = TAMPERED_PAYLOAD;
+            state.mode = "payload-only";
+            state.cursor = 1;
+            render();
+          });
+        document.getElementById("forge").addEventListener("click", function () {
+          // Edit the payload, then rewrite that entry's hash so it is self-consistent.
+          // The next entry's prev_hash still points at the old hash, so the link breaks.
+          state.entries[1].payload_json = TAMPERED_PAYLOAD;
+          state.entries[1].hash = sha256(
+            state.entries[1].event_type +
+              "\n" +
+              state.entries[1].payload_json +
+              "\n" +
+              state.entries[1].prev_hash,
+          );
+          state.mode = "hash-rewritten";
+          state.cursor = 1;
+          render();
+        });
+        document.getElementById("reset").addEventListener("click", reset);
+
+        reset();
+      })();
+    </script>
+  </body>
+</html>

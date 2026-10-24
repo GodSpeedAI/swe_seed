@@ -1,6 +1,6 @@
 # MCPGate (MCP Gateway) Subsystem
 
-The MCPGate Subsystem manages the capability and tool plane for SWE_SEED. Specified in [0020](specs/0020-mcpgate.md), it virtualizes, namespaces, and governs Model Context Protocol (MCP) servers.
+The MCPGate Subsystem manages the capability and tool plane for SWE_SEED. Specified in [0020](../specs/0020-mcpgate.md), it virtualizes, namespaces, and governs Model Context Protocol (MCP) servers.
 
 ---
 
@@ -12,7 +12,7 @@ AI coding agents increasingly invoke tools via the Model Context Protocol (MCP).
 
 ## 2. Responsibilities
 
-- **Unified Tool Proxy**: Fronting multiple backend MCP servers through a single stdio or SSE JSON-RPC 2.0 interface.
+- **Unified Tool Proxy**: Fronting multiple backend MCP servers through a single JSON-RPC 2.0 interface. The client-facing endpoint is loopback HTTP; backend transports are stdio and HTTP.
 - **Tool Namespacing**: Preventing collision by prefixing tool names with the server identifier (e.g. `github.create_issue`, `fs.read_file`).
 - **Policy & Permission Gating**: Evaluating tool calls against allowlists, denylists, or approval gates before forwarding to backend servers.
 - **Argument & Response Redaction**: Sanitizing inputs and outputs in flight to prevent credential leakage.
@@ -31,7 +31,7 @@ AI coding agents increasingly invoke tools via the Model Context Protocol (MCP).
 
 ```mermaid
 graph LR
-    Agent["Host Coding Agent"] -->|JSON-RPC 2.0 (stdio/SSE)| MCPGate["MCPGate Subsystem\n(crates/swe-seed-core/src/gateway/)"]
+    Agent["Host Coding Agent"] -->|"JSON-RPC 2.0 over loopback HTTP"| MCPGate["MCPGate Subsystem<br/>(crates/swe-seed-core/src/gateway/)"]
 
     subgraph GovernancePlane["Governance & Security"]
         MCPGate --> Catalog["Tool Catalog & Namespace Resolver"]
@@ -41,22 +41,22 @@ graph LR
 
     subgraph BackendServers["Backend MCP Servers"]
         GovEngine --> Server1["GitHub MCP (stdio)"]
-        GovEngine --> Server2["Postgres MCP (SSE)"]
+        GovEngine --> Server2["Postgres MCP (http)"]
         GovEngine --> Server3["Filesystem MCP (stdio)"]
     end
 ```
 
 - **Who calls it**: Coding agents configuring `swe-seed gateway` as their primary MCP endpoint.
-- **What it calls**: Subprocess stdio streams and remote SSE HTTP endpoints.
+- **What it calls**: Subprocess stdio streams and loopback HTTP endpoints.
 
 ---
 
 ## 5. Core Abstractions
 
 - `GatewayServer`: The core proxy managing client connections, transport dispatch, and server multiplexing.
-- `ToolCatalog`: Aggregates and namespaces tools exposed by all configured backend servers.
-- `GovernanceEngine`: Evaluates incoming `tools/call` requests against configured `PermissionPolicy` rules (`Allow`, `Block`, `RequireApproval`).
-- `JsonRpcRequest` / `JsonRpcResponse`: Protocol types for JSON-RPC 2.0 message handling.
+- `GatewayCatalogEntry` (`gateway/mod.rs`) / `project_catalog()`: Aggregates and namespaces tools exposed by all configured backend servers. `project_catalog()` also returns `DroppedEntry` values for tools it refused to expose.
+- `Governance` (`gateway/governance.rs`): Evaluates incoming `tools/call` requests against policy rules, producing an `InvokeDecision` of `Allow` or `ApprovalRequired`.
+- `JsonRpcRequest`: The JSON-RPC 2.0 request type. There is no `JsonRpcResponse` type; responses are built as JSON values.
 
 ---
 
@@ -67,7 +67,7 @@ graph LR
 3. **Tool Call Routing**:
    - The client invokes `tools/call` with namespaced name `github.create_issue`.
    - MCPGate intercepts the call and runs arguments through the redaction filter.
-   - `GovernanceEngine` checks permissions. If blocked, returns a JSON-RPC error immediately.
+   - `Governance` checks permissions. If blocked, returns a JSON-RPC error immediately.
    - If allowed, strips the namespace prefix and forwards `create_issue` to the GitHub backend process.
    - Receives the response, audits the execution, and returns the result to the client.
 
@@ -90,7 +90,7 @@ sequenceDiagram
     participant Backend as Backend MCP Server
 
     Agent->>Gate: JSON-RPC tools/call (fs.read_file)
-    Gate->>Gate: Evaluate GovernanceEngine
+    Gate->>Gate: Evaluate Governance
     alt Permission Denied
         Gate-->>Agent: JSON-RPC Error (403 Forbidden)
     else Permission Allowed
@@ -119,8 +119,8 @@ sequenceDiagram
 
 ## 11. Source Trail
 
-- `crates/swe-seed-core/src/gateway/serve.rs`: `GatewayServer`, stdio and SSE transport listeners.
-- `crates/swe-seed-core/src/gateway/catalog.rs`: `ToolCatalog` and namespacing.
+- `crates/swe-seed-core/src/gateway/serve.rs`: `GatewayServer`, the loopback HTTP listener.
+- `crates/swe-seed-core/src/gateway/catalog.rs`: catalog projection and namespacing; the entry type is `GatewayCatalogEntry` in `gateway/mod.rs`.
 - `crates/swe-seed-core/src/gateway/governance.rs`: Policy enforcement engine.
 - `crates/swe-seed-core/src/gateway/audit.rs`: Audit logging engine.
 - `crates/swe-seed/src/gateway_cli.rs`: CLI commands for `swe-seed gateway`.

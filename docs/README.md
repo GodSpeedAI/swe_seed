@@ -106,7 +106,7 @@ Consider an engineer or agent addressing a regression:
    just harness-trace-start "fix the failing checkout test"
    ```
 
-   A new trace record is initialized with a `RouteSelected` genesis entry and written to `.agent-harness/traces/records/<trace-id>.json`.
+   A new trace record is initialized with a `RouteSelected` genesis entry, written to `.agent-harness/traces/records/<trace-id>.json` and chained into `.agent-harness/traces/ledger.sqlite3`.
 
 4. **Making the Change**:
    The engineer or host agent follows the route card's work loop: reproduces the bug, identifies the root cause, and applies the targeted fix.
@@ -139,6 +139,7 @@ Consider an engineer or agent addressing a regression:
 
 - [System Mental Model](mental-model.md): Conceptual model, sovereign loop, and state ownership.
 - [Architecture Guide](architecture.md): Logical, runtime, dependency, data flow, control flow, and security models.
+- [Cognitive Representations](cognitive/README.md): Interactive explainers and the diagrams for the two behaviours that are hardest to predict from prose alone.
 - [Domain & Concept Guide](concepts.md): Formal definitions of all repository terms.
 - [Design Explanations](explanations/): Architectural rationale for contracts-as-data, pre-execution proof, and three-layer separation.
 

@@ -12,7 +12,7 @@ BAML (Boundary Anonymized Markdown Language) is commonly associated with prompt 
 
 ## 2. Confirmed Design Rationale
 
-Per specification [0019](specs/0019-baml-contracts-as-data.md) and the authoritative reconciliation in [0012](specs/0012-existing-harness-reconciliation.md), the decision to treat BAML contracts as data rests on three confirmed architectural requirements:
+Per specification [0019](../specs/0019-baml-contracts-as-data.md) and the authoritative reconciliation in [0012](../specs/0012-existing-harness-reconciliation.md), the decision to treat BAML contracts as data rests on three confirmed architectural requirements:
 
 ### A. Zero Hallucination in Governance
 

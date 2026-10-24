@@ -11,7 +11,7 @@ The system is organized into three strictly governed layers, where authority and
 ```mermaid
 graph TD
     subgraph SweSeedLayer["SweSeed Layer (Outer Governance)"]
-        SeedManifest["SeedPackageManifest (.swe-seed/manifest.toml)"]
+        SeedManifest["SeedPackageManifest (.swe-seed/seed-package-manifest.json)"]
         BoundaryVal["Boundary Validator (ValidateLayerBoundaries)"]
         ProvVerify["Provenance & License Verifier (SHA-256)"]
         RegenPlan["Regeneration Planner (Idempotent Plans)"]
@@ -58,8 +58,8 @@ graph LR
 
     subgraph LocalFilesystem["Project Local Filesystem"]
         HarnessDir[".agent-harness/\n(routes, memory, baml, traces)"]
-        HooksDir[".agent-hooks/\n(events.jsonl, hooks.db)"]
-        SweSeedDir[".swe-seed/\n(manifest.toml, provenance)"]
+        HooksDir[".agent-hooks/\n(logs/, index/hooks.rusql, payloads/)"]
+        SweSeedDir[".swe-seed/\n(seed-package-manifest.json, provenance)"]
         HostFiles["Host Configurations\n(.claude/, .github/, CODEX.md)"]
     end
 
@@ -73,7 +73,7 @@ graph LR
 
 - **No Background Daemon**: SWE_SEED does not require a background daemon, long-running service, or local server for core workflows.
 - **Fast Execution**: Written in Rust, commands execute in milliseconds, allowing integration into pre-commit hooks and interactive shell sessions.
-- **SQLite Ledgers**: High-throughput event indexing and cryptographic hash validation utilize embedded SQLite 3 databases (`ledger.db`, `hooks.db`) without external database servers.
+- **SQLite Ledgers**: High-throughput event indexing and cryptographic hash validation utilize embedded SQLite 3 databases (`ledger.sqlite3`, `index/hooks.rusql`) without external database servers.
 
 ---
 
@@ -128,7 +128,7 @@ flowchart TD
 
     subgraph RuntimeState["Runtime & Generated State"]
         Traces["Trace Records\n(.agent-harness/traces/records/*.json)"]
-        Ledger["Trace Ledger\n(.agent-harness/traces/ledger.db)"]
+        Ledger["Trace Ledger\n(.agent-harness/traces/ledger.sqlite3)"]
         Projections["Projected Configs\n(Managed comment blocks)"]
     end
 
@@ -145,7 +145,7 @@ flowchart TD
 
 - **Canonical Schemas**: Immutable during execution; updated only through RFCs and versioned Git commits.
 - **Trace Records**: Append-only. Every transition produces a new immutable record or state append.
-- **Hash Chains**: Each event in `ledger.db` contains `sha256(previous_hash + current_event_payload)`. Altering any historical event invalidates the ledger.
+- **Hash Chains**: Each entry in `ledger.sqlite3` stores `sha256(event_type + "\n" + payload_json + "\n" + prev_hash)`, and each entry's `prev_hash` must equal the previous entry's stored `hash`. Editing a payload without also rewriting its hash fails at that entry; rewriting the hash too fails at the next entry's link check. Each append also writes a head anchor (`length`, `head`) to `ledger.anchors.json` beside the SQLite file, so deleting trailing entries fails verification with `head anchor mismatch`. A trace with no anchor is reported as `unanchored` and fails closed unless `--allow-unanchored` is passed. The anchor is unsigned, so a writer who can rewrite both the rows and the anchor is not detected.
 - **Projected Blocks**: Re-derived idempotently via `swe-seed sync`.
 
 ---

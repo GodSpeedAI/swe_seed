@@ -15,14 +15,14 @@ This document establishes the authoritative vocabulary model for SWE_SEED. Per s
 
 ### Work Contract
 
-- **What it is**: The pre-execution agreement produced by `swe-seed route "<task>"`. It binds the selected RouteCard, assembled ContextPack, required artifacts, proof commands, and initial trace genesis before code modification begins.
+- **What it is**: The pre-execution agreement produced by `swe-seed route "<task>"`. It binds the selected RouteCard, assembled ContextPack, required artifacts, and proof commands before code modification begins. It does not open a trace; `swe-seed trace start "<task>"` does that and writes the `RouteSelected` genesis.
 - **What it is NOT**: It is not an informal summary, not a post-execution diff report, and not subject to modification during execution.
 - **Related concepts**: RouteCard, Proof Gate, Trace Genesis.
 - **Implementation**: `crates/swe-seed-core/src/route/mod.rs` (`RouteDecision`), `crates/swe-seed/src/cli.rs`.
 
 ### SeedPackageManifest
 
-- **What it is**: The top-level capability inventory for the repository, located under `.swe-seed/manifest.toml`. It catalogs all registered `LayerCapability` entries, their owner layers, artifact paths, review status, and cryptographic hashes.
+- **What it is**: The top-level capability inventory for the repository, located under `.swe-seed/seed-package-manifest.json`. It catalogs all registered `LayerCapability` entries, their owner layers, artifact paths, review status, and cryptographic hashes.
 - **What it is NOT**: It is not a package manager lockfile (like `Cargo.lock` or `pnpm-lock.yaml`) and not an installable package archive.
 - **Related concepts**: LayerCapability, SweSeed Layer, BoundaryReport.
 - **Implementation**: `crates/swe-seed-core/src/seed/manifest.rs` (`SeedPackageManifest`), `.agent-harness/baml/baml_src/swe_seed.baml`.
@@ -68,7 +68,7 @@ This document establishes the authoritative vocabulary model for SWE_SEED. Per s
 
 ### Trace Ledger & Genesis
 
-- **What it is**: An append-only SQLite database located at `.agent-harness/traces/ledger.db` that maintains a cryptographically verifiable SHA-256 hash chain of all route decisions and trace transitions. Every valid trace begins with an immutable `RouteSelected` genesis entry.
+- **What it is**: An append-only SQLite database located at `.agent-harness/traces/ledger.sqlite3` that maintains a cryptographically verifiable SHA-256 hash chain of trace transitions. Every valid trace begins with an immutable `RouteSelected` genesis entry, written by `swe-seed trace start`.
 - **What it is NOT**: It is not a distributed blockchain, not a central telemetry server, and not a git commit history.
 - **Related concepts**: Trace, Routing Gate (`route_gate`).
 - **Implementation**: `crates/swe-seed-core/src/trace_ledger.rs` (`TraceLedger`, `verify_chain`).
@@ -118,7 +118,7 @@ This document establishes the authoritative vocabulary model for SWE_SEED. Per s
 
 ### HookRuntime & HookPolicy
 
-- **What it is**: The lifecycle interception runtime managed by `swe-seed agent-hooks`. It receives agent events (`UserPrompt`, `PreToolUse`, `PostToolUse`, `TurnEnd`), applies redaction to prevent secret leakage, checks permissions against `HookPolicy`, logs to `.agent-hooks/events.jsonl`, and indexes into SQLite.
+- **What it is**: The lifecycle interception runtime managed by `swe-seed agent-hooks`. It receives agent events (`UserPrompt`, `PreToolUse`, `PostToolUse`, `TurnEnd`), applies redaction to prevent secret leakage, checks permissions against `HookPolicy`, logs to `.agent-hooks/logs/events-<date>.jsonl`, and indexes into SQLite.
 - **What it is NOT**: It is not an operating system sandbox and not an authorization daemon.
 - **Related concepts**: PermissionPolicy, Redaction.
 - **Implementation**: `crates/swe-seed-core/src/hooks/runtime.rs`, `crates/swe-seed-core/src/hooks/policy.rs`.
@@ -140,9 +140,10 @@ This document establishes the authoritative vocabulary model for SWE_SEED. Per s
 
 ### Fabricator Semantic Specification Chain
 
-- **What it is**: The 10-node traceable specification chain defined in `FABRICATOR_SPEC_v0.1.0.md`:
-  `ProductSeed -> JobStory -> ProductHypothesis -> PRD -> ProductADR -> EARSRequirements -> SDS/Components -> GherkinScenarios -> TDDPlan -> AgentTask -> FabricatorEvalSpec -> FabricatorProofRecord`.
-  Each artifact references its immediate predecessor via a `TraceabilityLink`.
+- **What it is**: The 12-artifact traceable specification chain defined in `FABRICATOR_SPEC_v0.1.0.md` and validated by `SemanticChain`:
+  `ProductSeed -> JobStory -> ProductHypothesis -> PRD -> ProductADR -> SDS -> TDDPlan -> AgentTask -> FabricatorEvalSpec -> FabricatorProofRecord`.
+  The spec's prose names `EARSRequirements` and `GherkinScenarios` as intermediate stages. In the implementation they are not separate chain entries: `PRD.requirements` holds `EARSRequirement` values, and `SDS.scenarios` holds `GherkinScenario` values. `SemanticChain` carries 10 artifact fields plus `run_id` and `links`.
+  Each artifact references its immediate predecessor via a `TraceabilityLink`, and `validate_semantic_chain` walks every edge.
 - **What it is NOT**: It is not a free-form chat session. It is a formal semantic chain where missing links cause chain validation to fail.
 - **Related concepts**: Fabricator Layer, SemanticChainValidationReport.
 - **Implementation**: `crates/swe-seed-core/src/fabricator/artifacts.rs`, `crates/swe-seed-core/src/fabricator/chain.rs`.
@@ -153,7 +154,7 @@ This document establishes the authoritative vocabulary model for SWE_SEED. Per s
 
 ### MCPGate (MCP Gateway)
 
-- **What it is**: The tool-plane proxy specified in [0020](specs/0020-mcpgate.md). It discovers local and remote Model Context Protocol (MCP) servers, namespaces tool names (`<server>.<tool>`), enforces permission policies, redacts arguments/results, and proxies JSON-RPC 2.0 requests over stdio and SSE transports.
+- **What it is**: The tool-plane proxy specified in [0020](specs/0020-mcpgate.md). It discovers local and remote Model Context Protocol (MCP) servers, namespaces tool names (`<server>.<tool>`), enforces permission policies, redacts arguments/results, and proxies JSON-RPC 2.0 requests. The client endpoint is loopback HTTP; backends are reached over stdio or HTTP. `GatewayTransport` also declares `Sse` and `Websocket`, but no transport implementation exists for them.
 - **What it is NOT**: It is not an LLM chat gateway and not an API router for model providers. It exclusively manages MCP tool connections.
 - **Related concepts**: HookRuntime, PermissionPolicy.
 - **Implementation**: `crates/swe-seed-core/src/gateway/mod.rs`, `crates/swe-seed-core/src/gateway/serve.rs`.

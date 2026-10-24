@@ -13,7 +13,7 @@ Agent sessions are ephemeral: when a chat session terminates, the reasoning, too
 ## 2. Responsibilities
 
 - **Trace Lifecycle**: Managing the six discrete stages of execution: `start`, `append`, `checkpoint`, `resume`, `distill`, and `finish`.
-- **Cryptographic Hash Chaining**: Computing and validating `sha256(previous_hash + current_event_payload)` for every recorded transition.
+- **Cryptographic Hash Chaining**: Computing and validating `sha256(event_type + "\n" + payload_json + "\n" + prev_hash)` for every recorded transition.
 - **Routing Gate Enforcement**: Evaluating whether a trace originated from a valid `RouteSelected` genesis event and verifying chain integrity.
 - **Durable Decisions**: Storing architectural decisions, route choices, and test outputs so successor agents can resume tasks immediately.
 
@@ -32,7 +32,7 @@ Agent sessions are ephemeral: when a chat session terminates, the reasoning, too
 graph TD
     Agent["Host Agent / CLI"] -->|Lifecycle Commands| TraceEngine["Trace Engine (crates/swe-seed-core/src/trace/)"]
     TraceEngine --> Records[".agent-harness/traces/records/<id>.json (Human Readable)"]
-    TraceEngine --> LedgerDB[".agent-harness/traces/ledger.db (SHA-256 Chained SQLite)"]
+    TraceEngine --> LedgerDB[".agent-harness/traces/ledger.sqlite3 (SHA-256 Chained SQLite)"]
 
     subgraph CI_Gate["CI & Merge Gate"]
         LedgerDB --> Gate["Routing Gate (swe-seed gate <id> --verify)"]
@@ -48,7 +48,7 @@ graph TD
 ## 5. Core Abstractions
 
 - `TraceRecord`: The serialized JSON document storing task metadata, route decisions, events, checkpoints, claims, and proof results.
-- `TraceLedger`: The embedded SQLite interface maintaining the `events` table with columns for `event_id`, `trace_id`, `event_type`, `payload`, `prev_hash`, and `hash`.
+- `TraceLedger`: The embedded SQLite interface maintaining the `chain_entries` table with columns `trace_id`, `seq`, `event_id`, `event_type`, `payload_json`, `prev_hash`, `hash`, and `occurred_at`, keyed by `(trace_id, seq)`.
 - `RouteGate`: The evaluation enum returned by `route_gate()`:
   - `RouteGate::Allow`: Valid genesis exists and chain hashes match.
   - `RouteGate::Block(reason)`: Missing genesis, missing ledger, or hash mismatch.
@@ -62,16 +62,46 @@ graph TD
 When `trace start` executes:
 
 - An initial genesis event (`RouteSelected`) is created.
-- The hash of the genesis event is computed: `H_0 = sha256("GENESIS" + payload)`.
-- Subsequent events compute: `H_n = sha256(H_{n-1} + payload_n)`.
-- Hashes are stored alongside payloads in `ledger.db`.
+- The hash is computed over three newline-separated fields: `sha256(event_type + "\n" + payload_json + "\n" + prev_hash)`.
+- The genesis entry uses `prev_hash` = 64 zeros (`GENESIS_PREV`). Each later entry uses the previous entry's `hash`.
+- `payload_json` is the exact serialized payload written for that event, so any payload change breaks the chain.
 
 ### 2. Gate Verification (`swe-seed gate <id> --verify`)
 
-- Reads all events for `trace_id` in ascending sequence order.
-- Asserts that event index 0 is a `RouteSelected` event.
-- Iteratively recomputes hashes from index 0 to N, comparing computed hashes against stored hashes.
-- If any byte of any payload was modified, or if an event was inserted/deleted, the gate fails immediately (`RouteGate::Block`), causing `just gate-merge` to exit with status 1.
+- Reads all entries for `trace_id` in ascending `seq` order.
+- Asserts that `seq` 0 is a `RouteSelected` event.
+- For each entry, checks that `prev_hash` equals the previous entry's stored `hash`, then recomputes the entry's own hash and compares it to the stored value. The walk stops at the first failure.
+- An edited payload, an inserted interior entry, or a deleted interior entry breaks one of those two checks, so the gate fails (`RouteGate::Block`) and `just gate-merge` exits 1. Deleting trailing entries does not, because the shortened prefix still verifies. See [What Tampering Is and Is Not Detected](#3-what-tampering-is-and-is-not-detected).
+
+---
+
+### 3. What Tampering Is and Is Not Detected
+
+`verify_chain` walks entries in `seq` order and, for each entry, checks two things: that `prev_hash` equals the previous entry's **stored** `hash`, and that `hash` equals the recomputation from that entry's own `event_type`, `payload_json`, and `prev_hash`. It stops at the first failure.
+
+That yields three distinct outcomes. Verified by editing a real ledger in a throwaway root:
+
+| Edit performed                                                         | Result                   | Message                                              |
+| ---------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------- |
+| Change only `payload_json` at `seq 1`                                  | Blocked at `seq 1`       | `entry 1: event or payload tampered (hash mismatch)` |
+| Change `payload_json` at `seq 1` **and** rewrite `seq 1.hash` to match | Blocked at `seq 2`       | `entry 2: prev_hash broken (chain links severed)`    |
+| Delete the final entry (`seq 2` of 3)                                  | **Not detected**, exit 0 | `allow: trace '<id>' routed + chain verifies`        |
+
+```mermaid
+flowchart TD
+    Edit["edit one ledger row"] --> Own{"own hash<br/>still matches?"}
+    Own -->|no| Stop1["block at that entry<br/>'event or payload tampered'"]
+    Own -->|"attacker also<br/>rewrites hash"| Link{"next entry's<br/>prev_hash still<br/>matches?"}
+    Link -->|no| Stop2["block at next entry<br/>'prev_hash broken (chain links severed)'"]
+    Link -->|"links hold"| Anchor{"anchor length and<br/>head match?"}
+    Anchor -->|"no"| Stop3["block<br/>'head anchor mismatch'"]
+    Anchor -->|"no anchor"| Stop4["block<br/>'unanchored'"]
+    Anchor -->|"yes"| Allow["allow, exit 0"]
+```
+
+**What to notice.** The chain detects any edit that leaves a hash inconsistent somewhere in the remaining rows. Truncation is caught by the head anchor in `ledger.anchors.json`: each append records the expected entry count and head hash, so deleting trailing entries fails with `head anchor mismatch`. A trace with no anchor (a legacy ledger, or a deleted anchor file) fails closed as `unanchored` unless `--allow-unanchored` is passed. The anchor is not signed, so a writer who can rewrite both the rows and the anchor is not detected. `swe-seed federation sign <trace> --key <id>` emits a signed envelope over a trace's chain root, which is the signed record that closes that gap, but it only runs for a trace with verified passing proof evidence.
+
+**Try it.** The [Trace Chain Explorer](../cognitive/trace-chain-explorer.html) replays a real four-entry chain and lets you apply the first two edits to see which entry the gate names.
 
 ---
 
@@ -79,7 +109,7 @@ When `trace start` executes:
 
 - **Owned State**:
   - `.agent-harness/traces/records/<trace_id>.json`: Canonical JSON trace records.
-  - `.agent-harness/traces/ledger.db`: Cryptographic ledger database.
+  - `.agent-harness/traces/ledger.sqlite3`: Cryptographic ledger database.
   - `.agent-harness/traces/route-decisions/<trace_id>.json`: Standalone route decision records.
 - **Read State**: None (self-contained).
 - **Modified State**: Appends records during task execution.
@@ -100,7 +130,7 @@ sequenceDiagram
 
     loop During Execution
         Agent->>CLI: trace append <id> "checkpoint note"
-        CLI->>Ledger: Insert Event (H_n = sha256(H_n-1 + data))
+        CLI->>Ledger: Insert Event (H_n = sha256(type + payload + H_n-1))
     end
 
     Agent->>CLI: trace finish <id> --claim "verified" --command "just ci"
@@ -116,7 +146,7 @@ sequenceDiagram
 
 ## 9. Failure Modes
 
-- **Chain Tampering**: Manual edits to `records/<id>.json` or `ledger.db` invalidate the hash chain, causing `swe-seed gate` to fail closed.
+- **Chain Tampering**: Manual edits to `records/<id>.json` or `ledger.sqlite3` invalidate the hash chain, causing `swe-seed gate` to fail closed.
 - **Missing Genesis**: Creating a trace without selecting a route results in a `Block` status because routing is mandatory.
 - **Unclosed Trace**: Attempting to gate a trace that has not received a `trace finish` command will be rejected for missing proof claims.
 

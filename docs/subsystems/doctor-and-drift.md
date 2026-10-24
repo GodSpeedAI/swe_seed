@@ -6,7 +6,7 @@ The Doctor & Drift Detection Subsystem aggregates system-wide health checks, aud
 
 ## 1. Purpose
 
-In distributed multi-host environments, software tools silently drift out of synchronization when users or IDEs modify configuration files directly. Specified in [0008](specs/0008-doctor-and-drift-detection.md), the Doctor subsystem provides a unified diagnostic command (`swe-seed doctor`) that performs comprehensive static, dynamic, and drift audits, ensuring that the repository remains in a known, verified state.
+In distributed multi-host environments, software tools silently drift out of synchronization when users or IDEs modify configuration files directly. Specified in [0008](../specs/0008-doctor-and-drift-detection.md), the Doctor subsystem provides a unified diagnostic command (`swe-seed doctor`) that performs comprehensive static, dynamic, and drift audits, ensuring that the repository remains in a known, verified state.
 
 ---
 

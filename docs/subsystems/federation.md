@@ -6,7 +6,7 @@ The Federation Subsystem enables optional integration with the wider SEA (Softwa
 
 ## 1. Purpose
 
-In multi-agent ecosystems (Context Kernel, SEA-Forge, GodSpeed-Agent), task state and proof events must be securely exchanged across organizational and system boundaries. Specified in [0011](specs/0011-sea-loop-federation.md), the Federation Subsystem provides tamper-evident envelope exchange while preserving a strict architectural invariant: **The local inner loop always works fully standalone when federation is disabled.**
+In multi-agent ecosystems (Context Kernel, SEA-Forge, GodSpeed-Agent), task state and proof events must be securely exchanged across organizational and system boundaries. Specified in [0011](../specs/0011-sea-loop-federation.md), the Federation Subsystem provides tamper-evident envelope exchange while preserving a strict architectural invariant: **The local inner loop always works fully standalone when federation is disabled.**
 
 ---
 

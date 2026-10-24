@@ -6,7 +6,7 @@ This document explains why SWE_SEED is structured into three distinct layers (`S
 
 ## 1. The Core Question
 
-Earlier iterations and specifications attempted to combine repository governance, capability registries, execution harnesses, and prototype generation into a single monolithic layer. Why did specification [0012](specs/0012-existing-harness-reconciliation.md) explicitly mandate the three-layer hierarchy:
+Earlier iterations and specifications attempted to combine repository governance, capability registries, execution harnesses, and prototype generation into a single monolithic layer. Why did specification [0012](../specs/0012-existing-harness-reconciliation.md) explicitly mandate the three-layer hierarchy:
 
 ```
 SweSeed     (Outer: governance, capability assembly, boundaries)

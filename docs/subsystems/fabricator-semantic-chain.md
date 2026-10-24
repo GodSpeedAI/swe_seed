@@ -1,6 +1,6 @@
 # Fabricator Semantic Chain Subsystem
 
-The Fabricator Subsystem is the innermost layer of SWE_SEED. Specified in [0017](specs/0017-fabricator-layer.md) and `FABRICATOR_SPEC_v0.1.0.md`, it transforms an initial product need into a proven prototype through a strictly validated, 10-node semantic specification chain.
+The Fabricator Subsystem is the innermost layer of SWE_SEED. Specified in [0017](../specs/0017-fabricator-layer.md) and `FABRICATOR_SPEC_v0.1.0.md`, it transforms an initial product need into a proven prototype through a strictly validated, 10-node semantic specification chain.
 
 ---
 
