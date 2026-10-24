@@ -8,14 +8,29 @@ use std::process::ExitCode;
 
 use anyhow::Result;
 
-pub fn run_gate(root: &Path, trace: &str, verify: bool) -> Result<ExitCode> {
-    match swe_seed_core::routing_gate::route_gate(root, trace) {
+pub fn run_gate(
+    root: &Path,
+    trace: &str,
+    verify: bool,
+    allow_unanchored: bool,
+) -> Result<ExitCode> {
+    // Fail closed by default: an unanchored (legacy) trace cannot prove it was
+    // not truncated. `--allow-unanchored` is the explicit legacy opt-in.
+    let policy = if allow_unanchored {
+        swe_seed_core::trace_ledger::AnchorPolicy::AllowUnanchored
+    } else {
+        swe_seed_core::trace_ledger::AnchorPolicy::Required
+    };
+    match swe_seed_core::routing_gate::route_gate_with(root, trace, policy) {
         Ok(swe_seed_core::routing_gate::RouteGate::Allow) => {
             if verify {
-                // Full tamper-evidence check: recompute the chain to the root.
+                // Full tamper-evidence check: recompute the chain and compare it
+                // with the head anchor.
                 let db = swe_seed_core::trace_ledger::default_db_path(root);
                 let conn = swe_seed_core::trace_ledger::open(&db)?;
-                if let Err(reason) = swe_seed_core::trace_ledger::verify_chain(&conn, trace) {
+                if let Err(reason) =
+                    swe_seed_core::trace_ledger::verify_chain_with(&conn, trace, policy)
+                {
                     eprintln!("block: chain verification failed: {reason}");
                     return Ok(ExitCode::from(1));
                 }

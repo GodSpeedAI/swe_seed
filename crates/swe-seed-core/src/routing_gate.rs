@@ -8,7 +8,7 @@ use std::path::Path;
 
 use anyhow::Result;
 
-use crate::trace_ledger::{self, default_db_path};
+use crate::trace_ledger::{self, default_db_path, AnchorPolicy};
 
 /// Outcome of the routing gate for a trace.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,6 +23,13 @@ pub enum RouteGate {
 /// is treated as Block (fail-closed): if there's no ledger, there's no proof of
 /// routing.
 pub fn route_gate(root: &Path, trace_id: &str) -> Result<RouteGate> {
+    route_gate_with(root, trace_id, AnchorPolicy::Required)
+}
+
+/// [`route_gate`] with an explicit anchor policy. `AllowUnanchored` is a legacy
+/// opt-in for ledgers written before head anchors existed; anchored traces are
+/// still checked against their anchor.
+pub fn route_gate_with(root: &Path, trace_id: &str, policy: AnchorPolicy) -> Result<RouteGate> {
     let db = default_db_path(root);
     if !db.is_file() {
         return Ok(RouteGate::Block(format!(
@@ -31,7 +38,7 @@ pub fn route_gate(root: &Path, trace_id: &str) -> Result<RouteGate> {
         )));
     }
     let conn = trace_ledger::open(&db)?;
-    if let Err(reason) = trace_ledger::verify_chain(&conn, trace_id) {
+    if let Err(reason) = trace_ledger::verify_chain_with(&conn, trace_id, policy) {
         return Ok(RouteGate::Block(format!(
             "trace '{trace_id}' ledger verification failed: {reason}"
         )));

@@ -147,6 +147,10 @@ enum Command {
         /// Also verify the full chain's tamper-evidence (recompute hashes)
         #[arg(long)]
         verify: bool,
+        /// Legacy opt-in: accept a trace with no head anchor (pre-anchor ledgers).
+        /// Without it, unanchored traces fail closed. Anchored traces are always checked.
+        #[arg(long, requires = "verify")]
+        allow_unanchored: bool,
     },
 }
 
@@ -208,7 +212,11 @@ pub fn run() -> Result<ExitCode> {
         Command::Federation { action } => run_federation(&root, action),
         Command::Harness => crate::harness_cli::run_harness_validate(&root),
         Command::Gateway { action } => run_gateway(&root, action),
-        Command::Gate { trace, verify } => crate::gate_cli::run_gate(&root, &trace, verify),
+        Command::Gate {
+            trace,
+            verify,
+            allow_unanchored,
+        } => crate::gate_cli::run_gate(&root, &trace, verify, allow_unanchored),
     }
 }
 
