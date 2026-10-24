@@ -17,7 +17,7 @@ This document provides the canonical comparison matrix of host adapters supporte
 | Host Adapter | Pre-Prompt Routing | Pre-Tool Safety Blocking | Post-Tool Logging | Token Budget Containment | Managed Markers | Drift Detection | Snapshot Rollback |
 |---|---|---|---|---|---|---|---|
 | **Claude Code** (`claude`) | `Advisory` | `Strict` (via hooks) | `Strict` | `Advisory` | `Yes` | `Yes` | `Yes` |
-| **GitHub Copilot** (`copilot`) | `Advisory` | `Unsupported` | `Unsupported` | `Advisory` | `Yes` | `Yes` | `Yes` |
+| **GitHub Copilot** (`github-copilot`) | `Advisory` | `Unsupported` | `Unsupported` | `Advisory` | `Yes` | `Yes` | `Yes` |
 | **Antigravity** (`antigravity`) | `Advisory` | `Strict` (via hooks) | `Strict` | `Strict` | `Yes` | `Yes` | `Yes` |
 | **Codex** (`codex`) | `Advisory` | `Unsupported` | `Unsupported` | `Advisory` | `Yes` | `Yes` | `Yes` |
 | **OpenCode** (`opencode`) | `Advisory` | `Advisory` | `Advisory` | `Advisory` | `Yes` | `Yes` | `Yes` |
@@ -32,7 +32,7 @@ This document provides the canonical comparison matrix of host adapters supporte
 - **Strengths**: Supports rich hook configurations in `settings.json`, enabling pre-tool execution checks and post-tool event emission.
 - **Limitations**: Top-level prompt routing remains advisory; agents must be instructed to run `swe-seed route`.
 
-### GitHub Copilot (`copilot`)
+### GitHub Copilot (`github-copilot`)
 - **Target Files**: `.github/copilot-instructions.md`.
 - **Strengths**: Broad native editor integration in VS Code and JetBrains.
 - **Limitations**: Copilot instructions are prompt-injected only; no pre-tool execution blocking exists. Downstream verification must rely on CI gates (`just ci`).

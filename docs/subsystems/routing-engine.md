@@ -109,12 +109,12 @@ sequenceDiagram
     participant User
     participant CLI as swe-seed route
     participant Engine as RouteMatcher
-    participant Ledger as TraceLedger
+    participant Files as route-decisions JSON files
 
     User->>CLI: swe-seed route "fix checkout crash" --record
     CLI->>Engine: score every card, rank by (score desc, id desc)
     Engine-->>CLI: RouteCard: bugfix.json
-    CLI->>Ledger: write route-decisions/<trace_id>.json
+    CLI->>Files: write route-decisions/<trace_id>.json
     CLI-->>User: Output Work Contract JSON
 ```
 

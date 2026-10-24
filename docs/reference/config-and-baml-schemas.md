@@ -23,7 +23,7 @@ context:
   max_pack_bytes: 524288 # 512 KB
   max_pack_tokens: 32000
 
-# Hook runtime settings (actual keys in .agent-hooks/config.yaml)
+# Hook runtime settings: hooks load these from .agent-hooks/config.yaml, not this file
 hooks:
   # Log directory; one file per UTC date: logs/events-<YYYY-MM-DD>.jsonl
   logs: ".agent-hooks/logs"

@@ -724,7 +724,7 @@
                 String(text)
                   .toLowerCase()
                   .match(/[a-z0-9_]+/g) || [];
-              var out = {};
+              var out = Object.create(null);
               m.forEach(function (t) {
                 if (t.length > 1) {
                   out[t] = true;
@@ -999,10 +999,11 @@
               card.triggers.forEach(function (p) {
                 var sub = lower.indexOf(p.toLowerCase()) !== -1;
                 var ov = overlap(tt, p);
-                if (sub || ov > 0) {
-                  fired.push(
-                    p + (sub ? " (substring)" : " (" + ov + " token)"),
-                  );
+                if (sub) {
+                  fired.push(p + " (substring)");
+                }
+                if (ov > 0) {
+                  fired.push(p + " (" + ov + " token)");
                 }
               });
               html +=

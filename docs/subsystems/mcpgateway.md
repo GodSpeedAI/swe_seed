@@ -54,8 +54,8 @@ graph LR
 ## 5. Core Abstractions
 
 - `GatewayServer`: The core proxy managing client connections, transport dispatch, and server multiplexing.
-- `GatewayCatalogEntry` / `project_catalog()`: Aggregates and namespaces tools exposed by all configured backend servers. `project_catalog()` also returns `DroppedEntry` values for tools it refused to expose.
-- `Governance`: Evaluates incoming `tools/call` requests against policy rules, producing an `InvokeDecision` of `Allow` or `ApprovalRequired`.
+- `GatewayCatalogEntry` (`gateway/mod.rs`) / `project_catalog()`: Aggregates and namespaces tools exposed by all configured backend servers. `project_catalog()` also returns `DroppedEntry` values for tools it refused to expose.
+- `Governance` (`gateway/governance.rs`): Evaluates incoming `tools/call` requests against policy rules, producing an `InvokeDecision` of `Allow` or `ApprovalRequired`.
 - `JsonRpcRequest`: The JSON-RPC 2.0 request type. There is no `JsonRpcResponse` type; responses are built as JSON values.
 
 ---
@@ -67,7 +67,7 @@ graph LR
 3. **Tool Call Routing**:
    - The client invokes `tools/call` with namespaced name `github.create_issue`.
    - MCPGate intercepts the call and runs arguments through the redaction filter.
-   - `GovernanceEngine` checks permissions. If blocked, returns a JSON-RPC error immediately.
+   - `Governance` checks permissions. If blocked, returns a JSON-RPC error immediately.
    - If allowed, strips the namespace prefix and forwards `create_issue` to the GitHub backend process.
    - Receives the response, audits the execution, and returns the result to the client.
 
@@ -90,7 +90,7 @@ sequenceDiagram
     participant Backend as Backend MCP Server
 
     Agent->>Gate: JSON-RPC tools/call (fs.read_file)
-    Gate->>Gate: Evaluate GovernanceEngine
+    Gate->>Gate: Evaluate Governance
     alt Permission Denied
         Gate-->>Agent: JSON-RPC Error (403 Forbidden)
     else Permission Allowed
@@ -120,7 +120,7 @@ sequenceDiagram
 ## 11. Source Trail
 
 - `crates/swe-seed-core/src/gateway/serve.rs`: `GatewayServer`, the loopback HTTP listener.
-- `crates/swe-seed-core/src/gateway/catalog.rs`: `ToolCatalog` and namespacing.
+- `crates/swe-seed-core/src/gateway/catalog.rs`: catalog projection and namespacing; the entry type is `GatewayCatalogEntry` in `gateway/mod.rs`.
 - `crates/swe-seed-core/src/gateway/governance.rs`: Policy enforcement engine.
 - `crates/swe-seed-core/src/gateway/audit.rs`: Audit logging engine.
 - `crates/swe-seed/src/gateway_cli.rs`: CLI commands for `swe-seed gateway`.

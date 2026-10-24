@@ -37,10 +37,17 @@ swe-seed context-plan <task>
 ### `swe-seed gate`
 Verify trace genesis and tamper-evident hash chain integrity.
 ```bash
-swe-seed gate <trace> [--verify]
+swe-seed gate <trace> [--verify] [--allow-unanchored]
 ```
 - `<trace>`: The trace identifier string.
-- `--verify`: Cryptographically recomputes all SHA-256 event hashes in `ledger.sqlite3`.
+- `--verify`: Cryptographically recomputes all SHA-256 event hashes in `ledger.sqlite3` and compares the chain with its head anchor in `ledger.anchors.json`.
+- `--allow-unanchored`: Legacy opt-in that accepts a trace with no head anchor (structure-only check). Requires `--verify`. Without it, an unanchored trace fails with `unanchored`. Anchored traces are always checked.
+
+### `swe-seed render-skills`
+Render skills from `.agent-harness/skills/` to host targets.
+```bash
+swe-seed render-skills
+```
 
 ### `swe-seed trace`
 Manage the execution trace lifecycle.
@@ -85,7 +92,7 @@ swe-seed hosts
 ### `swe-seed eval`
 Execute deterministic evaluation specifications.
 ```bash
-swe-seed eval run --spec <path> [--output <path>]
+swe-seed eval run --spec <path> [--trusted] [--output <path>]
 ```
 - `--spec <path>`: Path to the target eval spec. The loader accepts TOML or JSON, not YAML.
 - `--trusted`: Allows `command_check` steps, which run spec-controlled shell commands. Off by default.
