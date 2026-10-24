@@ -149,13 +149,28 @@ fn write_anchors(path: &Path, anchors: &BTreeMap<String, HeadAnchor>) -> Result<
 }
 
 /// Record the new head for `trace_id`. Runs inside the append transaction, so
-/// the anchor and the row commit or roll back together (modulo a crash between
-/// the anchor write and COMMIT, which surfaces later as a head mismatch).
+/// the anchor and the row commit or roll back together.
+///
+/// Known window: the anchor file is written before COMMIT, so a crash between
+/// the anchor write and COMMIT leaves an anchor that describes an entry that
+/// was never committed. Verification then reports `head anchor mismatch`
+/// (fail closed). There is no repair command; the trace must be investigated.
+///
+/// If the trace already has an anchor, the append must extend exactly the
+/// chain that anchor describes (`length == seq` and `head == prev`). Otherwise
+/// rows were removed (e.g. a trailing row deleted) and the append is refused
+/// before the anchor is overwritten, so the truncation stays visible.
 ///
 /// A trace that already has rows but no anchor (a legacy ledger) is left
 /// unanchored: appending must not silently vouch for rows written before the
 /// anchor existed. Migrating such a trace requires an explicit operation.
-fn update_anchor(conn: &Connection, trace_id: &str, seq: i64, hash: &str) -> Result<()> {
+fn update_anchor(
+    conn: &Connection,
+    trace_id: &str,
+    seq: i64,
+    prev: &str,
+    hash: &str,
+) -> Result<()> {
     let Some(path) = anchor_path(conn) else {
         return Ok(());
     };
@@ -163,10 +178,20 @@ fn update_anchor(conn: &Connection, trace_id: &str, seq: i64, hash: &str) -> Res
     if seq == 0 {
         if anchors.contains_key(trace_id) {
             return Err(anyhow!(
-                "trace '{trace_id}' has a head anchor but no chain entries (truncated to empty)"
+                "head anchor mismatch before append: trace '{trace_id}' has a head anchor but no chain entries (truncated to empty)"
             ));
         }
-    } else if !anchors.contains_key(trace_id) {
+    } else if let Some(anchor) = anchors.get(trace_id) {
+        if anchor.length != seq || anchor.head != prev {
+            return Err(anyhow!(
+                "head anchor mismatch before append: trace '{trace_id}' anchor records {} entries ending in {}, chain has {} entries ending in {} (entries removed outside the writer); refusing to extend",
+                anchor.length,
+                anchor.head,
+                seq,
+                prev
+            ));
+        }
+    } else {
         return Ok(());
     }
     anchors.insert(
@@ -224,7 +249,7 @@ pub fn append(conn: &Connection, entry: LedgerEntry<'_>) -> Result<Appended> {
         conn.execute_batch("ROLLBACK").ok();
         return Err(e.into());
     }
-    if let Err(e) = update_anchor(conn, entry.trace_id, seq, &hash) {
+    if let Err(e) = update_anchor(conn, entry.trace_id, seq, &prev, &hash) {
         conn.execute_batch("ROLLBACK").ok();
         return Err(e);
     }

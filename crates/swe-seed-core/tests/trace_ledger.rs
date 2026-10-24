@@ -258,3 +258,53 @@ fn append_does_not_vouch_for_legacy_rows() {
         .contains("unanchored"));
     std::fs::remove_file(&db).ok();
 }
+
+#[test]
+fn append_after_trailing_row_deleted_is_refused_and_truncation_stays_visible() {
+    // Deleting the last row then appending must not reuse the seq and overwrite
+    // the head anchor, which would hide the truncation.
+    let db = temp_db();
+    let conn = open(&db).unwrap();
+    append_three(&conn, "T-trunc-append");
+    let anchor_before = std::fs::read_to_string(db.with_extension("anchors.json")).unwrap();
+    conn.execute(
+        "DELETE FROM chain_entries WHERE trace_id = 'T-trunc-append' AND seq = 2",
+        [],
+    )
+    .unwrap();
+
+    let err = append(
+        &conn,
+        swe_seed_core::trace_ledger::LedgerEntry {
+            trace_id: "T-trunc-append",
+            event_type: "TraceNote",
+            payload_json: "{}",
+            occurred_at: "t",
+        },
+    )
+    .unwrap_err();
+    assert!(
+        format!("{err:#}").contains("head anchor mismatch before append"),
+        "{err:#}"
+    );
+
+    // Nothing committed: still two rows, and the anchor file is untouched.
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM chain_entries WHERE trace_id = 'T-trunc-append'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 2);
+    assert_eq!(
+        std::fs::read_to_string(db.with_extension("anchors.json")).unwrap(),
+        anchor_before
+    );
+
+    // Truncation is still reported by verification.
+    let verr = verify_chain(&conn, "T-trunc-append").unwrap_err();
+    assert!(verr.contains("head anchor mismatch"), "{verr}");
+    std::fs::remove_file(&db).ok();
+    std::fs::remove_file(db.with_extension("anchors.json")).ok();
+}
