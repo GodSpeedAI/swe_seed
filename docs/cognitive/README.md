@@ -10,11 +10,11 @@ These pages complement the canonical documentation. They do not replace it: the 
 
 SWE_SEED has many subsystems. Three behaviours account for most of the confusion when someone first tries to predict what the tool will do:
 
-| Behaviour             | Why it is hard to predict                                                       | Representation                                                             |
-| --------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Route selection       | Two cards can tie, and a zero score can still yield `confidence: medium`        | [Routing Explorer](routing-explorer.html)                                  |
+| Behaviour             | Why it is hard to predict                                                                     | Representation                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Route selection       | Two cards can tie, and a zero score can still yield `confidence: medium`                      | [Routing Explorer](routing-explorer.html)                                  |
 | What the gate detects | Two edits produce two different failures, and truncation is detected only for anchored traces | [Trace Chain Explorer](trace-chain-explorer.html)                          |
-| Decision branches     | The fallback path is invisible in the emitted JSON                              | Diagram in [Routing Engine](../subsystems/routing-engine.md#decision-path) |
+| Decision branches     | The fallback path is invisible in the emitted JSON                                            | Diagram in [Routing Engine](../subsystems/routing-engine.md#decision-path) |
 
 Everything else in the harness is either a straightforward file transformation or is already well served by the existing sequence diagrams.
 
