@@ -554,11 +554,12 @@
             max-width: 80ch;
           "
         >
-          Not modelled here: <b style="color: var(--text)">truncation</b>.
-          Deleting trailing entries leaves a shorter prefix that still verifies,
-          because the gate has no expected length or head anchor. Verified
-          against the binary: removing the last row of a three-entry chain still
-          exits 0.
+          Not modelled here: <b style="color: var(--text)">truncation</b>. Each append
+          records a head anchor in <code>ledger.anchors.json</code>. Removing the
+          last row of an anchored chain makes <code>gate --verify</code> fail with
+          <code>head anchor mismatch</code>, and appending after that is refused
+          before the anchor is overwritten. A trace with no anchor fails as
+          <code>unanchored</code> unless <code>--allow-unanchored</code> is passed.
         </p>
       </div>
 
@@ -567,8 +568,8 @@
         throwaway root by <code>trace start</code>, <code>trace append</code>,
         <code>trace checkpoint</code>, and <code>trace finish</code>. The gate
         wording and both block messages were captured from the binary. The
-        truncation result was captured the same way, by deleting the last row
-        and re-running <code>gate --verify</code>.
+        truncation rule comes from <code>verify_chain_with()</code> and the append
+        guard; it was not re-captured from the binary.
         <ul>
           <li>
             <code>crates/swe-seed-core/src/trace_ledger.rs</code> &mdash;

@@ -93,10 +93,13 @@ flowchart TD
     Own -->|no| Stop1["block at that entry<br/>'event or payload tampered'"]
     Own -->|"attacker also<br/>rewrites hash"| Link{"next entry's<br/>prev_hash still<br/>matches?"}
     Link -->|no| Stop2["block at next entry<br/>'prev_hash broken (chain links severed)'"]
-    Link -->|"entry was last,<br/>or trailing rows deleted"| Silent["allow, exit 0<br/>truncation not detected"]
+    Link -->|"links hold"| Anchor{"anchor length and<br/>head match?"}
+    Anchor -->|"no"| Stop3["block<br/>'head anchor mismatch'"]
+    Anchor -->|"no anchor"| Stop4["block<br/>'unanchored'"]
+    Anchor -->|"yes"| Allow["allow, exit 0"]
 ```
 
-**What to notice.** The chain detects any edit that leaves a hash inconsistent somewhere in the remaining rows. It does **not** detect truncation, because there is no expected-length or head anchor: deleting trailing entries leaves a shorter prefix that still verifies. This matters if you treat `gate --verify` as proof that a trace is complete. It proves the surviving rows are internally consistent; it does not prove none were removed. Catching truncation needs a record of the chain root kept outside the ledger. `swe-seed federation sign <trace> --key <id>` emits a signed envelope over a trace's chain root, which is that kind of record, but it only runs for a trace with verified passing proof evidence.
+**What to notice.** The chain detects any edit that leaves a hash inconsistent somewhere in the remaining rows. Truncation is caught by the head anchor in `ledger.anchors.json`: each append records the expected entry count and head hash, so deleting trailing entries fails with `head anchor mismatch`. A trace with no anchor (a legacy ledger, or a deleted anchor file) fails closed as `unanchored` unless `--allow-unanchored` is passed. The anchor is not signed, so a writer who can rewrite both the rows and the anchor is not detected. `swe-seed federation sign <trace> --key <id>` emits a signed envelope over a trace's chain root, which is the signed record that closes that gap, but it only runs for a trace with verified passing proof evidence.
 
 **Try it.** The [Trace Chain Explorer](../cognitive/trace-chain-explorer.html) replays a real four-entry chain and lets you apply the first two edits to see which entry the gate names.
 

@@ -145,7 +145,7 @@ flowchart TD
 
 - **Canonical Schemas**: Immutable during execution; updated only through RFCs and versioned Git commits.
 - **Trace Records**: Append-only. Every transition produces a new immutable record or state append.
-- **Hash Chains**: Each entry in `ledger.sqlite3` stores `sha256(event_type + "\n" + payload_json + "\n" + prev_hash)`, and each entry's `prev_hash` must equal the previous entry's stored `hash`. Editing a payload without also rewriting its hash fails at that entry; rewriting the hash too fails at the next entry's link check. Deleting trailing entries is not detected, because there is no expected length or head anchor.
+- **Hash Chains**: Each entry in `ledger.sqlite3` stores `sha256(event_type + "\n" + payload_json + "\n" + prev_hash)`, and each entry's `prev_hash` must equal the previous entry's stored `hash`. Editing a payload without also rewriting its hash fails at that entry; rewriting the hash too fails at the next entry's link check. Each append also writes a head anchor (`length`, `head`) to `ledger.anchors.json` beside the SQLite file, so deleting trailing entries fails verification with `head anchor mismatch`. A trace with no anchor is reported as `unanchored` and fails closed unless `--allow-unanchored` is passed. The anchor is unsigned, so a writer who can rewrite both the rows and the anchor is not detected.
 - **Projected Blocks**: Re-derived idempotently via `swe-seed sync`.
 
 ---
