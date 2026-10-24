@@ -67,7 +67,7 @@ flowchart LR
 2. **Bounded Context**: An explicit, minimal list of files required for the task. The agent is directed to these files and barred from unnecessary repository-wide scanning.
 3. **Required Artifacts**: Concrete deliverables demanded by the route (e.g. reproduction script, root cause note, unit test, patch).
 4. **Pre-Bound Proof**: Commands declared up front (such as `just ci` or `swe-seed eval run --spec <spec>`) that must execute and pass. Proof cannot be adjusted or simplified after the diff exists.
-5. **Cryptographic Trace**: A JSON event record linked by SHA-256 hashes, anchored by a `RouteSelected` genesis event. Work cannot merge without this verified ledger.
+5. **Cryptographic Trace**: A JSON event record linked by SHA-256 hashes, anchored by a `RouteSelected` genesis event that `swe-seed trace start` writes. Work cannot merge without this verified ledger.
 
 ---
 
@@ -116,8 +116,8 @@ SWE_SEED enforces a **file-first, local-first** state architecture:
 | **Active Memory**    | `.agent-harness/memory/`                | Markdown (`.md`) | Version-controlled      | Durable harness memory   |
 | **Agent Scratch**    | `.agents/`                              | YML / MD         | Ephemeral (gitignored)  | Active agent handoffs    |
 | **Traces**           | `.agent-harness/traces/records/`        | JSON (`.json`)   | Append-only             | Trace engine / Gate      |
-| **Trace Ledger**     | `.agent-harness/traces/ledger.db`       | SQLite 3         | Append-only             | Trace engine / Gate      |
-| **Hook Events**      | `.agent-hooks/events.jsonl`             | JSONL            | Append-only             | Hook runtime             |
+| **Trace Ledger**     | `.agent-harness/traces/ledger.sqlite3`  | SQLite 3         | Append-only             | Trace engine / Gate      |
+| **Hook Events**      | `.agent-hooks/logs/events-<date>.jsonl` | JSONL            | Append-only             | Hook runtime             |
 | **Host Projections** | `.claude/`, `.github/`, `.agent-rules/` | Mixed (JSON, MD) | Deterministic generated | Host Adapters            |
 
 ### Invariants:

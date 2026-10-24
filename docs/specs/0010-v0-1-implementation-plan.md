@@ -1,6 +1,6 @@
 # 0010 — v0.1 Implementation Plan
 
-> **Superseded by [`.agents/plans/0001-swe-seed-v0-1-implementation.md`](../plans/0001-swe-seed-v0-1-implementation.md)**
+> **Superseded by [`.agents/plans/0001-swe-seed-v0-1-implementation.md`](../../.agents/plans/0001-swe-seed-v0-1-implementation.md)**
 > after the [0012](0012-existing-harness-reconciliation.md) reconciliation. The plan of record
 > is the 3-layer Rust rewrite (`SweSeed → Harness → Fabricator`, contracts-as-data, golden-file
 > parity, supersede the Python). This spec-level milestone sketch is retained for history only.

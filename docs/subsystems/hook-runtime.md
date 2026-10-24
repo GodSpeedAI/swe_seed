@@ -14,8 +14,8 @@ When coding agents execute tool calls or process prompts, actions must be captur
 
 - **Lifecycle Event Interception**: Handling standard events (`UserPrompt`, `PreToolUse`, `PostToolUse`, `TurnEnd`, `Error`).
 - **Secret & Token Redaction**: Stripping API keys, OAuth tokens, and sensitive headers from arguments and logs prior to disk writes.
-- **Durable Event Logging**: Appending JSONL records to `.agent-hooks/events.jsonl`.
-- **SQLite Indexing**: Indexing event payloads into `.agent-hooks/hooks.db` for low-latency queries.
+- **Durable Event Logging**: Appending JSONL records to `.agent-hooks/logs/events-<date>.jsonl`.
+- **SQLite Indexing**: Indexing event payloads into `.agent-hooks/index/hooks.rusql` for low-latency queries.
 - **Telemetry Export**: Exporting captured logs to OpenTelemetry (OTel) traces and JUnit XML reports.
 - **Log Compaction**: Compacting historical logs (`swe-seed agent-hooks compact-logs`) to manage disk space.
 
@@ -39,8 +39,8 @@ graph TD
         HookRuntime --> Policy["PermissionPolicy (Allow / Block / Gated)"]
     end
 
-    Sanitization --> JSONL[".agent-hooks/events.jsonl (Append-Only)"]
-    Sanitization --> SQLite[".agent-hooks/hooks.db (Indexed)"]
+    Sanitization --> JSONL[".agent-hooks/logs/events-<date>.jsonl (Append-Only)"]
+    Sanitization --> SQLite[".agent-hooks/index/hooks.rusql (Indexed)"]
 
     subgraph ExportPlane["Export & Compaction"]
         SQLite --> OTel["OTel Trace Exporter"]
@@ -71,13 +71,13 @@ graph TD
    - `Allow`: Proceeds to execution.
    - `Block`: Exits non-zero with an explanatory error.
    - `ApprovalGated`: Halts until human or system confirmation is recorded.
-4. **Persistence**: The sanitized event is written to `.agent-hooks/events.jsonl` and inserted into `.agent-hooks/hooks.db`.
+4. **Persistence**: The sanitized event is written to `.agent-hooks/logs/events-<date>.jsonl` and inserted into `.agent-hooks/index/hooks.rusql`.
 
 ---
 
 ## 7. State
 
-- **Owned State**: `.agent-hooks/events.jsonl`, `.agent-hooks/hooks.db`.
+- **Owned State**: `.agent-hooks/logs/events-<date>.jsonl`, `.agent-hooks/index/hooks.rusql`.
 - **Read State**: `.agent-harness/config.yaml` (hook and permission policies).
 - **Modified State**: Appends event records.
 
@@ -96,7 +96,7 @@ sequenceDiagram
     Runtime->>Redact: redact_secrets(payload)
     Redact-->>Runtime: Sanitized payload
     Runtime->>Runtime: Evaluate PermissionPolicy
-    Runtime->>Storage: Append events.jsonl & update hooks.db
+    Runtime->>Storage: Append logs/events-<date>.jsonl & update index/hooks.rusql
     Runtime-->>Host: Allow execution
 ```
 

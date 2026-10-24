@@ -8,7 +8,7 @@ This guide provides diagnostic procedures, root causes, and recovery runbooks fo
 
 | Observable Symptom                                             | Likely Root Cause                                                                                | Subsystem               | Diagnostic Command                                 | Recovery Action                                                                                                            |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `gate <id> --verify` exits non-zero (`RouteGate::Block`)       | Trace was never routed (missing genesis) or hash chain was tampered with                         | Trace Ledger / Gate     | `swe-seed trace resume <id>`                       | Re-route the task with `--record` before executing work. Do not hand-edit trace files.                                     |
+| `gate <id> --verify` exits non-zero (`RouteGate::Block`)       | Trace was never opened with `trace start` (missing genesis) or the hash chain was tampered with  | Trace Ledger / Gate     | `swe-seed trace resume <id>`                       | Open the trace with `swe-seed trace start "<task>"`. Do not hand-edit trace files.                                         |
 | Router selects unexpected `job_type`                           | Semantic triggers or phrasing matched another route card                                         | Routing Engine          | `swe-seed route "<task>"`                          | Use more explicit action verbs (e.g. "fix regression" vs "analyze failure") or refine triggers in route cards.             |
 | `doctor --host <host>` reports `Drift detected`                | Host configuration file was hand-edited inside managed block                                     | Host Adapters / Doctor  | `swe-seed doctor --host <host> --json`             | Run `swe-seed sync --host <host>` to re-project canonical state, or `swe-seed rollback --host <host>` to restore snapshot. |
 | `harness-validate` fails with `missing root spec`              | A root specification or BAML schema file was deleted or renamed                                  | Harness Validation      | `just harness-validate`                            | Restore missing file from git history. Root specs and BAML contracts are mandatory.                                        |
@@ -40,19 +40,16 @@ error: trace 'trace-xyz' ledger verification failed: hash mismatch at index 4
 
 #### Cause:
 
-1. The developer or agent modified code without first running `swe-seed route "<task>" --record`.
-2. Someone manually edited `.agent-harness/traces/records/<trace_id>.json` or tampered with `.agent-harness/traces/ledger.db`.
+1. The trace was never opened with `swe-seed trace start`, so no genesis entry exists. `swe-seed route` and `route --record` do not create one.
+2. Someone manually edited `.agent-harness/traces/records/<trace_id>.json` or tampered with `.agent-harness/traces/ledger.sqlite3`.
 
 #### Recovery:
 
-1. If the task was never routed, establish a valid genesis:
-   ```bash
-   just harness-route-record "<original task description>"
-   ```
-2. Start the trace:
+1. Open the trace. `trace start` routes the task and writes the genesis entry together:
    ```bash
    just harness-trace-start "<original task description>"
    ```
+2. If you only need the work contract and not a gate-able trace, `swe-seed route "<task>"` is enough. Do not expect it to satisfy the gate.
 3. Run the proof command declared in the route:
    ```bash
    just ci

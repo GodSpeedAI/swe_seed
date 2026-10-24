@@ -47,6 +47,6 @@ tmp/
 # rust build output
 /target/
 
-reference/
+/reference/
 
 .tmp/
