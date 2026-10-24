@@ -1,7 +1,9 @@
 //! trace_ledger: hash-chained append-only log. A route-decision genesis,
 //! tamper-evidence on partial edits, and a chain-root accessor (Phase A).
 
-use swe_seed_core::trace_ledger::{append, chain_root, open, verify_chain, GENESIS_PREV};
+use swe_seed_core::trace_ledger::{
+    append, chain_root, open, verify_chain, verify_chain_with, AnchorPolicy, GENESIS_PREV,
+};
 
 fn temp_db() -> std::path::PathBuf {
     std::env::temp_dir().join(format!(
@@ -149,4 +151,110 @@ fn genesis_prev_is_zero_hash() {
     // The documented contract: genesis seeds off the all-zero hash.
     assert_eq!(GENESIS_PREV.len(), 64);
     assert!(GENESIS_PREV.chars().all(|c| c == '0'));
+}
+
+fn append_three(conn: &rusqlite::Connection, trace_id: &str) {
+    for (i, event_type) in ["RouteSelected", "ProofStarted", "ProofFinished"]
+        .iter()
+        .enumerate()
+    {
+        append(
+            conn,
+            swe_seed_core::trace_ledger::LedgerEntry {
+                trace_id,
+                event_type,
+                payload_json: &format!(r#"{{"step":{i}}}"#),
+                occurred_at: "t",
+            },
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn truncated_trailing_entry_fails_verification() {
+    // Deleting the last chain row leaves a shorter prefix that is internally
+    // consistent; only a head/length anchor written outside the rows catches it.
+    let db = temp_db();
+    let conn = open(&db).unwrap();
+    append_three(&conn, "T-trunc");
+    assert!(verify_chain(&conn, "T-trunc").is_ok());
+    conn.execute(
+        "DELETE FROM chain_entries WHERE trace_id = 'T-trunc' AND seq = 2",
+        [],
+    )
+    .unwrap();
+    let err = verify_chain(&conn, "T-trunc").unwrap_err();
+    assert!(err.contains("head anchor mismatch"), "{err}");
+    std::fs::remove_file(&db).ok();
+    std::fs::remove_file(db.with_extension("anchors.json")).ok();
+}
+
+#[test]
+fn deleted_middle_entry_fails_verification() {
+    let db = temp_db();
+    let conn = open(&db).unwrap();
+    append_three(&conn, "T-mid");
+    conn.execute(
+        "DELETE FROM chain_entries WHERE trace_id = 'T-mid' AND seq = 1",
+        [],
+    )
+    .unwrap();
+    let err = verify_chain(&conn, "T-mid").unwrap_err();
+    assert!(err.contains("prev_hash broken"), "{err}");
+    std::fs::remove_file(&db).ok();
+    std::fs::remove_file(db.with_extension("anchors.json")).ok();
+}
+
+#[test]
+fn unanchored_legacy_trace_is_reported_not_passed() {
+    // A ledger written before anchors existed has rows but no sidecar anchor.
+    let db = temp_db();
+    let conn = open(&db).unwrap();
+    append_three(&conn, "T-legacy");
+    std::fs::remove_file(db.with_extension("anchors.json")).unwrap();
+    let err = verify_chain(&conn, "T-legacy").unwrap_err();
+    assert!(err.contains("unanchored"), "{err}");
+    // The explicit legacy opt-in accepts it, structure only.
+    assert!(verify_chain_with(&conn, "T-legacy", AnchorPolicy::AllowUnanchored).is_ok());
+    std::fs::remove_file(&db).ok();
+}
+
+#[test]
+fn anchor_is_checked_even_under_legacy_policy() {
+    let db = temp_db();
+    let conn = open(&db).unwrap();
+    append_three(&conn, "T-forged");
+    conn.execute(
+        "DELETE FROM chain_entries WHERE trace_id = 'T-forged' AND seq = 2",
+        [],
+    )
+    .unwrap();
+    let err = verify_chain_with(&conn, "T-forged", AnchorPolicy::AllowUnanchored).unwrap_err();
+    assert!(err.contains("head anchor mismatch"), "{err}");
+    std::fs::remove_file(&db).ok();
+    std::fs::remove_file(db.with_extension("anchors.json")).ok();
+}
+
+#[test]
+fn append_does_not_vouch_for_legacy_rows() {
+    // Appending to an unanchored trace must not write an anchor covering old rows.
+    let db = temp_db();
+    let conn = open(&db).unwrap();
+    append_three(&conn, "T-legacy2");
+    std::fs::remove_file(db.with_extension("anchors.json")).unwrap();
+    append(
+        &conn,
+        swe_seed_core::trace_ledger::LedgerEntry {
+            trace_id: "T-legacy2",
+            event_type: "TraceNote",
+            payload_json: "{}",
+            occurred_at: "t",
+        },
+    )
+    .unwrap();
+    assert!(verify_chain(&conn, "T-legacy2")
+        .unwrap_err()
+        .contains("unanchored"));
+    std::fs::remove_file(&db).ok();
 }
