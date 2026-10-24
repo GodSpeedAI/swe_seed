@@ -1,0 +1,1079 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Routing Explorer · SWE_SEED</title>
+    <style>
+      :root {
+        --bg: #0e1114;
+        --surface: #161b20;
+        --surface2: #1d242b;
+        --line: #2a333c;
+        --text: #e6edf3;
+        --text-dim: #8b98a5;
+        --accent: #e8752f;
+        --accent-dim: #4a2c18;
+        --ok: #3fb950;
+        --warn: #d29922;
+        --risk: #f85149;
+        --info: #58a6ff;
+        --t-h1: clamp(1.6rem, 3.2vw, 2.3rem);
+        --t-h2: 1.05rem;
+        --t-small: 0.74rem;
+        --t-label: 0.68rem;
+        --s1: 4px;
+        --s2: 8px;
+        --s3: 12px;
+        --s4: 16px;
+        --s5: 24px;
+        --s6: 32px;
+        --s8: 56px;
+        --r1: 3px;
+        --r2: 6px;
+        --mono:
+          ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo,
+          Consolas, monospace;
+        --serif:
+          "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+      body {
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: var(--s5) var(--s5) var(--s8);
+      }
+      h1 {
+        font-family: var(--serif);
+        font-size: var(--t-h1);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0 0 var(--s2);
+        line-height: 1.15;
+      }
+      .lede {
+        color: var(--text-dim);
+        max-width: 70ch;
+        margin: 0 0 var(--s4);
+        font-size: 0.8rem;
+        line-height: 1.5;
+      }
+      .tag {
+        display: inline-block;
+        font-size: var(--t-label);
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        border: 1px solid var(--line);
+        border-radius: var(--r1);
+        padding: 2px 6px;
+        margin-bottom: var(--s3);
+      }
+      figure {
+        margin: 0 0 var(--s4);
+      }
+      figcaption {
+        font-size: var(--t-small);
+        color: var(--text-dim);
+        margin-top: var(--s2);
+        max-width: 78ch;
+        line-height: 1.45;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r2);
+        padding: var(--s4);
+      }
+      .flow {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      @media (max-width: 700px) {
+        .flow {
+          min-width: 640px;
+        }
+      }
+      .figscroll {
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: var(--r2);
+      }
+      .flow text {
+        font-family: var(--mono);
+        fill: var(--text);
+      }
+      .flow .dim {
+        fill: var(--text-dim);
+      }
+      .flow .box {
+        fill: var(--surface2);
+        stroke: var(--line);
+        stroke-width: 1.5;
+      }
+      .flow .key {
+        fill: var(--accent-dim);
+        stroke: var(--accent);
+        stroke-width: 2;
+      }
+      .flow .arw {
+        stroke: var(--text-dim);
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .flow .verb {
+        fill: var(--text-dim);
+        font-size: 9.5px;
+      }
+      .flow .lbl {
+        font-size: 10.5px;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s5);
+        align-items: start;
+      }
+      @media (max-width: 880px) {
+        .split {
+          grid-template-columns: 1fr;
+        }
+      }
+      label.field {
+        display: block;
+        font-size: var(--t-label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: var(--s2);
+      }
+      input[type="text"] {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 0.84rem;
+        padding: 10px 12px;
+        border-radius: var(--r1);
+      }
+      input[type="text"]:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+        border-color: var(--accent);
+      }
+      .presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: var(--s3);
+      }
+      button {
+        font-family: var(--mono);
+        font-size: var(--t-small);
+        background: var(--surface2);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: var(--r1);
+        padding: 5px 9px;
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
+      }
+      button:hover {
+        background: #243039;
+        border-color: #3a4652;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .verdict {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s3);
+        flex-wrap: wrap;
+        margin: var(--s3) 0 var(--s1);
+      }
+      .verdict .job {
+        font-family: var(--serif);
+        font-size: 1.5rem;
+        color: var(--accent);
+        letter-spacing: -0.01em;
+      }
+      .verdict .meta {
+        font-size: var(--t-small);
+        color: var(--text-dim);
+      }
+      .bars {
+        margin-top: var(--s2);
+      }
+      .bar-row {
+        display: grid;
+        grid-template-columns: 112px 1fr 52px;
+        gap: var(--s3);
+        align-items: center;
+        padding: 3px 0;
+        cursor: pointer;
+        border-radius: var(--r1);
+      }
+      .bar-row:hover {
+        background: var(--surface2);
+      }
+      .bar-row[aria-selected="true"] {
+        background: var(--surface2);
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+      .bar-row .nm {
+        font-size: var(--t-small);
+        color: var(--text-dim);
+        text-align: right;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .bar-row.sel .nm {
+        color: var(--accent);
+      }
+      .bar-track {
+        position: relative;
+        height: 15px;
+        background: var(--bg);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        background: #39434d;
+        transition:
+          width 0.18s ease,
+          left 0.18s ease;
+      }
+      .bar-row.sel .bar-fill {
+        background: var(--accent);
+      }
+      .bar-fill.neg {
+        background: #5c2a26;
+      }
+      .bar-zero {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 1px;
+        background: var(--line);
+      }
+      .bar-row .val {
+        font-size: var(--t-small);
+        text-align: right;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .bd-head {
+        font-size: var(--t-label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 6px;
+      }
+      .bd-line {
+        display: grid;
+        grid-template-columns: 52px 1fr;
+        gap: var(--s2);
+        font-size: var(--t-small);
+        padding: 4px 0;
+        color: var(--text-dim);
+        align-items: baseline;
+        border-bottom: 1px solid #1f262e;
+      }
+      .bd-line .pts {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+      }
+      .bd-line.pos .pts {
+        color: var(--ok);
+      }
+      .bd-line.neg .pts {
+        color: var(--risk);
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 0.92em;
+        background: var(--surface2);
+        padding: 1px 4px;
+        border-radius: 2px;
+      }
+      pre {
+        margin: var(--s3) 0 0;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: var(--r2);
+        padding: var(--s3);
+        overflow-x: auto;
+        font-size: var(--t-small);
+        line-height: 1.5;
+      }
+      pre code {
+        background: none;
+        padding: 0;
+      }
+      .src {
+        font-size: var(--t-small);
+        color: var(--text-dim);
+        border-top: 1px solid var(--line);
+        padding-top: var(--s4);
+        margin-top: var(--s6);
+      }
+      .src ul {
+        margin: var(--s2) 0 0;
+        padding-left: 18px;
+      }
+      .src li {
+        margin-bottom: 3px;
+      }
+      .src a {
+        color: var(--info);
+        text-decoration: none;
+      }
+      .src a:hover {
+        text-decoration: underline;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="tag"
+        >Execution explorer · weights verified against source</span
+      >
+      <h1>Why did this task route to that job type?</h1>
+      <p class="lede">
+        Routing gates every other SWE_SEED mechanism, and its ranking rule has
+        two surprises. Ties break toward the alphabetically <em>last</em> card.
+        A zero score can still produce a route that looks confident. Change the
+        task text and watch all eleven cards score at once.
+      </p>
+
+      <figure>
+        <div class="figscroll">
+          <svg
+            class="flow"
+            viewBox="0 0 1120 132"
+            role="img"
+            aria-label="Routing pipeline: task text is tokenized, all eleven cards are scored, cards are ranked by score then id, a bootstrap fallback may replace the winner, and a work contract is emitted."
+          >
+            <defs>
+              <marker
+                id="ah"
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L7,3 L0,6 Z" fill="#8b98a5" />
+              </marker>
+            </defs>
+            <rect class="box" x="2" y="34" width="152" height="52" rx="4" />
+            <text class="lbl" x="78" y="56" text-anchor="middle">
+              task text
+            </text>
+            <text
+              class="dim"
+              x="78"
+              y="72"
+              text-anchor="middle"
+              font-size="9.5"
+            >
+              user prompt
+            </text>
+
+            <rect class="box" x="194" y="34" width="152" height="52" rx="4" />
+            <text class="lbl" x="270" y="56" text-anchor="middle">
+              tokenize
+            </text>
+            <text
+              class="dim"
+              x="270"
+              y="72"
+              text-anchor="middle"
+              font-size="9.5"
+            >
+              [a-z0-9_]+, len &gt; 1
+            </text>
+
+            <rect class="box" x="386" y="34" width="170" height="52" rx="4" />
+            <text class="lbl" x="471" y="56" text-anchor="middle">
+              score 11 cards
+            </text>
+            <text
+              class="dim"
+              x="471"
+              y="72"
+              text-anchor="middle"
+              font-size="9.5"
+            >
+              fixed weights
+            </text>
+
+            <rect class="key" x="596" y="34" width="170" height="52" rx="4" />
+            <text class="lbl" x="681" y="56" text-anchor="middle">rank</text>
+            <text
+              class="dim"
+              x="681"
+              y="72"
+              text-anchor="middle"
+              font-size="9.5"
+            >
+              score down, then id down
+            </text>
+
+            <rect class="box" x="806" y="34" width="146" height="52" rx="4" />
+            <text class="lbl" x="879" y="56" text-anchor="middle">
+              fallback?
+            </text>
+            <text
+              class="dim"
+              x="879"
+              y="72"
+              text-anchor="middle"
+              font-size="9.5"
+            >
+              only if score &lt;= 0
+            </text>
+
+            <rect class="box" x="982" y="34" width="136" height="52" rx="4" />
+            <text class="lbl" x="1050" y="56" text-anchor="middle">
+              contract
+            </text>
+            <text
+              class="dim"
+              x="1050"
+              y="72"
+              text-anchor="middle"
+              font-size="9.5"
+            >
+              JSON to stdout
+            </text>
+
+            <path class="arw" d="M154,60 L190,60" marker-end="url(#ah)" />
+            <path class="arw" d="M346,60 L382,60" marker-end="url(#ah)" />
+            <path class="arw" d="M556,60 L592,60" marker-end="url(#ah)" />
+            <path class="arw" d="M766,60 L802,60" marker-end="url(#ah)" />
+            <path class="arw" d="M952,60 L978,60" marker-end="url(#ah)" />
+
+            <text class="verb" x="172" y="52" text-anchor="middle">lower</text>
+            <text class="verb" x="364" y="52" text-anchor="middle">match</text>
+            <text class="verb" x="574" y="52" text-anchor="middle">
+              compare
+            </text>
+            <text class="verb" x="784" y="52" text-anchor="middle">maybe</text>
+            <text class="verb" x="965" y="52" text-anchor="middle">emit</text>
+          </svg>
+        </div>
+        <figcaption>
+          <strong>One pass. No model call. No randomness.</strong> Every step is
+          a string comparison, so the same task text always yields the same
+          route. The highlighted <em>rank</em> stage is where the surprises
+          live; the explorer below opens it up.
+        </figcaption>
+      </figure>
+
+      <div class="split">
+        <div>
+          <label class="field" for="task">Task text</label>
+          <input
+            type="text"
+            id="task"
+            autocomplete="off"
+            spellcheck="false"
+            value="fix the failing login test"
+          />
+          <div
+            class="presets"
+            id="presets"
+            role="group"
+            aria-label="Example tasks"
+          ></div>
+          <div class="verdict" aria-live="polite">
+            <span class="sr">Selected route:</span>
+            <span class="job" id="job">&mdash;</span>
+            <span class="meta" id="meta"></span>
+          </div>
+          <div class="bars" id="bars" aria-label="Score per route card"></div>
+        </div>
+        <div>
+          <div class="panel" id="pane-bd">
+            <div class="bd-head" id="bd-title">score breakdown</div>
+            <div id="bd"></div>
+          </div>
+        </div>
+        <script>
+          (function () {
+            "use strict";
+
+            // Route cards, transcribed verbatim from .agent-harness/routes/*.json
+            var CARDS = {
+              bugfix: {
+                triggers: [
+                  "bug",
+                  "fix",
+                  "failing test",
+                  "regression",
+                  "error",
+                  "unexpected behavior",
+                ],
+                pos: [
+                  "fix the failing login test",
+                  "debug why CI errors on checkout",
+                ],
+                neg: ["implement a new feature", "write a design spec"],
+                job_type: "bugfix",
+                proof: ["just ci"],
+              },
+              documentation: {
+                triggers: [
+                  "document",
+                  "docs",
+                  "readme",
+                  "guide",
+                  "how to",
+                  "explain",
+                ],
+                pos: [
+                  "document how to run local CI",
+                  "add a how-to for rotating keys",
+                ],
+                neg: ["fix the failing test", "ship a release"],
+                job_type: "documentation",
+                proof: ["just ci"],
+              },
+              harness_improvement: {
+                triggers: [
+                  "harness",
+                  "router",
+                  "semantic router",
+                  "agent",
+                  "route card",
+                  "skill ir",
+                  "hook",
+                  "context mode",
+                  "context budget",
+                  "tool-output containment",
+                  "session continuity",
+                  "process drift",
+                ],
+                pos: [
+                  "make AGENTS.md actually route work",
+                  "add a semantic router",
+                  "improve harness validation",
+                  "incorporate context-mode mechanisms without adding a dependency",
+                  "add context budget discipline to the agent harness",
+                ],
+                neg: [
+                  "implement unrelated product behavior",
+                  "fix a runtime bug in app code",
+                ],
+                job_type: "harness_improvement",
+                proof: ["just harness-validate", "just ci"],
+              },
+              implementation: {
+                triggers: [
+                  "implement",
+                  "build",
+                  "scaffold",
+                  "add behavior",
+                  "create feature",
+                ],
+                pos: [
+                  "implement the payment retry feature",
+                  "scaffold the project harness",
+                ],
+                neg: ["review this diff", "explain how this works"],
+                job_type: "implementation",
+                proof: ["just harness-validate", "just ci"],
+              },
+              refactor: {
+                triggers: ["refactor", "cleanup", "restructure", "simplify"],
+                pos: ["refactor the validator", "simplify route loading"],
+                neg: ["add a new feature", "change the spec contract"],
+                job_type: "refactor",
+                proof: ["just ci"],
+              },
+              release: {
+                triggers: ["release", "publish", "version", "changelog"],
+                pos: ["prepare a release", "update changelog for publishing"],
+                neg: [
+                  "build an unreleased feature",
+                  "review a diff without publishing intent",
+                ],
+                job_type: "release",
+                proof: ["just ci"],
+              },
+              research: {
+                triggers: ["research", "investigate", "compare", "find out"],
+                pos: [
+                  "research available route patterns",
+                  "investigate CI options",
+                ],
+                neg: [
+                  "implement the selected option",
+                  "fix a known failing command",
+                ],
+                job_type: "research",
+                proof: ["just harness-validate"],
+              },
+              review: {
+                triggers: ["review", "audit", "inspect", "critique"],
+                pos: ["review this harness change", "audit AGENTS.md routing"],
+                neg: [
+                  "implement the fix now",
+                  "summarize the diff without risk analysis",
+                ],
+                job_type: "review",
+                proof: ["just harness-validate"],
+              },
+              skill_authoring: {
+                triggers: [
+                  "skill author",
+                  "create skill",
+                  "write skill",
+                  "skill ir",
+                ],
+                pos: [
+                  "author a verification skill",
+                  "convert a playbook to Skill IR",
+                ],
+                neg: [
+                  "use an existing skill only",
+                  "write one-off instructions that are not reusable",
+                ],
+                job_type: "skill_authoring",
+                proof: [
+                  "just harness-render-skills",
+                  "just harness-validate",
+                  "just ci",
+                ],
+              },
+              spec: {
+                triggers: [
+                  "spec",
+                  "requirements",
+                  "contract",
+                  "acceptance criteria",
+                  "define",
+                ],
+                pos: [
+                  "update the harness spec",
+                  "write acceptance criteria for routing",
+                ],
+                neg: ["apply the implementation delta", "debug CI"],
+                job_type: "spec",
+                proof: ["just ci"],
+              },
+              test: {
+                triggers: ["test", "coverage", "validation", "proof"],
+                pos: [
+                  "add validation for route cards",
+                  "increase coverage for bugfix",
+                ],
+                neg: [
+                  "implement feature behavior without tests",
+                  "review a change without adding verification",
+                ],
+                job_type: "test",
+                proof: ["just ci"],
+              },
+            };
+
+            function tokenize(text) {
+              var m =
+                String(text)
+                  .toLowerCase()
+                  .match(/[a-z0-9_]+/g) || [];
+              var out = {};
+              m.forEach(function (t) {
+                if (t.length > 1) {
+                  out[t] = true;
+                }
+              });
+              return out;
+            }
+            function toks(text) {
+              return Object.keys(tokenize(text));
+            }
+            function overlap(a, b) {
+              var bt = tokenize(b),
+                n = 0;
+              a.forEach(function (t) {
+                if (bt[t]) n++;
+              });
+              return n;
+            }
+
+            // Port of score_route(). Kept structurally close to the Rust original so a
+            // reader can diff the two. Returns the total plus each weighted component.
+            function scoreRoute(task, card) {
+              var lower = String(task).toLowerCase();
+              var tt = toks(task);
+
+              var trig = 0;
+              card.triggers.forEach(function (phrase) {
+                if (lower.indexOf(phrase.toLowerCase()) !== -1) {
+                  trig += 8;
+                }
+                trig += overlap(tt, phrase) * 2;
+              });
+
+              var pos = 0;
+              card.pos.forEach(function (example) {
+                var ov = overlap(tt, example);
+                if (lower.indexOf(example.toLowerCase()) !== -1) {
+                  pos += 3;
+                } else if (ov >= 2) {
+                  pos += ov;
+                }
+              });
+
+              var neg = 0;
+              card.neg.forEach(function (example) {
+                var ov = overlap(tt, example);
+                if (lower.indexOf(example.toLowerCase()) !== -1) {
+                  neg -= 4;
+                } else if (ov >= 2) {
+                  neg -= ov * 2;
+                }
+              });
+
+              var job = lower.indexOf(card.job_type) !== -1 ? 5 : 0;
+              return {
+                total: trig + pos + neg + job,
+                triggers: trig,
+                positives: pos,
+                negatives: neg,
+                jobType: job,
+              };
+            }
+
+            function inferBootstrap(task) {
+              var tt = toks(task),
+                lower = String(task).toLowerCase();
+              var buildVerbs = [
+                "build",
+                "create",
+                "make",
+                "add",
+                "start",
+                "scaffold",
+              ];
+              var clarify = [
+                "spec",
+                "requirements",
+                "contract",
+                "acceptance",
+                "criteria",
+                "plan",
+              ];
+              var directChange = [
+                "fix",
+                "debug",
+                "review",
+                "audit",
+                "refactor",
+                "release",
+                "document",
+                "docs",
+                "test",
+                "tests",
+                "harness",
+                "router",
+                "skill",
+              ];
+              function has(set) {
+                return set.some(function (t) {
+                  return tt.indexOf(t) !== -1;
+                });
+              }
+              if (!has(buildVerbs) || has(clarify) || has(directChange)) {
+                return null;
+              }
+              if (/\.(py|ts|tsx|js|jsx|md|json|yaml|yml|sh)\b/.test(lower)) {
+                return null;
+              }
+              return "spec";
+            }
+
+            // Ranking: sort by score descending, then id descending. The Rust code sorts a
+            // vec of &RouteCard by (score(b), b.id).cmp((score(a), a.id)), which yields
+            // descending score with ties broken by the lexicographically greater id.
+            function route(task) {
+              var rows = Object.keys(CARDS).map(function (id) {
+                var r = scoreRoute(task, CARDS[id]);
+                r.id = id;
+                r.jobType = CARDS[id].job_type;
+                r.proof = CARDS[id].proof;
+                return r;
+              });
+              rows.sort(function (a, b) {
+                if (b.total !== a.total) {
+                  return b.total - a.total;
+                }
+                return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+              });
+              var winner = rows[0],
+                usedFallback = false,
+                confidence = "medium",
+                assumption = null;
+              if (winner.total <= 0) {
+                var boot = inferBootstrap(task);
+                if (boot) {
+                  winner = rows.filter(function (r) {
+                    return r.id === boot;
+                  })[0];
+                  usedFallback = true;
+                } else {
+                  confidence = "low";
+                  assumption =
+                    "No strong semantic match; selected safest default route.";
+                }
+              }
+              return {
+                rows: rows,
+                winner: winner,
+                fallback: usedFallback,
+                confidence: confidence,
+                assumption: assumption,
+              };
+            }
+
+            function esc(s) {
+              return String(s).replace(/[&<>"]/g, function (c) {
+                return {
+                  "&": "&amp;",
+                  "<": "&lt;",
+                  ">": "&gt;",
+                  '"': "&quot;",
+                }[c];
+              });
+            }
+
+            var MAXABS = 60;
+            var state = { task: "", result: null, pick: null };
+            var pendingFocus = null;
+
+            function render() {
+              var r = route(state.task);
+              state.result = r;
+              if (!state.pick || !CARDS[state.pick]) {
+                state.pick = r.winner.id;
+              }
+              var hadFocus =
+                document.activeElement &&
+                document.activeElement.classList &&
+                document.activeElement.classList.contains("bar-row");
+
+              document.getElementById("job").textContent = r.winner.jobType;
+              var meta = document.getElementById("meta");
+              meta.textContent =
+                "confidence " +
+                r.confidence +
+                (r.fallback ? " · bootstrap fallback to spec" : "") +
+                (r.assumption ? " · no positive match" : "");
+
+              var host = document.getElementById("bars");
+              host.innerHTML = "";
+              r.rows.forEach(function (row) {
+                var el = document.createElement("div");
+                el.className =
+                  "bar-row" + (row.id === r.winner.id ? " sel" : "");
+                el.setAttribute("role", "button");
+                el.setAttribute("tabindex", "0");
+                el.setAttribute(
+                  "aria-pressed",
+                  row.id === state.pick ? "true" : "false",
+                );
+                var pct = (Math.min(Math.abs(row.total), MAXABS) / MAXABS) * 50;
+                var fillClass = "bar-fill" + (row.total < 0 ? " neg" : "");
+                var style =
+                  row.total < 0
+                    ? "left:calc(50% - " + pct + "%);width:" + pct + "%"
+                    : "left:50%;width:" + pct + "%";
+                el.innerHTML =
+                  '<span class="nm">' +
+                  esc(row.id) +
+                  "</span>" +
+                  '<span class="bar-track"><span class="bar-zero"></span>' +
+                  '<span class="' +
+                  fillClass +
+                  '" style="' +
+                  style +
+                  '"></span></span>' +
+                  '<span class="val">' +
+                  row.total +
+                  "</span>";
+                function pick() {
+                  state.pick = row.id;
+                  render();
+                }
+                el.addEventListener("click", pick);
+                el.addEventListener("keydown", function (e) {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    pick();
+                  }
+                });
+                host.appendChild(el);
+                if (hadFocus && row.id === state.pick) {
+                  pendingFocus = el;
+                }
+              });
+
+              renderBreakdown();
+              if (pendingFocus) {
+                pendingFocus.focus();
+                pendingFocus = null;
+              }
+            }
+
+            function renderBreakdown() {
+              var id = state.pick,
+                card = CARDS[id],
+                r = scoreRoute(state.task, card);
+              document.getElementById("bd-title").textContent =
+                id + "  ·  total " + r.total;
+              var lines = [
+                ["triggers +8 per hit, +2 per shared token", r.triggers],
+                ["positive examples +3 exact, else +overlap", r.positives],
+                ["negative examples -4 exact, else -2xoverlap", r.negatives],
+                ["job_type named in task +5", r.jobType],
+              ];
+              var html = "";
+              lines.forEach(function (l) {
+                var cls = l[1] > 0 ? "pos" : l[1] < 0 ? "neg" : "";
+                html +=
+                  '<div class="bd-line ' +
+                  cls +
+                  '"><span class="pts">' +
+                  (l[1] > 0 ? "+" : "") +
+                  l[1] +
+                  "</span><span>&nbsp;" +
+                  esc(l[0]) +
+                  "</span></div>";
+              });
+              var lower = String(state.task).toLowerCase(),
+                tt = toks(state.task),
+                fired = [];
+              card.triggers.forEach(function (p) {
+                var sub = lower.indexOf(p.toLowerCase()) !== -1;
+                var ov = overlap(tt, p);
+                if (sub || ov > 0) {
+                  fired.push(
+                    p + (sub ? " (substring)" : " (" + ov + " token)"),
+                  );
+                }
+              });
+              html +=
+                '<div class="bd-line" style="margin-top:8px"><span class="pts"></span><span style="color:var(--text-dim)">' +
+                (fired.length
+                  ? "fired: " + esc(fired.join(", "))
+                  : "no trigger matched") +
+                "</span></div>";
+              document.getElementById("bd").innerHTML = html;
+            }
+
+            var PRESETS = [
+              "fix the failing login test",
+              "document how to run local CI",
+              "add a new host adapter for zed",
+              "build a billing portal",
+              "zzz qqq",
+              "make a landing page for the campaign",
+            ];
+
+            function buildPresets() {
+              var host = document.getElementById("presets");
+              PRESETS.forEach(function (p) {
+                var b = document.createElement("button");
+                b.type = "button";
+                b.textContent = p;
+                b.addEventListener("click", function () {
+                  document.getElementById("task").value = p;
+                  state.task = p;
+                  state.pick = null;
+                  render();
+                });
+                host.appendChild(b);
+              });
+            }
+
+            document
+              .getElementById("task")
+              .addEventListener("input", function (e) {
+                state.task = e.target.value;
+                state.pick = null;
+                render();
+              });
+
+            buildPresets();
+            state.task = document.getElementById("task").value;
+            render();
+          })();
+        </script>
+      </div>
+
+      <div class="src">
+        <strong>Evidence.</strong> Weights, tokenizer, tie-break, and fallback
+        conditions transcribed from source and cross-checked against live CLI
+        output.
+        <ul>
+          <li>
+            <code>crates/swe-seed-core/src/route/mod.rs</code> &mdash;
+            <code>score_route()</code>, <code>infer_bootstrap_route()</code>,
+            <code>build_route_result()</code>
+          </li>
+          <li>
+            <code>.agent-harness/routes/*.json</code> &mdash; the eleven cards,
+            copied into this page so it runs offline
+          </li>
+          <li>
+            <a href="../subsystems/routing-engine.md">Routing Engine</a> &mdash;
+            the prose version of this model
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

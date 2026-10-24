@@ -12,7 +12,7 @@ The SweSeed layer provides centralized governance for all capabilities (skills, 
 
 ## 2. Responsibilities
 
-- **Capability Assembly**: Assembling discrete `LayerCapability` entries into a unified `SeedPackageManifest` under `.swe-seed/manifest.toml`.
+- **Capability Assembly**: Assembling discrete `LayerCapability` entries into a unified `SeedPackageManifest` under `.swe-seed/seed-package-manifest.json`.
 - **Layer Boundary Enforcement**: Evaluating layer relationships (`SweSeed` -> `Harness` -> `Fabricator`) and rejecting releases if an inner layer violates downward governance.
 - **Provenance Verification**: Computing and validating cryptographic SHA-256 hashes and license classifications for all registered capabilities.
 - **Idempotent Regeneration**: Computing deterministic `SeedRegenerationPlan` records so artifacts can be regenerated without side effects or unreviewed changes.
@@ -33,7 +33,7 @@ The SweSeed layer provides centralized governance for all capabilities (skills, 
 graph TD
     CLI["swe-seed seed / swe-seed provenance"] --> SweSeedGov["SweSeed Governance Subsystem"]
     SweSeedGov --> BAML["BAML Schema Contract (swe_seed.baml)"]
-    SweSeedGov --> Manifest[".swe-seed/manifest.toml"]
+    SweSeedGov --> Manifest[".swe-seed/seed-package-manifest.json"]
     SweSeedGov -->|Governs Downward| Harness["Harness Layer (HARNESS_SPEC.md)"]
 ```
 
@@ -56,7 +56,7 @@ graph TD
 
 When `swe-seed seed validate-boundaries` runs:
 
-1. `validate_layer_boundaries()` scans all registered capabilities.
+1. `validate_boundaries()` scans all registered capabilities.
 2. It checks whether any inner layer capability references an outer layer asset or claims ownership of an outer concern.
 3. It checks whether required specifications or artifacts are missing from disk.
 4. If findings exist, it compiles a `BoundaryReport` with `passed = false` and prints each finding with remediation suggestions.
@@ -66,7 +66,8 @@ When `swe-seed seed validate-boundaries` runs:
 
 ## 7. State
 
-- **Owned State**: `.swe-seed/manifest.toml`, `.swe-seed/provenance.json`.
+- **Owned State**: `.swe-seed/seed-package-manifest.json` and `.swe-seed/manifest.sha256`.
+- **Read State**: `.swe-seed/provenance/<capability-id>.json`, one record per capability. The verifier reads these; no command in this layer writes them, and the directory is currently absent in this repository, so `swe-seed provenance verify` reports a `MissingRecord` failure per capability.
 - **Read State**: `docs/specs/`, `.agent-harness/baml/baml_src/swe_seed.baml`, all capability artifact paths.
 - **Modified State**: Regeneration plans update target files idempotently.
 
@@ -79,12 +80,12 @@ sequenceDiagram
     participant User
     participant CLI as swe-seed seed
     participant Gov as BoundaryValidator
-    participant Manifest as manifest.toml
+    participant Manifest as seed-package-manifest.json
 
     User->>CLI: swe-seed seed assemble
-    CLI->>Manifest: Scan sources & write .swe-seed/manifest.toml
+    CLI->>Manifest: Scan sources & write .swe-seed/seed-package-manifest.json
     User->>CLI: swe-seed seed validate-boundaries
-    CLI->>Gov: validate_layer_boundaries()
+    CLI->>Gov: validate_boundaries()
     Gov-->>CLI: BoundaryReport (passed = true/false)
     CLI-->>User: Report status to stdout
 ```
@@ -93,7 +94,7 @@ sequenceDiagram
 
 ## 9. Failure Modes
 
-- **Boundary Violation**: An inner layer artifact modifies an outer layer file. `validate_layer_boundaries()` outputs a `BoundaryFinding` and fails.
+- **Boundary Violation**: An inner layer artifact modifies an outer layer file. `validate_boundaries()` outputs a `BoundaryFinding` and fails.
 - **Missing Provenance Hash**: A capability in the manifest has an empty or mismatched SHA-256 hash. `swe-seed provenance verify` fails closed with exit code 1.
 - **Unreviewed Promotion**: A capability marked with `review_required = true` is promoted without signed approval.
 
@@ -102,13 +103,13 @@ sequenceDiagram
 ## 10. Extension Points
 
 - **Registering a New Capability Type**: Add the variant to `LayerCapabilityKind` in `crates/swe-seed-core/src/seed/capability.rs` and update `swe_seed.baml`.
-- **Adding Custom Boundary Rules**: Extend `validate_layer_boundaries()` in `crates/swe-seed-core/src/seed/boundary.rs`.
+- **Adding Custom Boundary Rules**: Extend `validate_boundaries()` in `crates/swe-seed-core/src/seed/boundary.rs`.
 
 ---
 
 ## 11. Source Trail
 
-- `crates/swe-seed-core/src/seed/boundary.rs`: `validate_layer_boundaries()`, `BoundaryReport`.
+- `crates/swe-seed-core/src/seed/boundary.rs`: `validate_boundaries()`, `BoundaryReport`.
 - `crates/swe-seed-core/src/seed/capability.rs`: `LayerCapability`, `select_layer_capabilities()`.
 - `crates/swe-seed-core/src/seed/manifest.rs`: `SeedPackageManifest`, `assemble_seed_package()`.
 - `crates/swe-seed-core/src/seed/regenerate.rs`: `regenerate_seed_package()`, `SeedRegenerationPlan`.

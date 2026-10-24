@@ -21,11 +21,11 @@ Before starting, ensure your local environment is initialized:
 
 ---
 
-## 2. Step 1: Select the Route and Record Genesis
+## 2. Step 1: Select the Route
 
 Imagine you are asked to resolve a bug: _"fix the checkout race condition"_.
 
-Execute the semantic router with `--record` to bind the work contract and establish trace genesis:
+Execute the semantic router with `--record` to bind the work contract and write a route-decision record. This step does not open a trace; step 3 does:
 
 ```bash
 just harness-route-record "fix the checkout race condition"
@@ -67,7 +67,7 @@ just harness-route-record "fix the checkout race condition"
 }
 ```
 
-Notice that the task is classified as `bugfix`, the required proof command is pre-declared as `just ci`, and the genesis event is committed to `.agent-harness/traces/ledger.db`.
+Notice that the task is classified as `bugfix` and the required proof command is pre-declared as `just ci`. This step writes a route-decision record under `.agent-harness/traces/route-decisions/`. It does not open a trace. Step 3 does that, and step 3 is what writes the genesis entry to `.agent-harness/traces/ledger.sqlite3`.
 
 ---
 
@@ -161,9 +161,7 @@ swe-seed gate <trace_id> --verify
 ### Expected Output:
 
 ```text
-Gate check PASSED for trace '20260902T204500Z-fix-checkout-race'
-Genesis: RouteSelected (.agent-harness/routes/bugfix.json)
-Chain integrity: 4/4 events cryptographically verified (SHA-256)
+allow: trace '20260902T204500Z-fix-the-checkout-race-condition' routed + chain verifies
 ```
 
 The process exits with code 0. Your task is verified and eligible for merge.
