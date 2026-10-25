@@ -44,7 +44,7 @@ impl BundleFacts {
 }
 
 /// Recompute the CEP integrity hash: sha256 over the canonical JSON of the
-/// envelope with the `integrity` block removed. Numbers are normalized to 6
+/// envelope with the `integrity` block removed. Floats are normalized to 6
 /// decimal places (and negative zero flattened) first: JSON parsers may
 /// drift 1 ULP on long float spellings, and the same envelope must hash
 /// identically on both sides of the boundary. This is the SAME rule
@@ -73,6 +73,9 @@ fn normalize_numbers(value: &Value) -> Value {
             Value::Object(out)
         }
         Value::Array(items) => Value::Array(items.iter().map(normalize_numbers).collect()),
+        // Integers are hashed exactly as written, as Context Kernel and the
+        // CEP reference canonicalizer do. Only floats are rounded.
+        Value::Number(n) if n.is_i64() || n.is_u64() => value.clone(),
         Value::Number(n) => match n.as_f64() {
             Some(f) => {
                 let rounded = format!("{:.6}", f).parse::<f64>().unwrap_or(f);
@@ -84,6 +87,22 @@ fn normalize_numbers(value: &Value) -> Value {
             None => value.clone(),
         },
         other => other.clone(),
+    }
+}
+
+/// The first integer outside the JSON-safe range +-(2^53-1), if any.
+/// Context Kernel refuses to hash such envelopes, so SWE_SEED refuses them too.
+fn unsafe_integer(value: &Value) -> Option<String> {
+    const MAX_SAFE: u64 = (1 << 53) - 1;
+    match value {
+        Value::Object(map) => map.values().find_map(unsafe_integer),
+        Value::Array(items) => items.iter().find_map(unsafe_integer),
+        Value::Number(n) => match (n.as_i64(), n.as_u64()) {
+            (Some(i), _) if i.unsigned_abs() > MAX_SAFE => Some(i.to_string()),
+            (None, Some(u)) if u > MAX_SAFE => Some(u.to_string()),
+            _ => None,
+        },
+        _ => None,
     }
 }
 
@@ -213,6 +232,11 @@ pub fn verify_context_bundle(
         .and_then(|i| i.get("content_hash"))
         .and_then(Value::as_str)
         .ok_or_else(|| "context bundle missing integrity.content_hash".to_string())?;
+    if let Some(i) = unsafe_integer(bundle) {
+        return Err(format!(
+            "context bundle holds integer {i} outside +-(2^53-1); it cannot be hashed the same way on both sides"
+        ));
+    }
     let computed = bundle_content_hash(bundle);
     if declared != computed {
         return Err(format!(

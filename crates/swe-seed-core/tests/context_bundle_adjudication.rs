@@ -292,3 +292,27 @@ fn verify_context_bundle_covers_all_three_states() {
         assert_eq!(facts.world_ref, WORLD);
     }
 }
+
+/// Shared cross-implementation vector, identical to Context Kernel's
+/// `ck-mcp::cep_bundle` test. The digest comes from the CEP reference
+/// canonicalizer, so both sides hash integers exactly as written.
+#[test]
+fn bundle_hash_matches_the_shared_cross_implementation_vector() {
+    let input: Value = serde_json::from_str(
+        r#"{"z": [3, 1.5, {"b": 2, "a": "é"}], "a": 9007199254740991, "m": -9007199254740991, "f": 1.25, "s": "x\"y", "n": null, "t": true}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        bundle_content_hash(&input),
+        "sha256:99582d94bc0cca2453e5057541bf23fc459f3ca10994e75513bc3af8cb5cfd4e"
+    );
+}
+
+#[test]
+fn a_bundle_with_an_unsafe_integer_is_refused() {
+    let mut env = bundle("complete");
+    env["extensions"]["godspeed.context_bundle"]["big"] = json!(9_007_199_254_740_992u64);
+    env["integrity"]["content_hash"] = json!(bundle_content_hash(&env));
+    let err = verify_context_bundle(&env, WR, WORLD, Some(CR)).unwrap_err();
+    assert!(err.contains("outside +-(2^53-1)"), "{err}");
+}
