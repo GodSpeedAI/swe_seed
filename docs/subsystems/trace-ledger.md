@@ -99,7 +99,19 @@ flowchart TD
     Anchor -->|"yes"| Allow["allow, exit 0"]
 ```
 
-**What to notice.** The chain detects any edit that leaves a hash inconsistent somewhere in the remaining rows. Truncation is caught by the head anchor in `ledger.anchors.json`: each append records the expected entry count and head hash, so deleting trailing entries fails with `head anchor mismatch`. A trace with no anchor (a legacy ledger, or a deleted anchor file) fails closed as `unanchored` unless `--allow-unanchored` is passed. The anchor is not signed, so a writer who can rewrite both the rows and the anchor is not detected. `swe-seed federation sign <trace> --key <id>` emits a signed envelope over a trace's chain root, which is the signed record that closes that gap, but it only runs for a trace with verified passing proof evidence.
+**What to notice.** The chain detects any edit that leaves a hash inconsistent somewhere in the remaining rows. Truncation is caught by the head anchor in `ledger.anchors.json`: each append records the expected entry count and head hash, so deleting trailing entries fails with `head anchor mismatch`. A trace with no anchor (a legacy ledger, or a deleted anchor file) fails closed as `unanchored` unless `--allow-unanchored` is passed. The anchor file is Ed25519-signed with a key kept outside the ledger directory (default `$XDG_CONFIG_HOME/swe-seed/anchor-ed25519.key`, created 0600 on first use, overridable with `SWE_SEED_ANCHOR_KEY`). A writer who can edit the ledger directory but cannot read that key cannot forge an anchor, so a rewritten row or anchor fails with `signature does not verify`. A process running as the key's owner can still forge, so this is not tamper-resistance against that process. An unsigned legacy anchor file fails closed unless `--allow-unanchored` is passed. Appends refuse it, and it is never re-signed automatically: an operator signs it once with `swe-seed trace adopt-anchors` (see *Upgrading existing ledgers*). Automatic re-signing would let someone who can write the ledger directory swap in an unsigned file that matches a truncated chain and get that history signed. Appends are two-phase: the anchor's `pending` state is written before COMMIT and promoted after it, so a crash in either window self-heals on the next append. `swe-seed federation sign <trace> --key <id>` emits a signed envelope over a trace's chain root, which is the signed record that closes that gap, but it only runs for a trace with verified passing proof evidence.
+
+## Upgrading existing ledgers
+
+Ledgers written before anchor signing have an unsigned `ledger.anchors.json`. After upgrading, run this once per ledger, on a ledger you trust:
+
+```bash
+swe-seed trace adopt-anchors
+```
+
+It checks that every anchored chain matches its committed anchor. If any chain does not match, it refuses and signs nothing. Otherwise it signs the file and prints the adopted traces. A signed file is refused with `already signed`. Until adoption, appends fail with `unsigned (legacy)`, and `gate --verify` fails the same way unless `--allow-unanchored` is passed.
+
+Adoption is trust-on-first-use. It trusts the chains as they are at the moment you run it. Run it before any untrusted write can reach the ledger directory.
 
 **Try it.** The [Trace Chain Explorer](../cognitive/trace-chain-explorer.html) replays a real four-entry chain and lets you apply the first two edits to see which entry the gate names.
 

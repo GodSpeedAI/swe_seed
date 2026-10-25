@@ -41,7 +41,9 @@ swe-seed gate <trace> [--verify] [--allow-unanchored]
 ```
 - `<trace>`: The trace identifier string.
 - `--verify`: Cryptographically recomputes all SHA-256 event hashes in `ledger.sqlite3` and compares the chain with its head anchor in `ledger.anchors.json`.
-- `--allow-unanchored`: Legacy opt-in that accepts a trace with no head anchor (structure-only check). Requires `--verify`. Without it, an unanchored trace fails with `unanchored`. Anchored traces are always checked.
+- `--allow-unanchored`: Legacy opt-in that accepts a trace with no head anchor (structure-only check), and an unsigned legacy `ledger.anchors.json`. Requires `--verify`. Without it, an unanchored trace fails with `unanchored`, and an unsigned anchor file fails with `unsigned (legacy)`. Anchored traces are always checked. The anchor signing key is `SWE_SEED_ANCHOR_KEY` if set, else `$XDG_CONFIG_HOME/swe-seed/anchor-ed25519.key`.
+
+`swe-seed trace adopt-anchors` is the one-time operator step after upgrading. It signs a legacy unsigned `ledger.anchors.json` only if every anchored chain matches its anchor. It refuses a signed file. Appends never sign an unsigned file.
 
 ### `swe-seed render-skills`
 Render skills from `.agent-harness/skills/` to host targets.

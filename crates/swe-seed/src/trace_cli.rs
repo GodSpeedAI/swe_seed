@@ -27,6 +27,9 @@ pub enum TraceAction {
     Resume { trace: String },
     /// Distill a learning review
     Distill { trace: String },
+    /// One-time operator adoption of a legacy unsigned anchor file (trust-on-first-use).
+    /// Checks every anchored chain matches its anchor, then signs the file.
+    AdoptAnchors,
     /// Finish a trace — claim is required
     Finish {
         trace: String,
@@ -62,6 +65,18 @@ pub fn run_trace(action: TraceAction, root: &std::path::Path) -> Result<ExitCode
         )?,
         TraceAction::Resume { trace } => lifecycle::resume(root, &trace)?,
         TraceAction::Distill { trace } => lifecycle::distill(root, &trace)?,
+        TraceAction::AdoptAnchors => {
+            let db = swe_seed_core::trace_ledger::default_db_path(root);
+            anyhow::ensure!(db.is_file(), "no trace ledger at {}", db.display());
+            let conn = swe_seed_core::trace_ledger::open(&db)?;
+            let adopted = swe_seed_core::trace_ledger::adopt_legacy_anchors(&conn)?;
+            serde_json::json!({
+                "adopted": adopted
+                    .iter()
+                    .map(|(trace_id, length)| serde_json::json!({"trace_id": trace_id, "length": length}))
+                    .collect::<Vec<_>>(),
+            })
+        }
         TraceAction::Finish {
             trace,
             claim,

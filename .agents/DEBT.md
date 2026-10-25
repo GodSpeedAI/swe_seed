@@ -23,7 +23,7 @@
 
 ### `gate --verify` does not detect ledger truncation
 - Date: 2026-10-24
-- Status: Resolved. Each append writes a head anchor (`length`, `head`) to `ledger.anchors.json`, and verification compares the chain to it. Remaining limit: the anchor is unsigned, so a writer who can rewrite both the rows and the anchor is not detected. Legacy traces with no anchor report `unanchored`.
+- Status: Resolved. Each append writes a head anchor (`length`, `head`) to `ledger.anchors.json`, and verification compares the chain to it. Anchors are Ed25519-signed with a key outside the ledger directory, and appends are two-phase (pending before COMMIT, finalized after). Remaining limits: a process running as the key's uid can read the key and forge anchors; a trailing row committed but not yet finalized can be removed undetected until the next append; legacy traces with no anchor report `unanchored`, and an unsigned legacy anchor file reports `unsigned (legacy)` and is signed only by the operator command `swe-seed trace adopt-anchors` (trust-on-first-use), never automatically.
 - Location: `crates/swe-seed-core/src/trace_ledger.rs` (`verify_chain`)
 - Debt: `verify_chain` has no expected-length or head anchor, so deleting trailing `chain_entries` rows leaves a shorter prefix that still verifies and `gate --verify` exits 0. A trace can therefore be silently shortened to hide later events, which weakens the tamper-evidence claim the gate is relied on for.
 - Evidence: Deleting the last row of a three-entry chain in a throwaway root, then running `swe-seed gate <id> --verify`, printed `allow: trace '<id>' routed + chain verifies` and exited 0.
