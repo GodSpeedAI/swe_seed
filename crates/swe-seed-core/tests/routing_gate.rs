@@ -1,10 +1,21 @@
 //! routing_gate: a trace with a RouteSelected genesis is allowed; a trace
 //! without one (or no ledger at all) is blocked, fail-closed (Phase A gate).
 
+use std::sync::Once;
+
 use swe_seed_core::routing_gate::{route_gate, RouteGate};
-use swe_seed_core::trace_ledger::{self, LedgerEntry};
+use swe_seed_core::trace_ledger::{self, LedgerEntry, ANCHOR_KEY_ENV};
+
+/// Appends sign their anchors, so the gate tests need a key. Keep it out of the
+/// real user config, and set it once before any ledger call.
+static KEY_ENV: Once = Once::new();
 
 fn temp_root() -> std::path::PathBuf {
+    KEY_ENV.call_once(|| {
+        let key =
+            std::env::temp_dir().join(format!("swe-seed-gate-anchor-{}.key", std::process::id()));
+        std::env::set_var(ANCHOR_KEY_ENV, &key);
+    });
     let dir = std::env::temp_dir().join(format!(
         "swe-seed-gate-{}-{}",
         std::process::id(),
