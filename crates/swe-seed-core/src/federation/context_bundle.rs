@@ -90,16 +90,21 @@ fn normalize_numbers(value: &Value) -> Value {
     }
 }
 
-/// The first integer outside the JSON-safe range +-(2^53-1), if any.
-/// Context Kernel refuses to hash such envelopes, so SWE_SEED refuses them too.
+/// The first number outside the JSON-safe range +-(2^53-1), if any. Context
+/// Kernel refuses to hash such integers, so SWE_SEED refuses them too, along
+/// with oversized literals that parse as floats.
 fn unsafe_integer(value: &Value) -> Option<String> {
     const MAX_SAFE: u64 = (1 << 53) - 1;
     match value {
         Value::Object(map) => map.values().find_map(unsafe_integer),
         Value::Array(items) => items.iter().find_map(unsafe_integer),
-        Value::Number(n) => match (n.as_i64(), n.as_u64()) {
-            (Some(i), _) if i.unsigned_abs() > MAX_SAFE => Some(i.to_string()),
-            (None, Some(u)) if u > MAX_SAFE => Some(u.to_string()),
+        Value::Number(n) => match (n.as_i64(), n.as_u64(), n.as_f64()) {
+            (Some(i), _, _) if i.unsigned_abs() > MAX_SAFE => Some(i.to_string()),
+            (None, Some(u), _) if u > MAX_SAFE => Some(u.to_string()),
+            // A literal past u64 (e.g. 18446744073709551616) parses as a float
+            // here but as an exact integer in other parsers, so the two sides
+            // would hash it differently.
+            (None, None, Some(f)) if f.abs() > MAX_SAFE as f64 => Some(n.to_string()),
             _ => None,
         },
         _ => None,
@@ -234,7 +239,7 @@ pub fn verify_context_bundle(
         .ok_or_else(|| "context bundle missing integrity.content_hash".to_string())?;
     if let Some(i) = unsafe_integer(bundle) {
         return Err(format!(
-            "context bundle holds integer {i} outside +-(2^53-1); it cannot be hashed the same way on both sides"
+            "context bundle holds number {i} outside +-(2^53-1); it cannot be hashed the same way on both sides"
         ));
     }
     let computed = bundle_content_hash(bundle);

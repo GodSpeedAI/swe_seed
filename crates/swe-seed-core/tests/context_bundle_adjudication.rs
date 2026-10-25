@@ -316,3 +316,13 @@ fn a_bundle_with_an_unsafe_integer_is_refused() {
     let err = verify_context_bundle(&env, WR, WORLD, Some(CR)).unwrap_err();
     assert!(err.contains("outside +-(2^53-1)"), "{err}");
 }
+
+#[test]
+fn a_bundle_with_an_integer_past_u64_is_refused() {
+    let mut env = bundle("complete");
+    env["extensions"]["godspeed.context_bundle"]["big"] =
+        serde_json::from_str::<Value>("18446744073709551616").unwrap();
+    env["integrity"]["content_hash"] = json!(bundle_content_hash(&env));
+    let err = verify_context_bundle(&env, WR, WORLD, Some(CR)).unwrap_err();
+    assert!(err.contains("outside +-(2^53-1)"), "{err}");
+}
