@@ -1,0 +1,166 @@
+name: Native candidate
+
+# Candidate builds only: builds, smoke-tests and packages native binaries on
+# native runners and uploads them as workflow artifacts with SHA256SUMS.
+# Never publishes to crates.io or creates a GitHub Release.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "feat/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+            archive: tar.gz
+            deb_arch: amd64
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04-arm
+            archive: tar.gz
+            deb_arch: arm64
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            archive: zip
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            archive: tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        shell: bash
+        run: cargo build --release --locked -p swe-seed
+
+      - name: Test workspace
+        shell: bash
+        run: cargo test --workspace --locked
+
+      - name: Package
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(./target/release/swe-seed --version | awk '{print $2}')"
+          NAME="swe-seed-${VERSION}-${{ matrix.target }}"
+          EXE="swe-seed"
+          case "${{ matrix.target }}" in *windows*) EXE="swe-seed.exe";; esac
+          STAGE="$RUNNER_TEMP/stage/$NAME"
+          rm -rf "$RUNNER_TEMP/stage"
+          mkdir -p "$STAGE"
+          cp "target/release/$EXE" "$STAGE/$EXE"
+          echo "$VERSION" > "$STAGE/VERSION"
+          mkdir -p dist
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            ( cd "$RUNNER_TEMP/stage" && 7z a -tzip "$GITHUB_WORKSPACE/dist/$NAME.zip" "$NAME" >/dev/null )
+          else
+            tar -C "$RUNNER_TEMP/stage" -czf "dist/$NAME.tar.gz" "$NAME"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build Debian package
+        if: matrix.deb_arch != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.pkg.outputs.version }}"
+          ROOT="$RUNNER_TEMP/deb/swe-seed_${VERSION}_${{ matrix.deb_arch }}"
+          rm -rf "$RUNNER_TEMP/deb"
+          mkdir -p "$ROOT/DEBIAN" "$ROOT/usr/bin"
+          install -m 0755 target/release/swe-seed "$ROOT/usr/bin/swe-seed"
+          printf '%s\n' \
+            "Package: swe-seed" \
+            "Version: ${VERSION}" \
+            "Architecture: ${{ matrix.deb_arch }}" \
+            "Maintainer: GodSpeedAI <noreply@godspeedai.invalid>" \
+            "Section: devel" \
+            "Priority: optional" \
+            "Depends: libc6 (>= 2.35)" \
+            "Description: SWE_SEED governed software-work harness CLI" \
+            > "$ROOT/DEBIAN/control"
+          dpkg-deb --root-owner-group --build "$ROOT" "dist/swe-seed_${VERSION}_${{ matrix.deb_arch }}.deb"
+
+      - name: Smoke test (clean-room, installed-style binary)
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAMPER=""
+          case "${{ matrix.target }}" in *windows*) ;; *) TAMPER="--tamper";; esac
+          BIN="target/release/swe-seed"
+          case "${{ matrix.target }}" in *windows*) BIN="target/release/swe-seed.exe";; esac
+          scripts/native-smoke.sh "$BIN" $TAMPER
+
+      - name: Smoke test extracted Debian package
+        if: matrix.deb_arch != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEB="$(ls dist/*.deb)"
+          X="$RUNNER_TEMP/deb-extract"
+          rm -rf "$X" && mkdir -p "$X"
+          dpkg-deb -x "$DEB" "$X"
+          dpkg-deb -I "$DEB" | grep -E "Architecture: ${{ matrix.deb_arch }}"
+          scripts/native-smoke.sh "$X/usr/bin/swe-seed" --tamper
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  checksums:
+    name: SHA256SUMS
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: dist
+
+      - name: Write SHA256SUMS
+        shell: bash
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          ls -la
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-SHA256SUMS
+          path: dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
