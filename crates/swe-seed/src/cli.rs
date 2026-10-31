@@ -91,6 +91,15 @@ enum Command {
     },
     /// List supported host adapters and capability matrices
     Hosts,
+    /// Install the versioned harness resource bundle into a project (idempotent, never overwrites customizations)
+    Init {
+        /// Project directory (default: current directory)
+        #[arg(long)]
+        target: Option<PathBuf>,
+        /// Report planned changes without writing anything
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Plan context intake for a task (spec 0015)
     ContextPlan { task: String },
     /// Normalized hook runtime (spec 0005)
@@ -178,6 +187,40 @@ fn discover_root() -> Result<PathBuf> {
     Ok(std::env::current_dir()?)
 }
 
+/// `swe-seed init`: install the harness bundle into `target` (default: cwd).
+/// Never uses `discover_root`: the target is explicit, so init cannot touch an
+/// unrelated ancestor harness.
+fn run_init(target: Option<PathBuf>, dry_run: bool) -> Result<ExitCode> {
+    use swe_seed_core::bootstrap::{self, Action};
+    let target = match target {
+        Some(t) => t,
+        None => std::env::current_dir()?,
+    };
+    let report = bootstrap::init(&target, dry_run)?;
+    println!(
+        "swe-seed init {} {} (bundle {})",
+        if dry_run { "dry-run" } else { "applied" },
+        target.display(),
+        report.bundle_version
+    );
+    for (rel, action) in &report.entries {
+        if *action != Action::Unchanged {
+            println!("  {:<17} .agent-harness/{rel}", action.label());
+        }
+    }
+    println!(
+        "summary: create={} unchanged={} update-available={} conflict={}",
+        report.count(Action::Create),
+        report.count(Action::Unchanged),
+        report.count(Action::UpdateAvailable),
+        report.count(Action::Conflict)
+    );
+    if report.count(Action::Conflict) > 0 {
+        println!("conflicts: customized files were preserved; resolve manually or delete them to take the bundled version");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 pub fn run() -> Result<ExitCode> {
     let cli = Cli::parse();
     let Some(cmd) = cli.command else {
@@ -200,6 +243,7 @@ pub fn run() -> Result<ExitCode> {
         } => host_cli::run_sync(&root, host, dry_run, prune),
         Command::Rollback { host } => host_cli::run_rollback(&root, host),
         Command::Hosts => host_cli::run_hosts(),
+        Command::Init { target, dry_run } => run_init(target, dry_run),
         Command::ContextPlan { task } => run_context_plan(&root, &task),
         Command::AgentHooks { action } => run_agent_hooks(action, &root),
         Command::RenderSkills => run_render_skills(&root),
