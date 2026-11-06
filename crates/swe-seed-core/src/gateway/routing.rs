@@ -270,9 +270,19 @@ impl BackendTransport for HttpTransport {
             .write_all(req.as_bytes())
             .map_err(io_to_unavailable(&self.host))?;
         let mut bytes = Vec::new();
-        stream
-            .read_to_end(&mut bytes)
-            .map_err(io_to_unavailable(&self.host))?;
+        if let Err(e) = stream.read_to_end(&mut bytes) {
+            // A peer may reset the connection right after sending a complete
+            // `Connection: close` response (common on Windows); bytes already
+            // read are kept. A truncated body still fails JSON parsing below,
+            // and a reset before any byte arrived stays unavailable.
+            let reset = matches!(
+                e.kind(),
+                std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted
+            );
+            if !(reset && !bytes.is_empty()) {
+                return Err(io_to_unavailable(&self.host)(e));
+            }
+        }
         let text = String::from_utf8_lossy(&bytes);
         let body_start = text
             .find("\r\n\r\n")
