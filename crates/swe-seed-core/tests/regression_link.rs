@@ -2,6 +2,8 @@
 //! on recurrence (spec 0016 §4, §6). A regression without a linked check is
 //! rejected; the linked check re-fires when the failure mode reappears.
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -67,18 +69,7 @@ fn require_future_rule_without_content_is_rejected() {
 fn linked_check_fails_when_failure_mode_recurs() {
     // The regression's linked EvalCheck must FAIL when the captured failure
     // mode reappears in the detection target, and PASS when it's gone.
-    let root = std::env::temp_dir().join(format!(
-        "swe-seed-reg-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let root = common::unique_temp_dir("swe-seed-reg");
     fs::create_dir_all(&root).unwrap();
 
     let c = case("reg-3", "TODO: refactor this", "chk-reg-3");
@@ -108,18 +99,7 @@ fn linked_check_fails_when_failure_mode_recurs() {
 fn future_rule_require_prefix_builds_a_required_pattern_check() {
     // A `require:` future rule flips the linked check to a required-pattern
     // check (the affirmative form of the same enforcement).
-    let root = std::env::temp_dir().join(format!(
-        "swe-seed-reg2-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let root = common::unique_temp_dir("swe-seed-reg2");
     fs::create_dir_all(&root).unwrap();
 
     let mut c = case("reg-4", "missing guard", "chk-reg-4");

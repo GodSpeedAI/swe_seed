@@ -1,7 +1,8 @@
 //! routing_gate: a trace with a RouteSelected genesis is allowed; a trace
 //! without one (or no ledger at all) is blocked, fail-closed (Phase A gate).
 
-use std::sync::atomic::{AtomicU64, Ordering};
+mod common;
+
 use std::sync::Once;
 
 use swe_seed_core::routing_gate::{route_gate, RouteGate};
@@ -17,23 +18,7 @@ fn temp_root() -> std::path::PathBuf {
             std::env::temp_dir().join(format!("swe-seed-gate-anchor-{}.key", std::process::id()));
         std::env::set_var(ANCHOR_KEY_ENV, &key);
     });
-    // A per-process counter keeps parallel tests from ever sharing a root: a
-    // clock-only name can collide on coarse timers, and one test's
-    // remove_dir_all then deletes another's open ledger.
-    static SEQ: AtomicU64 = AtomicU64::new(0);
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-gate-{}-{}-{}",
-        std::process::id(),
-        SEQ.fetch_add(1, Ordering::Relaxed),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let dir = common::unique_temp_dir("swe-seed-gate");
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }

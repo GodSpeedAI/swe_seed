@@ -1,20 +1,11 @@
+mod common;
+
 use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
 fn temp_root(label: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-cr-{label}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let dir = common::unique_temp_path(&format!("swe-seed-cr-{label}"), "");
     fs::create_dir_all(&dir).expect("create temp root");
     dir
 }

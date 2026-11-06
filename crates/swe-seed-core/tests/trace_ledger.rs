@@ -1,6 +1,8 @@
 //! trace_ledger: hash-chained append-only log. A route-decision genesis,
 //! tamper-evidence on partial edits, and a chain-root accessor (Phase A).
 
+mod common;
+
 use std::sync::Once;
 
 use swe_seed_core::trace_ledger::{
@@ -23,18 +25,7 @@ fn use_test_anchor_key() {
 
 fn temp_db() -> std::path::PathBuf {
     use_test_anchor_key();
-    std::env::temp_dir().join(format!(
-        "swe-seed-ledger-{}-{}.sqlite3",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ))
+    common::unique_temp_path("swe-seed-ledger", ".sqlite3")
 }
 
 #[test]

@@ -1,6 +1,8 @@
 //! context_plan: the budget is enforced — excluded files are removed, raw
 //! output is capped, and stale context is warned (spec 0015).
 
+mod common;
+
 use std::fs::{self, FileTimes};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -17,18 +19,7 @@ fn real_root() -> PathBuf {
 }
 
 fn temp_root() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-ctx-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let dir = common::unique_temp_dir("swe-seed-ctx");
     fs::create_dir_all(&dir).unwrap();
     dir
 }

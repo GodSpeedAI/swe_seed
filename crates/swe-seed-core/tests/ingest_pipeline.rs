@@ -1,6 +1,8 @@
 //! ingest_pipeline: discover→fetch→scan→normalize→project→verify yields
 //! SkillIR with provenance; a blocking scan prevents projection (spec 0007).
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -20,18 +22,7 @@ fn real_root() -> PathBuf {
 
 fn fixture_root() -> PathBuf {
     // A temp root whose `.agent-harness/skills/` holds the fixture skill.
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-skill-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let dir = common::unique_temp_dir("swe-seed-skill");
     let skills = dir.join(".agent-harness/skills/fixture");
     fs::create_dir_all(&skills).unwrap();
     fs::copy(

@@ -2,6 +2,8 @@
 //! Pending; blocking statuses don't activate; the gate maps statuses correctly
 //! (spec 0007).
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -89,18 +91,7 @@ fn nonzero_skillpector_exit_is_blocking_error() {
 #[test]
 fn exceptions_persist_and_lift_blocks() {
     // Approve persists a waived finding id; reloading it unblocks a critical scan.
-    let store = std::env::temp_dir().join(format!(
-        "swe-seed-exc-{}-{}.json",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let store = common::unique_temp_path("swe-seed-exc", ".json");
     let _ = exceptions_store_path(&store); // exercise the path helper import
 
     let mut ex = Exceptions::new();

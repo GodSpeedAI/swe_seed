@@ -1,6 +1,8 @@
 //! eval_declared_proof: a spec's command_check exported as a proof for an independent verifier
 //! (readiness P05). Pinned by digest, parsed by SWE_SEED, read-only, and the same verdict as `run_eval`.
 
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -11,18 +13,7 @@ use swe_seed_core::eval::{
 };
 
 fn temp_root(tag: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-proof-{tag}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let dir = common::unique_temp_path(&format!("swe-seed-proof-{tag}"), "");
     fs::create_dir_all(&dir).unwrap();
     dir
 }

@@ -2,6 +2,8 @@
 //! compaction. Falsification: a secret-pattern value must NOT survive in the
 //! written log (spec 0005).
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -15,18 +17,7 @@ use swe_seed_core::hooks::{
 };
 
 fn temp_log_root() -> PathBuf {
-    std::env::temp_dir().join(format!(
-        "swe-seed-hooks-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ))
+    common::unique_temp_dir("swe-seed-hooks")
 }
 
 fn redaction_cfg() -> RedactionConfig {

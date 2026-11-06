@@ -3,6 +3,8 @@
 //! journal replay after "crash", and a concurrent edge test proving counters
 //! never overrun. Run: `cargo test gateway_governance`.
 
+mod common;
+
 use std::collections::HashSet;
 use std::fs;
 use std::sync::Arc;
@@ -11,18 +13,7 @@ use std::time::Duration;
 use swe_seed_core::gateway::{generate_session_id, GatewayEffectiveLimits, Governance};
 
 fn temp_root(label: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-gw-gov-{label}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let dir = common::unique_temp_path(&format!("swe-seed-gw-gov-{label}"), "");
     fs::create_dir_all(&dir).unwrap();
     dir
 }

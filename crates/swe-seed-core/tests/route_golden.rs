@@ -4,6 +4,8 @@
 //! Timestamps (trace_id, created_at) are inherently non-reproducible, so parity
 //! is asserted on the deterministic routing object + task + decision_basis.
 
+mod common;
+
 use std::path::PathBuf;
 
 use serde_json::Value;
@@ -78,18 +80,7 @@ fn all_required_job_types_resolve() {
 fn route_decisions_reject_symlinked_directories() {
     use std::os::unix::fs::symlink;
 
-    let root = std::env::temp_dir().join(format!(
-        "swe-seed-route-symlink-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() << 16
-            | ({
-                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
-            } as u128)
-    ));
+    let root = common::unique_temp_dir("swe-seed-route-symlink");
     let decisions = root.join(".agent-harness/traces/route-decisions");
     let target = root.join("outside");
     std::fs::create_dir_all(decisions.parent().unwrap()).unwrap();
