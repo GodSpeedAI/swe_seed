@@ -2,6 +2,8 @@
 //! real Context Kernel over MCP stdio through the canonical E2/E3 boundary
 //! (convergence T02). Skips when SWE_SEED_CONTEXT_KERNEL_BIN is unset.
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -48,14 +50,7 @@ fn context_kernel_returns_cited_packet_satisfying_policy() {
         }
     };
 
-    let corpus_dir = std::env::temp_dir().join(format!(
-        "swe-seed-ctx-corpus-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let corpus_dir = common::unique_temp_dir("swe-seed-ctx-corpus");
     let docs = corpus_dir.join("policy");
     fs::create_dir_all(&docs).unwrap();
     fs::write(

@@ -2,6 +2,8 @@
 //! The same SkillIR produces byte-identical output across renders, and each
 //! target carries the skill's identity/procedure/evidence (spec 0007).
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -16,14 +18,7 @@ fn real_root() -> PathBuf {
 
 fn fixture_skill() -> swe_seed_core::skill::SkillRecord {
     // Copy the fixture into a temp skills dir so ingest_one resolves it.
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-render-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-render");
     let skills = dir.join(".agent-harness/skills/fixture");
     fs::create_dir_all(&skills).unwrap();
     let target = skills.join("fixture-skill.json");
@@ -99,22 +94,8 @@ fn render_skill_writes_to_disk_deterministically() {
     let rec = fixture_skill();
     let targets = render_skill(&rec.ir);
 
-    let dir_a = std::env::temp_dir().join(format!(
-        "swe-seed-golden-a-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    let dir_b = std::env::temp_dir().join(format!(
-        "swe-seed-golden-b-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir_a = common::unique_temp_dir("swe-seed-golden-a");
+    let dir_b = common::unique_temp_dir("swe-seed-golden-b");
 
     for dir in [&dir_a, &dir_b] {
         for t in &targets {

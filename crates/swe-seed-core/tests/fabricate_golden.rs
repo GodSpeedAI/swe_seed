@@ -2,6 +2,8 @@
 //! chain; the rendered output round-trips and is stable against a committed
 //! golden fixture (spec 0017 §1, §4).
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -17,14 +19,7 @@ fn root() -> PathBuf {
 }
 
 fn tempdir() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-fab-golden-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-fab-golden");
     fs::create_dir_all(&dir).unwrap();
     dir
 }
