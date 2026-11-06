@@ -272,14 +272,14 @@ impl BackendTransport for HttpTransport {
         let mut bytes = Vec::new();
         if let Err(e) = stream.read_to_end(&mut bytes) {
             // A peer may reset the connection right after sending a complete
-            // `Connection: close` response (common on Windows); bytes already
-            // read are kept. A truncated body still fails JSON parsing below,
-            // and a reset before any byte arrived stays unavailable.
+            // `Connection: close` response (common on Windows). Accept that
+            // only when the response is complete by its own framing; anything
+            // else (reset before the headers, short body, timeout) fails.
             let reset = matches!(
                 e.kind(),
                 std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted
             );
-            if !(reset && !bytes.is_empty()) {
+            if !(reset && response_complete_by_framing(&bytes, false)) {
                 return Err(io_to_unavailable(&self.host)(e));
             }
         }
@@ -352,6 +352,76 @@ impl BackendTransport for MockTransport {
             backend: "mock".into(),
             reason: format!("malformed mock response: {e}"),
         })
+    }
+}
+
+/// True when `bytes` hold a whole HTTP/1.1 response judged by framing alone:
+/// no-body status (1xx/204/304) or a HEAD request, a fully received
+/// `Content-Length` body, or a chunked body ended by its zero-length chunk.
+/// A close-delimited response (neither header) can never be proven complete.
+fn response_complete_by_framing(bytes: &[u8], head_request: bool) -> bool {
+    let Some(split) = bytes.windows(4).position(|w| w == b"\r\n\r\n") else {
+        return false;
+    };
+    let head = String::from_utf8_lossy(&bytes[..split]);
+    let body = &bytes[split + 4..];
+    let mut lines = head.split("\r\n");
+    let status: u16 = lines
+        .next()
+        .and_then(|l| l.split_whitespace().nth(1))
+        .and_then(|c| c.parse().ok())
+        .unwrap_or(0);
+    if head_request || (100..200).contains(&status) || status == 204 || status == 304 {
+        return status != 0;
+    }
+    let mut content_length: Option<usize> = None;
+    let mut chunked = false;
+    for line in lines {
+        let Some((name, value)) = line.split_once(':') else {
+            continue;
+        };
+        let (name, value) = (name.trim().to_ascii_lowercase(), value.trim());
+        if name == "content-length" {
+            content_length = value.parse().ok();
+        } else if name == "transfer-encoding" && value.to_ascii_lowercase().contains("chunked") {
+            chunked = true;
+        }
+    }
+    if chunked {
+        return chunked_body_ended(body);
+    }
+    content_length.is_some_and(|n| body.len() >= n)
+}
+
+/// Walk chunk framing; true only if the terminating zero-length chunk and the
+/// final blank line (after any trailers) are present.
+fn chunked_body_ended(mut body: &[u8]) -> bool {
+    loop {
+        let Some(eol) = body.windows(2).position(|w| w == b"\r\n") else {
+            return false;
+        };
+        let size_text = String::from_utf8_lossy(&body[..eol]);
+        let size_text = size_text.split(';').next().unwrap_or("").trim();
+        let Ok(size) = usize::from_str_radix(size_text, 16) else {
+            return false;
+        };
+        body = &body[eol + 2..];
+        if size == 0 {
+            // Trailers (possibly none) end with an empty line.
+            loop {
+                let Some(eol) = body.windows(2).position(|w| w == b"\r\n") else {
+                    return false;
+                };
+                if eol == 0 {
+                    return true;
+                }
+                body = &body[eol + 2..];
+            }
+        }
+        if body.len() < size + 2 {
+            return false;
+        }
+        body = &body[size + 2..];
     }
 }
 
@@ -480,5 +550,43 @@ mod tests {
             self.tally.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             self.inner.send_request(r, t)
         }
+    }
+}
+
+#[cfg(test)]
+mod framing_tests {
+    use super::response_complete_by_framing as done;
+
+    #[test]
+    fn content_length_must_be_fully_received() {
+        let short = b"HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\n{\"a\"";
+        assert!(!done(short, false), "6 bytes expected, 4 received");
+        assert!(done(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\n{\"a\"", false));
+        assert!(done(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}", false));
+        // Valid JSON but shorter than the declared length is not complete.
+        assert!(!done(b"HTTP/1.1 200 OK\r\nContent-Length: 9\r\n\r\n{}", false));
+    }
+
+    #[test]
+    fn chunked_needs_terminating_zero_chunk() {
+        let head = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n";
+        assert!(done(format!("{head}2\r\n{{}}\r\n0\r\n\r\n").as_bytes(), false));
+        assert!(!done(format!("{head}2\r\n{{}}\r\n").as_bytes(), false));
+        assert!(!done(format!("{head}2\r\n{{}}\r\n0\r\n").as_bytes(), false));
+        assert!(!done(format!("{head}5\r\n{{}}").as_bytes(), false));
+    }
+
+    #[test]
+    fn no_body_statuses_and_head_are_complete_with_headers() {
+        assert!(done(b"HTTP/1.1 204 No Content\r\n\r\n", false));
+        assert!(done(b"HTTP/1.1 304 Not Modified\r\nContent-Length: 50\r\n\r\n", false));
+        assert!(done(b"HTTP/1.1 200 OK\r\nContent-Length: 50\r\n\r\n", true));
+    }
+
+    #[test]
+    fn close_delimited_headerless_or_empty_is_never_complete() {
+        assert!(!done(b"HTTP/1.1 200 OK\r\n\r\n{}", false));
+        assert!(!done(b"HTTP/1.1 200 OK\r\nContent-Le", false));
+        assert!(!done(b"", false));
     }
 }
