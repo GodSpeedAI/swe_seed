@@ -91,7 +91,8 @@ fn stale_context_is_warned() {
     // Force stale.md's mtime 60 days in the past.
     let old = SystemTime::now() - Duration::from_secs(60 * 24 * 3600);
     let times = FileTimes::new().set_modified(old).set_accessed(old);
-    let f = std::fs::File::open(&stale).unwrap();
+    // Windows needs write access to change file times.
+    let f = std::fs::OpenOptions::new().write(true).open(&stale).unwrap();
     f.set_times(times).unwrap();
     drop(f);
 
