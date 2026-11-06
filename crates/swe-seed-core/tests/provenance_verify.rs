@@ -111,7 +111,11 @@ fn verify_dir_collects_problems_and_records() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let (records, problems) = verify_dir(&nope).unwrap();
     assert!(records.is_empty());
@@ -127,7 +131,11 @@ fn strict_manifest_verification_fails_when_active_capability_records_are_missing
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();

@@ -54,7 +54,11 @@ fn context_kernel_returns_cited_packet_satisfying_policy() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let docs = corpus_dir.join("policy");
     fs::create_dir_all(&docs).unwrap();

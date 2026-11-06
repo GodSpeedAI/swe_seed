@@ -1022,7 +1022,15 @@ mod tests {
             body.len()
         )
         .unwrap();
-        std::io::read_to_string(s).unwrap_or_default()
+        // Keep any bytes read before an error (a peer reset can follow a
+        // complete response) and surface the error instead of an empty string.
+        let mut buf = Vec::new();
+        let res = std::io::Read::read_to_end(&mut s, &mut buf);
+        let mut out = String::from_utf8_lossy(&buf).into_owned();
+        if let Err(e) = res {
+            out.push_str(&format!("\n[read error: {e}]"));
+        }
+        out
     }
 
     #[test]

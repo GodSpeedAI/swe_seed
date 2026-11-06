@@ -115,7 +115,11 @@ fn write_keypair_rejects_unsafe_key_ids() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     std::fs::create_dir_all(&dir).unwrap();
     let secret = signing_key_from_bytes(&test_secret());
@@ -133,7 +137,11 @@ fn write_keypair_uses_private_key_owner_only_permissions() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     std::fs::create_dir_all(&dir).unwrap();
     let sec = signing_key_from_bytes(&test_secret());
@@ -158,7 +166,11 @@ fn write_keypair_corrects_existing_private_key_permissions() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let path = private_key_path(&dir, "test-key").unwrap();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -183,7 +195,11 @@ fn write_keypair_rejects_private_key_symlinks() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let path = private_key_path(&dir, "test-key").unwrap();
     let target = dir.join("target.key");
@@ -207,7 +223,11 @@ fn write_keypair_rejects_symlinked_private_key_directories() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let keys = dir.join(".swe-seed/federation/keys");
     let target = dir.join("outside");
@@ -231,7 +251,11 @@ fn write_keypair_rejects_symlinked_public_key_directories() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let keys = dir.join(".agent-harness/federation/keys");
     let target = dir.join("outside");

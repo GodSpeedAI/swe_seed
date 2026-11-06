@@ -22,7 +22,11 @@ fn fixture_skill() -> swe_seed_core::skill::SkillRecord {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let skills = dir.join(".agent-harness/skills/fixture");
     fs::create_dir_all(&skills).unwrap();
@@ -105,7 +109,11 @@ fn render_skill_writes_to_disk_deterministically() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let dir_b = std::env::temp_dir().join(format!(
         "swe-seed-golden-b-{}-{}",
@@ -113,7 +121,11 @@ fn render_skill_writes_to_disk_deterministically() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
 
     for dir in [&dir_a, &dir_b] {

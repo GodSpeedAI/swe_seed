@@ -23,7 +23,11 @@ fn temp_repo() -> PathBuf {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     fs::create_dir_all(dir.join("tests/fixtures")).unwrap();
     fs::copy(real.join("AGENTS.md"), dir.join("AGENTS.md")).unwrap();
@@ -121,7 +125,11 @@ fn doctor_warns_preserved_when_core_spec_missing() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     fs::create_dir_all(&dir).unwrap();
     let report = run_doctor(&dir);

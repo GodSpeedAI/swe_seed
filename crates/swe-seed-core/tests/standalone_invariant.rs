@@ -30,7 +30,11 @@ fn disabled_federation_dispatches_nothing() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     assert!(!sink.exists(), "precondition: sink absent");
 
@@ -76,7 +80,11 @@ fn enabled_but_emit_off_still_dispatches_nothing() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     let envelope = emit_work_requested("h", "wr", "a", "o", "r", "low", None);
     assert_eq!(dispatch(&cfg, &envelope, Some(&sink)), Dispatch::Suppressed);

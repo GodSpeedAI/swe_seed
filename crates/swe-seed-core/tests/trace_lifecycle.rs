@@ -26,7 +26,11 @@ fn temp_root() -> PathBuf {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     fs::create_dir_all(dir.join(".agent-harness/routes")).unwrap();
     for entry in fs::read_dir(real.join(".agent-harness/routes")).unwrap() {
@@ -222,7 +226,11 @@ fn trace_updates_stay_inside_the_repository() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos() << 16
+            | ({
+                static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xffff
+            } as u128)
     ));
     fixture_record("external", "outside")
         .save(&outside)
