@@ -402,6 +402,10 @@ fn chunked_body_ended(mut body: &[u8]) -> bool {
         };
         let size_text = String::from_utf8_lossy(&body[..eol]);
         let size_text = size_text.split(';').next().unwrap_or("").trim();
+        // Hex digits only: from_str_radix would also accept a leading '+'.
+        if size_text.is_empty() || !size_text.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return false;
+        }
         let Ok(size) = usize::from_str_radix(size_text, 16) else {
             return false;
         };
@@ -418,10 +422,14 @@ fn chunked_body_ended(mut body: &[u8]) -> bool {
                 body = &body[eol + 2..];
             }
         }
-        if body.len() < size + 2 {
+        // Checked: a hostile size must not overflow; overflow means incomplete.
+        let Some(end) = size.checked_add(2) else {
+            return false;
+        };
+        if body.len() < end {
             return false;
         }
-        body = &body[size + 2..];
+        body = &body[end..];
     }
 }
 
@@ -574,6 +582,22 @@ mod framing_tests {
         assert!(!done(format!("{head}2\r\n{{}}\r\n").as_bytes(), false));
         assert!(!done(format!("{head}2\r\n{{}}\r\n0\r\n").as_bytes(), false));
         assert!(!done(format!("{head}5\r\n{{}}").as_bytes(), false));
+    }
+
+    #[test]
+    fn hostile_chunk_sizes_are_not_complete() {
+        let head = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n";
+        // Overflowing size (usize::MAX, and one that overflows on +2).
+        let max = format!("{:x}", usize::MAX);
+        assert!(!done(format!("{head}{max}\r\nx\r\n0\r\n\r\n").as_bytes(), false));
+        let near = format!("{:x}", usize::MAX - 1);
+        assert!(!done(format!("{head}{near}\r\nx\r\n0\r\n\r\n").as_bytes(), false));
+        // Sign-prefixed or non-hex size fields.
+        assert!(!done(format!("{head}+2\r\n{{}}\r\n0\r\n\r\n").as_bytes(), false));
+        assert!(!done(format!("{head}+0\r\n\r\n").as_bytes(), false));
+        assert!(!done(format!("{head}\r\n0\r\n\r\n").as_bytes(), false));
+        // A chunk extension after valid hex is still fine.
+        assert!(done(format!("{head}2;ext=1\r\n{{}}\r\n0\r\n\r\n").as_bytes(), false));
     }
 
     #[test]
