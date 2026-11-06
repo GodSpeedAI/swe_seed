@@ -286,6 +286,7 @@ impl Runtime {
         write_response(&mut stream, status, &body).map_err(|e| GatewayError::InvalidRequest {
             reason: format!("write response: {e}"),
         })?;
+        linger_close(&mut stream);
         Ok(())
     }
 
@@ -593,6 +594,18 @@ fn write_response<W: Write>(stream: &mut W, status: u16, body: &str) -> std::io:
         body.len()
     )?;
     stream.flush()
+}
+
+/// Close a connection gracefully: send FIN, then wait briefly for the peer to
+/// close its side. Without this, a plain drop can surface on the client as a
+/// connection reset that discards the response (observed on Windows, where
+/// backend child processes can also hold inherited copies of the socket and
+/// delay or abort the close).
+fn linger_close(stream: &mut TcpStream) {
+    let _ = stream.shutdown(std::net::Shutdown::Write);
+    let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(1)));
+    let mut sink = [0u8; 256];
+    while matches!(std::io::Read::read(stream, &mut sink), Ok(n) if n > 0) {}
 }
 
 fn http_reason(status: u16) -> &'static str {
