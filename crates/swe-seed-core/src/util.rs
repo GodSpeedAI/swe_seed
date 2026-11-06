@@ -130,7 +130,7 @@ fn secure_write_unix(
             dir.0,
             temporary.as_ptr(),
             libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_CLOEXEC | libc::O_NOFOLLOW,
-            mode as libc::mode_t,
+            mode as libc::c_uint,
         )
     };
     if file_fd < 0 {
