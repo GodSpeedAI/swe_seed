@@ -596,16 +596,36 @@ fn write_response<W: Write>(stream: &mut W, status: u16, body: &str) -> std::io:
     stream.flush()
 }
 
+/// Total wall-clock budget and byte cap for the drain in [`linger_close`].
+const LINGER_DEADLINE: std::time::Duration = std::time::Duration::from_millis(400);
+const LINGER_BYTE_CAP: usize = 64 * 1024;
+
 /// Close a connection gracefully: send FIN, then wait briefly for the peer to
 /// close its side. Without this, a plain drop can surface on the client as a
 /// connection reset that discards the response (observed on Windows, where
 /// backend child processes can also hold inherited copies of the socket and
-/// delay or abort the close).
+/// delay or abort the close). The drain is bounded by a total deadline and a
+/// byte cap so a trickling peer cannot pin a pool worker.
 fn linger_close(stream: &mut TcpStream) {
     let _ = stream.shutdown(std::net::Shutdown::Write);
-    let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(1)));
-    let mut sink = [0u8; 256];
-    while matches!(std::io::Read::read(stream, &mut sink), Ok(n) if n > 0) {}
+    let start = std::time::Instant::now();
+    let mut drained = 0usize;
+    let mut sink = [0u8; 1024];
+    while drained < LINGER_BYTE_CAP {
+        let Some(left) = LINGER_DEADLINE.checked_sub(start.elapsed()) else {
+            break;
+        };
+        if stream
+            .set_read_timeout(Some(left.max(std::time::Duration::from_millis(1))))
+            .is_err()
+        {
+            break;
+        }
+        match std::io::Read::read(stream, &mut sink) {
+            Ok(n) if n > 0 => drained += n,
+            _ => break,
+        }
+    }
 }
 
 fn http_reason(status: u16) -> &'static str {
@@ -1044,6 +1064,34 @@ mod tests {
             out.push_str(&format!("\n[read error: {e}]"));
         }
         out
+    }
+
+    #[test]
+    fn linger_close_is_bounded_against_a_trickling_peer() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let stop2 = stop.clone();
+        let peer = std::thread::spawn(move || {
+            let mut c = std::net::TcpStream::connect(addr).unwrap();
+            // One byte every 50 ms for up to 10 s, until told to stop.
+            for _ in 0..200 {
+                if stop2.load(std::sync::atomic::Ordering::Relaxed) || c.write_all(b"x").is_err() {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+        });
+        let (mut server_side, _) = listener.accept().unwrap();
+        let started = std::time::Instant::now();
+        linger_close(&mut server_side);
+        let elapsed = started.elapsed();
+        stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        peer.join().unwrap();
+        assert!(
+            elapsed < std::time::Duration::from_millis(1500),
+            "linger_close was not bounded: {elapsed:?}"
+        );
     }
 
     #[test]
