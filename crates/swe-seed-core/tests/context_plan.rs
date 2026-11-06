@@ -1,6 +1,8 @@
 //! context_plan: the budget is enforced — excluded files are removed, raw
 //! output is capped, and stale context is warned (spec 0015).
 
+mod common;
+
 use std::fs::{self, FileTimes};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -17,14 +19,7 @@ fn real_root() -> PathBuf {
 }
 
 fn temp_root() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-ctx-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-ctx");
     fs::create_dir_all(&dir).unwrap();
     dir
 }
@@ -87,7 +82,8 @@ fn stale_context_is_warned() {
     // Force stale.md's mtime 60 days in the past.
     let old = SystemTime::now() - Duration::from_secs(60 * 24 * 3600);
     let times = FileTimes::new().set_modified(old).set_accessed(old);
-    let f = std::fs::File::open(&stale).unwrap();
+    // Windows needs write access to change file times.
+    let f = std::fs::OpenOptions::new().write(true).open(&stale).unwrap();
     f.set_times(times).unwrap();
     drop(f);
 

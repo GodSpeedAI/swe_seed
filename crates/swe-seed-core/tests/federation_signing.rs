@@ -3,6 +3,8 @@
 //! the cross-repo parity lock — SEA-Forge's Python verifier MUST reproduce the
 //! same signature from the same vector.
 
+mod common;
+
 use swe_seed_core::federation::{
     canonical_signing_string, private_key_path, public_key_b64, public_key_from_b64,
     public_key_path, sign_envelope, signing_key_from_bytes, verify_envelope, write_keypair,
@@ -109,14 +111,7 @@ fn key_paths_reject_unsafe_key_ids() {
 
 #[test]
 fn write_keypair_rejects_unsafe_key_ids() {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-unsafe-key-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-unsafe-key");
     std::fs::create_dir_all(&dir).unwrap();
     let secret = signing_key_from_bytes(&test_secret());
     for key_id in ["../escape", "/tmp/escape", "a/b", "..", "", "bad key"] {
@@ -127,14 +122,7 @@ fn write_keypair_rejects_unsafe_key_ids() {
 
 #[test]
 fn write_keypair_uses_private_key_owner_only_permissions() {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-keypair-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-keypair");
     std::fs::create_dir_all(&dir).unwrap();
     let sec = signing_key_from_bytes(&test_secret());
     let (_pub_path, priv_path) = write_keypair(&dir, "test-key", &sec).unwrap();
@@ -152,14 +140,7 @@ fn write_keypair_uses_private_key_owner_only_permissions() {
 fn write_keypair_corrects_existing_private_key_permissions() {
     use std::os::unix::fs::PermissionsExt;
 
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-existing-key-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-existing-key");
     let path = private_key_path(&dir, "test-key").unwrap();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, "old-key").unwrap();
@@ -177,14 +158,7 @@ fn write_keypair_corrects_existing_private_key_permissions() {
 fn write_keypair_rejects_private_key_symlinks() {
     use std::os::unix::fs::symlink;
 
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-symlink-key-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-symlink-key");
     let path = private_key_path(&dir, "test-key").unwrap();
     let target = dir.join("target.key");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -201,14 +175,7 @@ fn write_keypair_rejects_private_key_symlinks() {
 fn write_keypair_rejects_symlinked_private_key_directories() {
     use std::os::unix::fs::symlink;
 
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-symlink-key-dir-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-symlink-key-dir");
     let keys = dir.join(".swe-seed/federation/keys");
     let target = dir.join("outside");
     std::fs::create_dir_all(keys.parent().unwrap()).unwrap();
@@ -225,14 +192,7 @@ fn write_keypair_rejects_symlinked_private_key_directories() {
 fn write_keypair_rejects_symlinked_public_key_directories() {
     use std::os::unix::fs::symlink;
 
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-symlink-public-key-dir-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-symlink-public-key-dir");
     let keys = dir.join(".agent-harness/federation/keys");
     let target = dir.join("outside");
     std::fs::create_dir_all(keys.parent().unwrap()).unwrap();

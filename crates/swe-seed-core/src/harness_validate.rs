@@ -126,9 +126,7 @@ const INCOMPLETE_SCAN_ROOTS: &[&str] = &[
 ];
 
 fn rel(root: &Path, path: &Path) -> String {
-    path.strip_prefix(root)
-        .map(|p| p.display().to_string())
-        .unwrap_or_else(|_| path.display().to_string())
+    crate::util::rel_path(root, path)
 }
 
 fn harness_root(root: &Path) -> PathBuf {

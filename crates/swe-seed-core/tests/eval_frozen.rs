@@ -1,6 +1,8 @@
 //! eval_frozen: deterministic eval across the 4 classes, frozen-after-handoff
 //! enforcement, and live-pass-only promotion (a waived-only eval never passes).
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -14,14 +16,7 @@ fn real_root() -> PathBuf {
 }
 
 fn temp_root() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-eval-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-eval");
     fs::create_dir_all(&dir).unwrap();
     dir
 }

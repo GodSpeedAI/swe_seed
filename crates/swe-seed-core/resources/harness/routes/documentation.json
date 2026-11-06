@@ -1,0 +1,49 @@
+{
+  "id": "documentation",
+  "job_type": "documentation",
+  "purpose": "Create or update documentation that helps a reader act correctly.",
+  "semantic_triggers": [
+    "document",
+    "docs",
+    "readme",
+    "guide",
+    "how to",
+    "explain"
+  ],
+  "positive_examples": [
+    "document how to run local CI",
+    "add a how-to for rotating keys"
+  ],
+  "negative_examples": ["fix the failing test", "ship a release"],
+  "required_context": [
+    "AGENTS.md",
+    ".agent-harness/playbooks/10-frame-outcome.md",
+    ".agent-harness/playbooks/20-change-with-proof.md",
+    "docs/dev-harness/README.md",
+    ".agent-harness/memory/constraints.md"
+  ],
+  "required_skills": [],
+  "work_loop": [
+    "identify the reader and action the doc must support",
+    "choose how-to, explanation, or reference format",
+    "write concise task-oriented content",
+    "update validation when docs are required by contract",
+    "run proof commands and read the output"
+  ],
+  "required_artifacts": [
+    "documentation change",
+    "reader/action note",
+    "verification evidence"
+  ],
+  "proof": ["just ci"],
+  "done_when": [
+    "the doc supports a concrete reader action",
+    "the doc is in the right information shape",
+    "proof commands pass"
+  ],
+  "failure_modes": [
+    "doc restates obvious commands without intent",
+    "doc has no verification path"
+  ],
+  "fallback_policy": "If audience or desired action is unclear, choose the most operational interpretation and record it."
+}

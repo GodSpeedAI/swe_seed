@@ -8,6 +8,8 @@
 //! here from this REAL emitter output (see
 //! sea-rs/crates/sea-forge-server/tests/convergence_t04_governed_ingress.rs).
 
+mod common;
+
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
@@ -21,7 +23,7 @@ use swe_seed_core::federation::{
 };
 
 fn tmp_dir(tag: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("swe-seed-t04-{}-{}", tag, std::process::id()));
+    let d = common::unique_temp_dir(&format!("swe-seed-t04-{tag}"));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d

@@ -1,6 +1,8 @@
 //! routing_gate: a trace with a RouteSelected genesis is allowed; a trace
 //! without one (or no ledger at all) is blocked, fail-closed (Phase A gate).
 
+mod common;
+
 use std::sync::Once;
 
 use swe_seed_core::routing_gate::{route_gate, RouteGate};
@@ -16,14 +18,7 @@ fn temp_root() -> std::path::PathBuf {
             std::env::temp_dir().join(format!("swe-seed-gate-anchor-{}.key", std::process::id()));
         std::env::set_var(ANCHOR_KEY_ENV, &key);
     });
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-gate-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-gate");
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }

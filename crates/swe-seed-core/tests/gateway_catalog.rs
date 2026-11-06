@@ -2,6 +2,8 @@
 //! deterministic namespace validation, canonical hashing, compact discovery
 //! with size caps + dropped-entry accounting. Run: `cargo test gateway_catalog`.
 
+mod common;
+
 use std::collections::HashMap;
 use std::fs;
 
@@ -192,14 +194,7 @@ fn config_rejects_duplicate_namespace_at_load_validation() {
 }
 
 fn temp_root() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-gw-cat-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-gw-cat");
     fs::create_dir_all(&dir).unwrap();
     dir
 }

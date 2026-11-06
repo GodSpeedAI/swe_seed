@@ -2,6 +2,8 @@
 //! one record per decision, fail-closed on write error.
 //! Run: `cargo test gateway_audit`.
 
+mod common;
+
 use std::fs;
 use std::io::Read;
 
@@ -9,14 +11,7 @@ use swe_seed_core::gateway::{AuditRecord, AuditWriter, GatewayError};
 use swe_seed_core::hooks::redact::RedactionConfig;
 
 fn temp_root(label: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-gw-audit-{label}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_path(&format!("swe-seed-gw-audit-{label}"), "");
     fs::create_dir_all(&dir).unwrap();
     dir
 }
