@@ -1516,6 +1516,49 @@ That is SWE_SEED.
 
 ---
 
+## Repository Blueprint
+
+This repository is documented with Elephant-and-Goldfish Model (EGM) contracts: each code-bearing directory carries a `README.md` stating its Interface, Invariants, Side Effects, and Verification, grounded in code citations. The rollup below is generated from those child contracts.
+
+### Subdirectories & System Boundaries
+
+- crates: [./crates/README.md](./crates/README.md) - Cargo workspace holding the `swe-seed` CLI binary and the `swe-seed-core` domain library; all Rust production code lives here.
+- scripts: [./scripts/README.md](./scripts/README.md) - Eleven standalone bash entry points (bootstrap, doctor, CI pipeline, SOPS secrets management, optional SQLite learning-store mirror) dispatched through the root [justfile](justfile).
+- docs: [./docs/dev-harness/README.md](./docs/dev-harness/README.md) and [./docs/specs/](./docs/specs/) - Documentation, numbered design specifications, and subsystem guides (no production code; outside the contract tree).
+- tests: pytest suite for the Python-side contracts and fixtures (test code; excluded from contract generation).
+- .agent-harness: canonical harness state (route cards, skills, playbooks, memory, traces, BAML contracts); projected into host-specific forms by `crates/swe-seed-core/src/adapters`.
+
+### Global Invariants
+
+- Routing is mandatory before work: the route gate fails closed on an absent ledger, failed chain verification, or a missing `RouteSelected` genesis ([./crates/swe-seed-core/src/README.md](./crates/swe-seed-core/src/README.md)).
+- Contracts are data: `.baml` files are read-only inputs, hand-written Rust types assert `BamlParity`, and no LLM runtime exists in the harness ([./crates/swe-seed-core/src/contracts/README.md](./crates/swe-seed-core/src/contracts/README.md)).
+- Claims require proof: per-claim evidence, live-pass-only promotion, opt-in `command_check`, and `redact_secrets` over all persisted text ([./crates/swe-seed-core/src/eval/README.md](./crates/swe-seed-core/src/eval/README.md)).
+- Durable writes are atomic and symlink-refusing (`secure_write`); ledger, audit, and journal appends are line-atomic or fsynced ([./crates/swe-seed-core/src/trace/README.md](./crates/swe-seed-core/src/trace/README.md), [./crates/swe-seed-core/src/gateway/README.md](./crates/swe-seed-core/src/gateway/README.md)).
+- Three-layer ownership (SweSeed → Harness → Fabricator) is downward-only; boundary violations set `passed=false` and block release ([./crates/swe-seed-core/src/seed/README.md](./crates/swe-seed-core/src/seed/README.md)).
+- Federation is standalone by default: with federation disabled, zero external calls are made ([./crates/swe-seed-core/src/federation/README.md](./crates/swe-seed-core/src/federation/README.md)).
+- Filesystem artifacts under `.agent-harness/` stay the source of truth; the SQLite learning store is a derived, rebuildable mirror ([./scripts/README.md](./scripts/README.md)).
+
+### Global Side Effects
+
+- SQLite stores: trace ledger (`.agent-harness/traces/ledger.sqlite3` plus anchors sidecar), hook-event index, gateway governance journal and audit JSONL under `.swe-seed/gateway/`, and the optional learning-store mirror.
+- Host projection: adapters write `.claude/`, `.codex/`, `.opencode/`, `.github/`, and `.agents/` hook configs, with first-sync snapshots under `.swe-seed/host-snapshots/` for rollback.
+- Harness state: `.agent-harness/traces/{records,route-decisions}/`, `.swe-seed/` (provenance records, seed manifest, eval-handoff pins, skill exceptions), `.fabricator/runs/` artifacts, `.agent-harness/render-targets/` skill renders.
+- External processes: SkillSpector scans, trusted eval `command_check` shells, stdio MCP backend transports, Context Kernel MCP client (federation only).
+- Network: the MCP gateway binds an HTTP/1.1 JSON-RPC listener (loopback by default; non-loopback requires TLS or tunnel); federation can POST to the Context Kernel.
+
+### System Verification
+
+- Run: `just ci`
+
+Narrower per-subsystem proof:
+
+```bash
+cargo test -p swe-seed        # CLI crate
+cargo test -p swe-seed-core   # domain library
+```
+
+---
+
 ## License
 
 No license file is currently included.
