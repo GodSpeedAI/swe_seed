@@ -48,7 +48,11 @@ pub fn load_redaction(root: &Path) -> anyhow::Result<RedactionConfig> {
         }),
         Err(e) => {
             // Missing file ⇒ standalone gateway: use the built-in policy.
-            if e.to_string().contains("No such file") || e.chain().any(|c| c.to_string().contains("No such file")) {
+            let missing = e.chain().any(|c| {
+                c.downcast_ref::<std::io::Error>()
+                    .is_some_and(|io| io.kind() == std::io::ErrorKind::NotFound)
+            });
+            if missing {
                 Ok(builtin_redaction())
             } else {
                 Err(e)

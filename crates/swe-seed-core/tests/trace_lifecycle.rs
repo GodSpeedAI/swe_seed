@@ -4,6 +4,8 @@
 //! Uses a temp root with the real route cards copied in, so routing works and
 //! nothing is written into the real `.agent-harness/traces/`.
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -20,14 +22,7 @@ fn real_root() -> PathBuf {
 /// A temp project root with `.agent-harness/routes/` populated from the repo.
 fn temp_root() -> PathBuf {
     let real = real_root();
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-trace-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-trace");
     fs::create_dir_all(dir.join(".agent-harness/routes")).unwrap();
     for entry in fs::read_dir(real.join(".agent-harness/routes")).unwrap() {
         let p = entry.unwrap().path();
@@ -216,14 +211,7 @@ fn trace_id_does_not_leak_secret_from_task() {
 #[test]
 fn trace_updates_stay_inside_the_repository() {
     let root = temp_root();
-    let outside = std::env::temp_dir().join(format!(
-        "swe-seed-external-trace-{}-{}.json",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let outside = common::unique_temp_path("swe-seed-external-trace", ".json");
     fixture_record("external", "outside")
         .save(&outside)
         .unwrap();

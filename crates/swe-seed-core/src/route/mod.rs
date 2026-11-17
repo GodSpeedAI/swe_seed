@@ -283,9 +283,7 @@ pub fn build_route_result(root: &Path, task: &str) -> Result<RouteResult> {
 
 /// Repo-relative path string (port of harness.rel).
 fn rel(root: &Path, path: &Path) -> String {
-    path.strip_prefix(root)
-        .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|_| path.to_string_lossy().into_owned())
+    crate::util::rel_path(root, path)
 }
 
 /// Write a route-decision record; returns its repo-relative path string.

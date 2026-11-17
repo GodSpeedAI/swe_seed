@@ -1,19 +1,14 @@
 //! harness_validate: the Rust structure validator reports concrete errors on
 //! an incomplete tree (CI integrity; port of the former `harness.py validate`).
 
+mod common;
+
 use std::fs;
 
 use swe_seed_core::harness_validate::validate;
 
 fn temp_root() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-hv-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-hv");
     fs::create_dir_all(&dir).unwrap();
     dir
 }

@@ -56,6 +56,12 @@ fn http_transport_forwards_method_and_params_and_preserves_id() {
             body
         );
         stream.write_all(resp.as_bytes()).unwrap();
+        // Close gracefully: FIN, then wait for the client to finish reading, so
+        // the response is not lost to a connection reset (Windows).
+        stream.shutdown(std::net::Shutdown::Write).ok();
+        stream.set_read_timeout(Some(Duration::from_secs(2))).ok();
+        let mut sink = [0u8; 64];
+        while matches!(stream.read(&mut sink), Ok(n) if n > 0) {}
     });
 
     // wait briefly for the listener to be ready (bind is already done, so ok)

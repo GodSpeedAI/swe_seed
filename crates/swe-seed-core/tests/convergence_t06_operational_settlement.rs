@@ -11,6 +11,8 @@
 //!   TOOTH 2 consuming OperationalSettlement directly as developmental
 //!          settlement ⇒ impossible / no promotion occurs
 
+mod common;
+
 use std::path::PathBuf;
 
 use serde_json::{json, Value};
@@ -24,7 +26,7 @@ use swe_seed_core::federation::{
 };
 
 fn tmp_dir(tag: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("swe-seed-t06-{}-{}", tag, std::process::id()));
+    let d = common::unique_temp_dir(&format!("swe-seed-t06-{tag}"));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d

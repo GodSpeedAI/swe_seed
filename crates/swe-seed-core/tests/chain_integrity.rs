@@ -2,6 +2,8 @@
 //! .passed = false → handoff blocked; EARS/Gherkin shape validation rejects
 //! malformed requirements/scenarios (spec 0017 §2–3).
 
+mod common;
+
 use swe_seed_core::fabricator::{
     build_chain, handoff, validate_ears_requirement, validate_gherkin_scenario,
     validate_semantic_chain, EARSPattern, EARSRequirement, GherkinScenario,
@@ -204,14 +206,7 @@ fn set_clause(req: &mut EARSRequirement, field: &str, val: Option<String>) {
 }
 
 fn tempdir() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-fab-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-fab");
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }

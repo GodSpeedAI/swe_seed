@@ -16,6 +16,8 @@
 //!   TOOTH 2 basis half: the settlement reference is CONTENT-ADDRESSED, so
 //!          altered upstream bytes cannot masquerade as the cited fact.
 
+mod common;
+
 use std::path::PathBuf;
 
 use serde_json::{json, Value};
@@ -32,7 +34,7 @@ use swe_seed_core::federation::{
 };
 
 fn tmp_dir(tag: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("swe-seed-t07-{}-{}", tag, std::process::id()));
+    let d = common::unique_temp_dir(&format!("swe-seed-t07-{tag}"));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d

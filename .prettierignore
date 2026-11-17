@@ -11,3 +11,5 @@ justfile
 tests/fixtures/
 .target/
 reference/
+# Byte-identical copies of harness route/skill/playbook cards; do not reformat.
+crates/swe-seed-core/resources/harness/

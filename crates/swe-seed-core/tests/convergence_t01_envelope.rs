@@ -8,6 +8,8 @@
 //!   TEETH-2: EvidenceRecorded forged by non-RealityTrace → rejected.
 //!   TEETH-3: conformant envelope with false claim → no truth consequence.
 
+mod common;
+
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
@@ -22,7 +24,7 @@ use swe_seed_core::federation::{
 };
 
 fn tmp_dir(tag: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("swe-seed-t01-{}-{}", tag, std::process::id()));
+    let d = common::unique_temp_dir(&format!("swe-seed-t01-{tag}"));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d

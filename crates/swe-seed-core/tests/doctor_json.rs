@@ -1,6 +1,8 @@
 //! doctor_json: doctor aggregates boundary + eval + frozen + drift; the JSON
 //! schema is stable; overall is Fail (non-zero) iff any check fails.
 
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -17,14 +19,7 @@ fn real_root() -> PathBuf {
 /// A temp repo with the files the core eval spec checks against.
 fn temp_repo() -> PathBuf {
     let real = real_root();
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-doctor-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-doctor");
     fs::create_dir_all(dir.join("tests/fixtures")).unwrap();
     fs::copy(real.join("AGENTS.md"), dir.join("AGENTS.md")).unwrap();
     fs::copy(real.join("README.md"), dir.join("README.md")).unwrap();
@@ -115,14 +110,7 @@ fn doctor_warns_preserved_when_core_spec_missing() {
     // No core eval spec → eval + frozen-integrity are both Warn; overall must
     // be Warn (not collapsed to Pass), and the frozen-integrity check is still
     // emitted so the report stays consistent (boundary + eval + frozen + drift).
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-doctor-nospec-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-doctor-nospec");
     fs::create_dir_all(&dir).unwrap();
     let report = run_doctor(&dir);
     assert_eq!(

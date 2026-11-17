@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+#[path = "common/mod.rs"]
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -8,14 +11,7 @@ use swe_seed_core::adapters::{
 };
 
 pub fn temp_root(label: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-{label}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_path(&format!("swe-seed-{label}"), "");
     fs::create_dir_all(&dir).expect("create temp root");
     dir
 }

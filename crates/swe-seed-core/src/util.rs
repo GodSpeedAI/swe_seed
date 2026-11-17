@@ -5,6 +5,19 @@ use chrono::Utc;
 use regex::Regex;
 use std::path::{Path, PathBuf};
 
+/// Repo-relative path string with `/` separators on every platform, so route,
+/// trace and validation output is identical on Windows and Unix. A path outside
+/// `root` is returned whole. Backslashes are only rewritten on Windows, where
+/// they are separators; on Unix a backslash is an ordinary filename character.
+pub fn rel_path(root: &Path, path: &Path) -> String {
+    let s = path.strip_prefix(root).unwrap_or(path).to_string_lossy().into_owned();
+    if cfg!(windows) {
+        s.replace('\\', "/")
+    } else {
+        s
+    }
+}
+
 /// Write a harness-managed file below `root` without following symlinked path
 /// components. On Unix the directory descriptor remains authoritative through
 /// the final atomic rename, closing pathname replacement races.
@@ -117,7 +130,7 @@ fn secure_write_unix(
             dir.0,
             temporary.as_ptr(),
             libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_CLOEXEC | libc::O_NOFOLLOW,
-            mode as libc::mode_t,
+            mode as libc::c_uint,
         )
     };
     if file_fd < 0 {
@@ -193,4 +206,22 @@ pub fn redact_secrets(text: &str) -> String {
         out = re.replace_all(&out, "[REDACTED]").into_owned();
     }
     out
+}
+
+#[cfg(test)]
+mod rel_path_tests {
+    use super::rel_path;
+    use std::path::Path;
+
+    #[test]
+    fn nested_path_uses_forward_slashes() {
+        let root = Path::new("repo");
+        let path = root.join(".agent-harness").join("routes").join("test.json");
+        assert_eq!(rel_path(root, &path), ".agent-harness/routes/test.json");
+    }
+
+    #[test]
+    fn path_outside_root_is_returned_whole() {
+        assert_eq!(rel_path(Path::new("repo"), Path::new("other/x.json")), "other/x.json");
+    }
 }

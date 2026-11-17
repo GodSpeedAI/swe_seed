@@ -3,6 +3,8 @@
 //! (no envelope dispatched, no sink touched), the authority gate resolves
 //! locally, and the inner stack still functions (spec 0011, hard invariant).
 
+mod common;
+
 use swe_seed_core::federation::{
     dispatch, emit_work_requested, resolve_from, Dispatch, FederationConfig, HashSource,
 };
@@ -24,14 +26,7 @@ fn disabled_federation_dispatches_nothing() {
     let cfg = FederationConfig::default();
     assert!(!cfg.emits());
 
-    let sink = std::env::temp_dir().join(format!(
-        "swe-seed-fed-sink-{}-{}.json",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let sink = common::unique_temp_path("swe-seed-fed-sink", ".json");
     assert!(!sink.exists(), "precondition: sink absent");
 
     let resolved = resolve_from(None, None, false); // SEA unreachable → fallback
@@ -70,14 +65,7 @@ fn enabled_but_emit_off_still_dispatches_nothing() {
     cfg.enabled = true;
     assert!(!cfg.emits(), "emit_envelope gates dispatch independently");
 
-    let sink = std::env::temp_dir().join(format!(
-        "swe-seed-fed-sink2-{}-{}.json",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let sink = common::unique_temp_path("swe-seed-fed-sink2", ".json");
     let envelope = emit_work_requested("h", "wr", "a", "o", "r", "low", None);
     assert_eq!(dispatch(&cfg, &envelope, Some(&sink)), Dispatch::Suppressed);
     assert!(!sink.exists());

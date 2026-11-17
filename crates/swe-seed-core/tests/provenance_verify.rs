@@ -1,6 +1,8 @@
 //! Fail-closed provenance verification (spec 0009). verify fails on missing
 //! source_hash/license_tag, code_copied=true, or a non-clear license status.
 
+mod common;
+
 use swe_seed_core::provenance::{
     verify_dir, verify_manifest_records, verify_record, ProvenanceProblem, ProvenanceRecord,
 };
@@ -80,7 +82,7 @@ fn malformed_source_hash_fails() {
 
 #[test]
 fn verify_dir_collects_problems_and_records() {
-    let dir = std::env::temp_dir().join(format!("swe-seed-prov-{}", std::process::id()));
+    let dir = common::unique_temp_dir("swe-seed-prov");
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
 
@@ -105,14 +107,7 @@ fn verify_dir_collects_problems_and_records() {
     // A missing directory is not an error (vacuously ok). Use a unique child
     // under temp_dir() left uncreated so the test is portable, not pinned to
     // an environment-specific absolute path.
-    let nope = std::env::temp_dir().join(format!(
-        "swe-seed-prov-missing-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let nope = common::unique_temp_dir("swe-seed-prov-missing");
     let (records, problems) = verify_dir(&nope).unwrap();
     assert!(records.is_empty());
     assert!(problems.is_empty());
@@ -121,14 +116,7 @@ fn verify_dir_collects_problems_and_records() {
 #[test]
 fn strict_manifest_verification_fails_when_active_capability_records_are_missing() {
     // Given: an assembled manifest with active capabilities and an empty provenance directory.
-    let dir = std::env::temp_dir().join(format!(
-        "swe-seed-prov-strict-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let dir = common::unique_temp_dir("swe-seed-prov-strict");
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let manifest = seed::assemble_default();
